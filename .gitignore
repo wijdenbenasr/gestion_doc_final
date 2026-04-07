@@ -1,0 +1,47 @@
+/vendor
+/node_modules
+/public/build
+/public/hot
+/public/storage
+
+# Laravel runtime / generated
+/bootstrap/cache/*.php
+/bootstrap/cache/*.json
+/storage/*.key
+/storage/logs/*.log
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+
+# Environment / secrets
+/.env
+/.env.backup
+/.env.production
+/auth.json
+
+# Test / cache artifacts
+/.phpunit.cache
+/.phpunit.result.cache
+/coverage
+/.coverage
+/coverage.xml
+/npm-debug.log
+/yarn-error.log
+
+# Local VM / platform files
+/Homestead.json
+/Homestead.yaml
+
+# IDE / editor
+/.fleet
+/.idea
+/.vscode
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
+Thumbs.db
