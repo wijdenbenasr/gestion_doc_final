@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\User;
 use App\Services\AuditService;
 use App\Services\DocumentService;
 use App\Services\WorkflowService;
@@ -46,27 +47,49 @@ class DocumentWorkflowController extends Controller
     {
         $this->checkOwner($document);
 
-        if ($document->status !== 'draft' || empty($document->code)) {
+        if (!in_array($document->status, ['draft', 'rejected']) || empty($document->code)) {
             abort(400, 'Le document doit etre codifie avant d etre soumis au validateur.');
         }
 
         $this->workflowService->submitToValidator($document, $request->user());
-        $this->auditService->log(Auth::id(), 'creator_signed_and_submitted_to_validator', $document, [], $request);
+        $this->auditService->log(Auth::id(), 'submitted_to_validator', $document, [], $request);
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Document signe par le createur et soumis au validateur.',
+                'message' => 'Document soumis au validateur.',
                 'data' => $document->refresh(),
             ]);
         }
 
         return redirect()->route('documents.creator.index')
-            ->with('status', 'Document signe puis soumis au validateur.');
+            ->with('status', 'Document soumis au validateur.');
     }
 
-    public function validatorIndex(): View
+    public function creatorSignAndSend(Document $document, Request $request): RedirectResponse|JsonResponse
     {
-        return $this->reviewerDashboard('validator', 'documents.validator-index');
+        $this->checkOwner($document);
+
+        if ($document->status !== 'ready_for_pdf') {
+            abort(400, 'Le document doit etre pret pour PDF.');
+        }
+
+        $this->workflowService->signAndSubmitToValidator($document, $request->user());
+        $this->auditService->log(Auth::id(), 'creator_signed_and_submitted_after_pdf', $document, [], $request);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Document signe et soumis au validateur.',
+                'data' => $document->refresh(),
+            ]);
+        }
+
+        return redirect()->route('documents.creator.index')
+            ->with('status', 'Document signe et soumis au validateur.');
+    }
+
+    public function validatorIndex(Request $request): View
+    {
+        return $this->reviewerDashboard('validator', 'documents.validator-index', $request->query('filter'));
     }
 
     public function validatorValidate(Document $document, Request $request): RedirectResponse|JsonResponse
@@ -75,6 +98,21 @@ class DocumentWorkflowController extends Controller
 
         if ($document->status !== 'in_validation' || $document->current_role !== 'validator') {
             abort(400);
+        }
+
+        // Gérer l'upload du fichier signé
+        if ($request->hasFile('signed_file')) {
+            $file = $request->file('signed_file');
+            $this->documentService->updateDocument($document, new \App\DTOs\DocumentData(
+                name: $document->name,
+                type: $document->type,
+                aio: $document->aio,
+                ligne: $document->ligne,
+                phase: $document->phase,
+                nom_phase: $document->nom_phase,
+                nom_serie: $document->nom_serie,
+                deadline: $document->deadline,
+            ), $file);
         }
 
         if (! $this->documentService->verifyIntegrity($document)) {
@@ -112,14 +150,33 @@ class DocumentWorkflowController extends Controller
             ->with('status', 'Document rejete et renvoye au createur.');
     }
 
-    public function approverIndex(): View
+    public function approverIndex(Request $request): View
     {
-        return $this->reviewerDashboard('approver', 'documents.approver-index');
+        return $this->reviewerDashboard('approver', 'documents.approver-index', $request->query('filter'));
     }
 
     public function approverValidate(Document $document, Request $request): RedirectResponse|JsonResponse
     {
         $this->checkRole('approver');
+
+        if ($document->status !== 'in_validation' || $document->current_role !== 'approver') {
+            abort(400);
+        }
+
+        // Gérer l'upload du fichier signé
+        if ($request->hasFile('signed_file')) {
+            $file = $request->file('signed_file');
+            $this->documentService->updateDocument($document, new \App\DTOs\DocumentData(
+                name: $document->name,
+                type: $document->type,
+                aio: $document->aio,
+                ligne: $document->ligne,
+                phase: $document->phase,
+                nom_phase: $document->nom_phase,
+                nom_serie: $document->nom_serie,
+                deadline: $document->deadline,
+            ), $file);
+        }
 
         if (! $this->documentService->verifyIntegrity($document)) {
             return $this->integrityError($request);
@@ -160,6 +217,21 @@ class DocumentWorkflowController extends Controller
     {
         $this->checkRole('admin');
 
+        // Gérer l'upload du fichier signé
+        if ($request->hasFile('signed_file')) {
+            $file = $request->file('signed_file');
+            $this->documentService->updateDocument($document, new \App\DTOs\DocumentData(
+                name: $document->name,
+                type: $document->type,
+                aio: $document->aio,
+                ligne: $document->ligne,
+                phase: $document->phase,
+                nom_phase: $document->nom_phase,
+                nom_serie: $document->nom_serie,
+                deadline: $document->deadline,
+            ), $file);
+        }
+
         if (! $this->documentService->verifyIntegrity($document)) {
             return $this->integrityError($request);
         }
@@ -174,15 +246,80 @@ class DocumentWorkflowController extends Controller
         return back()->with('status', 'Document signe et archive.');
     }
 
-    private function reviewerDashboard(string $role, string $view): View
+    public function adminValidate(Document $document, Request $request): RedirectResponse|JsonResponse
     {
+        $this->checkRole('admin');
+
+        if ($document->status !== 'in_validation' || $document->current_role !== 'admin') {
+            abort(400);
+        }
+
+        $this->workflowService->validateOnly($document, $request->user());
+        $this->auditService->log(Auth::id(), 'admin_validated', $document, [], $request);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Document valide par l admin.', 'data' => $document->refresh()]);
+        }
+
+        return redirect()->route('admin.dashboard')
+            ->with('status', 'Document valide et envoye au createur pour conversion PDF.');
+    }
+
+    public function adminReject(Document $document, Request $request): RedirectResponse|JsonResponse
+    {
+        $this->checkRole('admin');
+
+        $data = $request->validate([
+            'message' => ['required', 'string', 'max:1000'],
+            'deadline' => ['nullable', 'date', 'after:today'],
+        ]);
+
+        $this->workflowService->reject($document, $request->user(), $data['message'], $data['deadline']);
+        $this->auditService->log(Auth::id(), 'admin_rejected', $document, $data, $request);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Document rejete.', 'data' => $document->refresh()]);
+        }
+
+        return back()->with('status', 'Document rejete.');
+    }
+
+    private function reviewerDashboard(string $role, string $view, ?string $filter = null): View
+    {
+        /** @var User $user */
         $user = Auth::user();
 
-        $documents = Document::with(['creator'])
-            ->where('status', 'in_validation')
-            ->where('current_role', $role)
-            ->latest()
-            ->paginate(20);
+        // Base query for documents
+        $baseQuery = Document::with(['creator']);
+
+        if ($filter === 'pending') {
+            $documents = (clone $baseQuery)
+                ->where('status', 'in_validation')
+                ->where('current_role', $role)
+                ->latest()
+                ->paginate(20);
+        } elseif ($filter === 'processed') {
+            $documents = (clone $baseQuery)
+                ->whereHas('signatures', function ($query) use ($user, $role) {
+                    $query->where('user_id', $user->id)->where('role', $role);
+                })
+                ->latest('updated_at')
+                ->paginate(20);
+        } elseif ($filter === 'rejected') {
+            $documents = (clone $baseQuery)
+                ->whereHas('transmissions', function ($query) use ($user) {
+                    $query->where('sent_by', $user->id)->where('action', 'reject');
+                })
+                ->latest()
+                ->paginate(20);
+        } else {
+            // Default: pending documents
+            $documents = (clone $baseQuery)
+                ->where('status', 'in_validation')
+                ->where('current_role', $role)
+                ->latest()
+                ->paginate(20);
+        }
 
         $processedQuery = Document::with(['creator'])
             ->whereHas('signatures', function ($query) use ($user, $role) {
@@ -195,17 +332,14 @@ class DocumentWorkflowController extends Controller
             ->get();
 
         $stats = [
-            'pending' => $documents->total(),
+            'pending' => Document::where('status', 'in_validation')->where('current_role', $role)->count(),
             'processed' => (clone $processedQuery)->count(),
             'rejected' => Document::whereHas('transmissions', function ($query) use ($user) {
                 $query->where('sent_by', $user->id)->where('action', 'reject');
             })->count(),
-            'notifications' => $user->notifications()->whereNull('read_at')->count(),
         ];
 
-        $notifications = $user->notifications()->latest()->limit(8)->get();
-
-        return view($view, compact('documents', 'processedDocuments', 'stats', 'notifications'));
+        return view($view, compact('documents', 'processedDocuments', 'stats', 'filter'));
     }
 
     private function checkRole(string $role): void

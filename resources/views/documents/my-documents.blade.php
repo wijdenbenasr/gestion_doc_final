@@ -1,35 +1,35 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Mes documents')
 
 @section('content')
 <div class="cards-row">
-    <a href="{{ route('documents.creator.index', ['status' => 'draft']) }}" class="stat-card {{ $status === 'draft' ? 'active' : '' }}">
+    <a href="{{ route('documents.my') }}" class="stat-card {{ !$status ? 'active' : '' }}">
         <div class="stat-label">Brouillons</div>
         <div class="stat-value">{{ (int) ($stats->drafts ?? 0) }}</div>
         <div class="stat-meta">Documents encore modifiables</div>
     </a>
-    <a href="{{ route('documents.creator.index', ['status' => 'pending_codification']) }}" class="stat-card {{ $status === 'pending_codification' ? 'active' : '' }}">
+    <a href="{{ route('documents.my', ['status' => 'pending_codification']) }}" class="stat-card {{ $status === 'pending_codification' ? 'active' : '' }}">
         <div class="stat-label">Codification</div>
         <div class="stat-value" style="color:#f59e0b;">{{ (int) ($stats->pending_codification ?? 0) }}</div>
         <div class="stat-meta">En attente chez l admin</div>
     </a>
-    <a href="{{ route('documents.creator.index', ['status' => 'in_validation']) }}" class="stat-card {{ $status === 'in_validation' ? 'active' : '' }}">
+    <a href="{{ route('documents.my', ['status' => 'in_validation']) }}" class="stat-card {{ $status === 'in_validation' ? 'active' : '' }}">
         <div class="stat-label">Validation</div>
         <div class="stat-value" style="color:#38bdf8;">{{ (int) ($stats->in_validation ?? 0) }}</div>
         <div class="stat-meta">Documents en circuit</div>
     </a>
-    <a href="{{ route('documents.creator.index', ['status' => 'ready_for_pdf']) }}" class="stat-card {{ $status === 'ready_for_pdf' ? 'active' : '' }}">
+    <a href="{{ route('documents.my', ['status' => 'ready_for_pdf']) }}" class="stat-card {{ $status === 'ready_for_pdf' ? 'active' : '' }}">
         <div class="stat-label">Pret pour PDF</div>
         <div class="stat-value" style="color:#10b981;">{{ (int) ($stats->ready_for_pdf ?? 0) }}</div>
         <div class="stat-meta">Documents a convertir en PDF</div>
     </a>
-    <a href="{{ route('documents.creator.index', ['status' => 'rejected']) }}" class="stat-card {{ $status === 'rejected' ? 'active' : '' }}">
+    <a href="{{ route('documents.my', ['status' => 'rejected']) }}" class="stat-card {{ $status === 'rejected' ? 'active' : '' }}">
         <div class="stat-label">Rejetes</div>
         <div class="stat-value" style="color:#f87171;">{{ (int) ($stats->rejected ?? 0) }}</div>
         <div class="stat-meta">A corriger et renvoyer</div>
     </a>
-    <a href="{{ route('documents.creator.index', ['status' => 'finalized']) }}" class="stat-card {{ $status === 'finalized' ? 'active' : '' }}">
+    <a href="{{ route('documents.my', ['status' => 'finalized']) }}" class="stat-card {{ $status === 'finalized' ? 'active' : '' }}">
         <div class="stat-label">Archives</div>
         <div class="stat-value" style="color:#4ade80;">{{ (int) ($stats->finalized ?? 0) }}</div>
         <div class="stat-meta">Documents finalises</div>
@@ -42,29 +42,17 @@
             <div class="card-title">Mes documents</div>
             <div class="card-sub">Suivez le workflow complet depuis le brouillon jusqu a l archivage final.</div>
         </div>
-        <a href="{{ route('documents.create') }}" class="btn btn-primary">Nouveau document</a>
+        @if(auth()->user()->role === 'creator')
+            <a href="{{ route('documents.create') }}" class="btn btn-primary">Nouveau document</a>
+        @endif
     </div>
 
     @if($documents->isEmpty())
         <div style="text-align:center;padding:2rem;color:var(--muted);">
-            <div>
-                @if($status === 'draft')
-                    Aucun brouillon pour le moment.
-                @elseif($status === 'pending_codification')
-                    Aucun document en attente de codification.
-                @elseif($status === 'in_validation')
-                    Aucun document en cours de validation.
-                @elseif($status === 'ready_for_pdf')
-                    Aucun document prêt pour PDF.
-                @elseif($status === 'rejected')
-                    Aucun document rejeté.
-                @elseif($status === 'finalized')
-                    Aucun document finalisé.
-                @else
-                    Aucun document pour le moment.
-                @endif
-            </div>
-            <a href="{{ route('documents.create') }}" class="btn" style="margin-top:.75rem;">Creer mon premier document</a>
+            <div>Aucun document pour le moment.</div>
+            @if(auth()->user()->role === 'creator')
+                <a href="{{ route('documents.create') }}" class="btn" style="margin-top:.75rem;">Creer mon premier document</a>
+            @endif
         </div>
     @else
         <div style="overflow-x:auto;margin-top:.75rem;">
@@ -114,8 +102,9 @@
                                     'draft' => ['badge-muted', 'Brouillon'],
                                     'pending_codification' => ['badge-warning', 'Codification'],
                                     'in_validation' => ['badge-info', 'En validation'],
-                                    'rejected' => ['badge-danger', 'Rejete'],
-                                    'finalized' => ['badge-success', 'Finalise'],
+                                    'ready_for_pdf' => ['badge-success', 'Prêt pour PDF'],
+                                    'rejected' => ['badge-danger', 'Rejeté'],
+                                    'finalized' => ['badge-success', 'Finalisé'],
                                 ];
                                 $status = $statusConfig[$document->status] ?? ['badge-muted', $document->status];
                             @endphp
@@ -123,25 +112,25 @@
                         </td>
                         <td>
                             <div style="display:flex;gap:.25rem;flex-wrap:wrap;">
-                                @if(in_array($document->status, ['draft', 'rejected']))
+                                @if(in_array($document->status, ['draft', 'rejected']) && auth()->user()->role === 'creator')
                                     <a href="{{ route('documents.edit', $document) }}" class="btn btn-ghost btn-sm">Modifier</a>
                                 @endif
 
-                                @if($document->status === 'draft' && empty($document->code))
+                                @if($document->status === 'draft' && empty($document->code) && auth()->user()->role === 'creator')
                                     <form method="POST" action="{{ route('workflow.creator.send', $document) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-sm">Envoyer a l admin</button>
                                     </form>
                                 @endif
 
-                                @if($document->status === 'draft' && ! empty($document->code))
+                                @if($document->status === 'draft' && ! empty($document->code) && auth()->user()->role === 'creator')
                                     <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-sm">Envoyer pour validation</button>
                                     </form>
                                 @endif
 
-                                @if($document->status === 'rejected' && ! empty($document->code))
+                                @if($document->status === 'rejected' && ! empty($document->code) && auth()->user()->role === 'creator')
                                     <a href="{{ route('documents.edit', $document) }}" class="btn btn-ghost btn-sm">Modifier</a>
                                     <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}" style="display:inline;">
                                         @csrf
@@ -149,14 +138,14 @@
                                     </form>
                                 @endif
 
-                                @if($document->status === 'ready_for_pdf')
+                                @if($document->status === 'ready_for_pdf' && auth()->user()->role === 'creator')
                                     <form method="POST" action="{{ route('workflow.creator.sign_and_send', $document) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-sm">Signer et envoyer</button>
                                     </form>
                                 @endif
 
-                                @if($document->status === 'draft')
+                                @if($document->status === 'draft' && auth()->user()->role === 'creator')
                                     <form method="POST" action="{{ route('documents.requestDeletion', $document) }}" onsubmit="return confirm('Supprimer definitivement ce document ?')">
                                         @csrf
                                         @method('DELETE')

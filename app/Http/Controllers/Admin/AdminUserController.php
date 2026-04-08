@@ -48,8 +48,14 @@ class AdminUserController extends Controller
             }
         }
 
+        if ($filter = $request->query('filter')) {
+            if ($filter === 'unverified') {
+                $query->where('is_admin_approved', true)->whereNull('email_verified_at');
+            }
+        }
+
         $users = $query->paginate(20)->withQueryString();
-        $stats = array(
+        $stats = [
             'total' => User::count(),
             'pending_approval' => User::where('is_admin_approved', false)->count(),
             'awaiting_email_verification' => User::where('is_admin_approved', true)
@@ -57,18 +63,19 @@ class AdminUserController extends Controller
                 ->count(),
             'admins' => User::where('role', 'admin')->count(),
             'creators' => User::where('role', 'creator')->count(),
-            'reviewers' => User::whereIn('role', array('validator', 'approver'))->count(),
-        );
+            'reviewers' => User::whereIn('role', ['validator', 'approver'])->count(),
+        ];
 
-        return view('admin.users.index', array(
+        return view('admin.users.index', [
             'users' => $users,
             'stats' => $stats,
-            'filters' => array(
+            'filters' => [
                 'search' => $request->query('search', ''),
                 'role' => $request->query('role', ''),
                 'approval' => $request->query('approval', ''),
-            ),
-        ));
+                'filter' => $request->query('filter', ''),
+            ],
+        ]);
     }
 
     /**
@@ -79,20 +86,20 @@ class AdminUserController extends Controller
         AuditService $audit_service,
         VerificationCodeService $verification_code_service
     ): RedirectResponse {
-        $data = $request->validate(array(
-            'name' => array('required', 'string', 'max:255'),
-            'prenom' => array('nullable', 'string', 'max:255'),
-            'email' => array('required', 'email', 'max:255', 'unique:users,email'),
-            'cin' => array('nullable', 'string', 'max:255', 'unique:users,cin'),
-            'matricule' => array('nullable', 'string', 'max:255', 'unique:users,matricule'),
-            'password' => array('required', 'string', 'min:8', 'confirmed'),
-            'role' => array('required', 'in:creator,validator,approver,admin'),
-            'is_admin_approved' => array('nullable', 'boolean'),
-        ));
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'prenom' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'cin' => ['nullable', 'string', 'max:255', 'unique:users,cin'],
+            'matricule' => ['nullable', 'string', 'max:255', 'unique:users,matricule'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', 'in:creator,validator,approver,admin'],
+            'is_admin_approved' => ['nullable', 'boolean'],
+        ]);
 
         $is_approved = (bool) ($data['is_admin_approved'] ?? false);
 
-        $user = User::create(array(
+        $user = User::create([
             'name' => $data['name'],
             'prenom' => $data['prenom'] ?? null,
             'email' => $data['email'],
@@ -102,7 +109,7 @@ class AdminUserController extends Controller
             'role' => $data['role'],
             'is_admin_approved' => $is_approved,
             'admin_approved_at' => $is_approved ? now() : null,
-        ));
+        ]);
 
         if ($user->is_admin_approved && ! $user->hasVerifiedEmail()) {
             $verification_code_service->sendForUser($user);
@@ -112,10 +119,10 @@ class AdminUserController extends Controller
             $request->user()->id,
             'user_created',
             $user,
-            array(
+            [
                 'role' => $user->role,
                 'is_admin_approved' => $user->is_admin_approved,
-            ),
+            ],
             $request
         );
 
@@ -131,23 +138,23 @@ class AdminUserController extends Controller
         AuditService $audit_service,
         VerificationCodeService $verification_code_service
     ): RedirectResponse {
-        $data = $request->validate(array(
-            'name' => array('required', 'string', 'max:255'),
-            'prenom' => array('nullable', 'string', 'max:255'),
-            'email' => array('required', 'email', 'max:255', 'unique:users,email,' . $user->id),
-            'cin' => array('nullable', 'string', 'max:255', 'unique:users,cin,' . $user->id),
-            'matricule' => array('nullable', 'string', 'max:255', 'unique:users,matricule,' . $user->id),
-            'role' => array('nullable', 'in:creator,validator,approver,admin'),
-            'is_admin_approved' => array('nullable', 'boolean'),
-        ));
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'prenom' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'cin' => ['nullable', 'string', 'max:255', 'unique:users,cin,'.$user->id],
+            'matricule' => ['nullable', 'string', 'max:255', 'unique:users,matricule,'.$user->id],
+            'role' => ['nullable', 'in:creator,validator,approver,admin'],
+            'is_admin_approved' => ['nullable', 'boolean'],
+        ]);
 
         $was_approved = (bool) $user->is_admin_approved;
 
         if ($request->user()->is($user) && ($data['role'] ?? $user->role) !== 'admin') {
-            return back()->withErrors(array('role' => 'Vous ne pouvez pas retirer votre propre role administrateur.'));
+            return back()->withErrors(['role' => 'Vous ne pouvez pas retirer votre propre role administrateur.']);
         }
 
-        $user->forceFill(array(
+        $user->forceFill([
             'name' => $data['name'],
             'prenom' => $data['prenom'] ?? null,
             'email' => $data['email'],
@@ -156,7 +163,7 @@ class AdminUserController extends Controller
             'role' => $data['role'] ?? null,
             'is_admin_approved' => (bool) ($data['is_admin_approved'] ?? false),
             'admin_approved_at' => (bool) ($data['is_admin_approved'] ?? false) ? ($user->admin_approved_at ?? now()) : null,
-        ))->save();
+        ])->save();
 
         if (! $was_approved && $user->is_admin_approved && ! $user->hasVerifiedEmail()) {
             $verification_code_service->sendForUser($user);
@@ -166,10 +173,10 @@ class AdminUserController extends Controller
             $request->user()->id,
             'user_updated',
             $user,
-            array(
+            [
                 'role' => $user->role,
                 'is_admin_approved' => $user->is_admin_approved,
-            ),
+            ],
             $request
         );
 
@@ -186,9 +193,9 @@ class AdminUserController extends Controller
         VerificationCodeService $verification_code_service
     ): RedirectResponse {
         if (! $user->is_admin_approved) {
-            return back()->withErrors(array(
+            return back()->withErrors([
                 'verification' => 'Le compte doit etre approuve avant de renvoyer un code.',
-            ));
+            ]);
         }
 
         if ($user->hasVerifiedEmail()) {
@@ -201,7 +208,7 @@ class AdminUserController extends Controller
             $request->user()->id,
             'verification_code_resent',
             $user,
-            array('email' => $user->email),
+            ['email' => $user->email],
             $request
         );
 
@@ -214,18 +221,18 @@ class AdminUserController extends Controller
     public function destroy(User $user, Request $request, AuditService $audit_service): RedirectResponse
     {
         if ($request->user()->is($user)) {
-            return back()->withErrors(array('delete' => 'Vous ne pouvez pas supprimer votre propre compte administrateur.'));
+            return back()->withErrors(['delete' => 'Vous ne pouvez pas supprimer votre propre compte administrateur.']);
         }
 
         if ($user->createdDocuments()->exists()) {
-            return back()->withErrors(array('delete' => 'Impossible de supprimer un utilisateur qui a deja cree des documents.'));
+            return back()->withErrors(['delete' => 'Impossible de supprimer un utilisateur qui a deja cree des documents.']);
         }
 
         try {
-            $audit_service->log($request->user()->id, 'user_deleted', $user, array(), $request);
+            $audit_service->log($request->user()->id, 'user_deleted', $user, [], $request);
             $user->delete();
         } catch (QueryException) {
-            return back()->withErrors(array('delete' => 'Suppression impossible car cet utilisateur est encore reference dans le systeme.'));
+            return back()->withErrors(['delete' => 'Suppression impossible car cet utilisateur est encore reference dans le systeme.']);
         }
 
         return back()->with('status', 'Utilisateur supprime.');

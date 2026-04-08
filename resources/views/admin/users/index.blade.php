@@ -36,6 +36,7 @@
     </div>
 </div>
 
+@if(!$filters['search'] && !$filters['approval'] && !$filters['filter'])
 <div class="card">
     <div class="card-header">
         <div>
@@ -101,6 +102,7 @@
         </div>
     </form>
 </div>
+@endif
 
 <div class="card">
     <div class="card-header">
@@ -131,6 +133,13 @@
                 <option value="">Tous</option>
                 <option value="approved" @selected($filters['approval'] === 'approved')>Approuves</option>
                 <option value="pending" @selected($filters['approval'] === 'pending')>En attente</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="filter">Verification</label>
+            <select id="filter" name="filter">
+                <option value="">Tous</option>
+                <option value="unverified" @selected($filters['filter'] === 'unverified')>Codes en attente</option>
             </select>
         </div>
         <button type="submit" class="btn btn-sm">Filtrer</button>

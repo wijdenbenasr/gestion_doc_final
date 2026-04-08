@@ -13,13 +13,22 @@ class DocumentPolicy
     public function view(User $user, Document $document): bool
     {
         // Admin voit tout
-        if ($user->role === 'admin') return true;
+        if ($user->role === 'admin') {
+            return true;
+        }
         // Créateur voit ses propres docs
-        if ($user->id === $document->created_by) return true;
-        // Checker : docs en validation à son étape
-        if ($user->role === 'checker' && $document->status === 'in_validation' && $document->current_role === 'checker') return true;
+        if ($user->id === $document->created_by) {
+            return true;
+        }
+        // Validator : docs en validation à son étape
+        if ($user->role === 'validator' && $document->status === 'in_validation' && $document->current_role === 'validator') {
+            return true;
+        }
         // Approver : docs en validation à son étape
-        if ($user->role === 'approver' && $document->status === 'in_validation' && $document->current_role === 'approver') return true;
+        if ($user->role === 'approver' && $document->status === 'in_validation' && $document->current_role === 'approver') {
+            return true;
+        }
+
         return false;
     }
 

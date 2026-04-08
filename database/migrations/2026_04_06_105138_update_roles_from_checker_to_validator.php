@@ -34,11 +34,11 @@ return new class extends Migration
         );
 
         // Update data
-        DB::table('users')->where('role', 'checker')->update(array('role' => 'validator'));
-        DB::table('documents')->where('current_role', 'checker')->update(array('current_role' => 'validator'));
-        DB::table('document_signatures')->where('role', 'checker')->update(array('role' => 'validator'));
-        DB::table('transmissions')->where('from_role', 'checker')->update(array('from_role' => 'validator'));
-        DB::table('transmissions')->where('to_role', 'checker')->update(array('to_role' => 'validator'));
+        DB::table('users')->where('role', 'checker')->update(['role' => 'validator']);
+        DB::table('documents')->where('current_role', 'checker')->update(['current_role' => 'validator']);
+        DB::table('document_signatures')->where('role', 'checker')->update(['role' => 'validator']);
+        DB::table('transmissions')->where('from_role', 'checker')->update(['from_role' => 'validator']);
+        DB::table('transmissions')->where('to_role', 'checker')->update(['to_role' => 'validator']);
     }
 
     /**
@@ -47,11 +47,11 @@ return new class extends Migration
     public function down(): void
     {
         // Reverse data
-        DB::table('users')->where('role', 'validator')->update(array('role' => 'checker'));
-        DB::table('documents')->where('current_role', 'validator')->update(array('current_role' => 'checker'));
-        DB::table('document_signatures')->where('role', 'validator')->update(array('role' => 'checker'));
-        DB::table('transmissions')->where('from_role', 'validator')->update(array('from_role' => 'checker'));
-        DB::table('transmissions')->where('to_role', 'validator')->update(array('to_role' => 'checker'));
+        DB::table('users')->where('role', 'validator')->update(['role' => 'checker']);
+        DB::table('documents')->where('current_role', 'validator')->update(['current_role' => 'checker']);
+        DB::table('document_signatures')->where('role', 'validator')->update(['role' => 'checker']);
+        DB::table('transmissions')->where('from_role', 'validator')->update(['from_role' => 'checker']);
+        DB::table('transmissions')->where('to_role', 'validator')->update(['to_role' => 'checker']);
 
         // Reverse enums
         DB::statement(

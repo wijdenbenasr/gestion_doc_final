@@ -21,15 +21,15 @@ class DocumentService
         $hash = hash('sha256', Storage::disk('private')->get($path));
 
         $payload = array_merge($data->toArray(), [
-            'file_path'          => $path,
+            'file_path' => $path,
             'file_original_name' => $file->getClientOriginalName(),
-            'created_by'         => $creator->id,
-            'current_owner_id'   => $creator->id,
-            'version'            => 1,
-            'revision'           => '1.0',
-            'status'             => 'draft',
-            'current_role'       => 'creator',
-            'hash'               => $hash,
+            'created_by' => $creator->id,
+            'current_owner_id' => $creator->id,
+            'version' => 1,
+            'revision' => '1.0',
+            'status' => 'draft',
+            'current_role' => 'creator',
+            'hash' => $hash,
         ]);
 
         return $this->documentRepository->create($payload);
@@ -45,12 +45,17 @@ class DocumentService
                 Storage::disk('private')->delete($document->file_path);
             }
 
-            $path    = $file->store('documents', 'private');
-            $hash    = hash('sha256', Storage::disk('private')->get($path));
+            $path = $file->store('documents', 'private');
+            $hash = hash('sha256', Storage::disk('private')->get($path));
 
-            $payload['file_path']          = $path;
+            $payload['file_path'] = $path;
             $payload['file_original_name'] = $file->getClientOriginalName();
-            $payload['hash']               = $hash;
+            $payload['hash'] = $hash;
+        }
+
+        // Incrémenter la révision si le document a été codifié et est modifié par le créateur
+        if ($document->code && $document->status === 'draft' && $document->current_role === 'creator') {
+            $payload['revision'] = $this->incrementRevision($document->revision ?? '1.0');
         }
 
         $this->documentRepository->update($document, $payload);
@@ -60,11 +65,23 @@ class DocumentService
 
     public function verifyIntegrity(Document $document): bool
     {
-        if (!$document->file_path || !Storage::disk('private')->exists($document->file_path)) {
+        if (! $document->file_path || ! Storage::disk('private')->exists($document->file_path)) {
             return false;
         }
 
         $currentHash = hash('sha256', Storage::disk('private')->get($document->file_path));
+
         return hash_equals($document->hash ?? '', $currentHash);
+    }
+
+    private function incrementRevision(string $revision): string
+    {
+        if (! str_contains($revision, '.')) {
+            return $revision.'.1';
+        }
+
+        [$major, $minor] = explode('.', $revision, 2);
+
+        return $major.'.'.((int) $minor + 1);
     }
 }

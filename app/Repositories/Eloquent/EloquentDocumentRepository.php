@@ -26,16 +26,20 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
         return Document::with(['creator'])->latest()->paginate($perPage);
     }
 
-    public function getByRolePaginated(string $role, ?int $userId = null, int $perPage = 20): LengthAwarePaginator
+    public function getByRolePaginated(string $role, ?int $userId = null, ?string $status = null, int $perPage = 20): LengthAwarePaginator
     {
         $query = Document::with(['creator'])->latest();
 
         match ($role) {
-            'creator'  => $query->where('created_by', $userId),
-            'checker'  => $query->where('status', 'in_validation')->where('current_role', 'checker'),
+            'creator' => $query->where('created_by', $userId),
+            'validator' => $query->where('status', 'in_validation')->where('current_role', 'validator'),
             'approver' => $query->where('status', 'in_validation')->where('current_role', 'approver'),
-            default    => null,
+            default => null,
         };
+
+        if ($status) {
+            $query->where('status', $status);
+        }
 
         return $query->paginate($perPage);
     }
@@ -47,11 +51,11 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
 
             DocumentVersion::create([
                 'document_id' => $document->id,
-                'revision'    => $document->revision,
-                'file_path'   => $document->file_path,
-                'hash'        => $document->hash ?? '',
-                'created_by'  => $document->created_by,
-                'comment'     => 'Version initiale',
+                'revision' => $document->revision,
+                'file_path' => $document->file_path,
+                'hash' => $document->hash ?? '',
+                'created_by' => $document->created_by,
+                'comment' => 'Version initiale',
             ]);
 
             return $document;
@@ -66,11 +70,11 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
             if ($updated && isset($data['file_path'])) {
                 DocumentVersion::create([
                     'document_id' => $document->id,
-                    'revision'    => $document->revision,
-                    'file_path'   => $document->file_path,
-                    'hash'        => $document->hash ?? '',
-                    'created_by'  => auth()->id() ?? $document->created_by,
-                    'comment'     => 'Mise à jour fichier',
+                    'revision' => $document->revision,
+                    'file_path' => $document->file_path,
+                    'hash' => $document->hash ?? '',
+                    'created_by' => auth()->id() ?? $document->created_by,
+                    'comment' => 'Mise à jour fichier',
                 ]);
             }
 
@@ -87,11 +91,11 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
     {
         DocumentVersion::create([
             'document_id' => $document->id,
-            'revision'    => $data['revision'],
-            'file_path'   => $data['file_path'],
-            'hash'        => $data['hash'],
-            'created_by'  => $data['created_by'],
-            'comment'     => $data['comment'] ?? null,
+            'revision' => $data['revision'],
+            'file_path' => $data['file_path'],
+            'hash' => $data['hash'],
+            'created_by' => $data['created_by'],
+            'comment' => $data['comment'] ?? null,
         ]);
     }
 
@@ -103,12 +107,12 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
     public function getStats(): array
     {
         return [
-            'total'                => Document::count(),
-            'draft'                => Document::where('status', 'draft')->count(),
+            'total' => Document::count(),
+            'draft' => Document::where('status', 'draft')->count(),
             'pending_codification' => Document::where('status', 'pending_codification')->count(),
-            'in_validation'        => Document::where('status', 'in_validation')->count(),
-            'rejected'             => Document::where('status', 'rejected')->count(),
-            'finalized'            => Document::where('status', 'finalized')->count(),
+            'in_validation' => Document::where('status', 'in_validation')->count(),
+            'rejected' => Document::where('status', 'rejected')->count(),
+            'finalized' => Document::where('status', 'finalized')->count(),
         ];
     }
 }

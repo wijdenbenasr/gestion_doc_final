@@ -12,6 +12,13 @@ class Transmission extends Model
         'action', 'status', 'comment', 'sent_by',
     ];
 
-    public function document(): BelongsTo { return $this->belongsTo(Document::class); }
-    public function sender(): BelongsTo   { return $this->belongsTo(User::class, 'sent_by'); }
+    public function document(): BelongsTo
+    {
+        return $this->belongsTo(Document::class);
+    }
+
+    public function sender(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sent_by');
+    }
 }

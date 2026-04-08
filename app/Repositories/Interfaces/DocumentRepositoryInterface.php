@@ -14,7 +14,7 @@ interface DocumentRepositoryInterface
 
     public function getAllPaginated(int $perPage = 20): LengthAwarePaginator;
 
-    public function getByRolePaginated(string $role, ?int $userId = null, int $perPage = 20): LengthAwarePaginator;
+    public function getByRolePaginated(string $role, ?int $userId = null, ?string $status = null, int $perPage = 20): LengthAwarePaginator;
 
     public function create(array $data): Document;
 

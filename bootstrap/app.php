@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnsureUserIsApproved;
+use App\Http\Middleware\MobileAdminOnly;
+use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,16 +18,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append(SecurityHeaders::class);
+
+        $middleware->web(replace: [
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class => VerifyCsrfToken::class,
+        ]);
 
         $middleware->web(append: [
-            \App\Http\Middleware\MobileAdminOnly::class,
-            \App\Http\Middleware\EnsureUserIsApproved::class,
+            MobileAdminOnly::class,
+            EnsureUserIsApproved::class,
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-            'api.token' => \App\Http\Middleware\AuthenticateApiToken::class,
+            'role' => RoleMiddleware::class,
+            'api.token' => AuthenticateApiToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

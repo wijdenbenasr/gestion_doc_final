@@ -47,6 +47,6 @@ class UserApprovalController extends Controller
             $request
         );
 
-        return redirect()->back()->with('status', 'Utilisateur approuve avec le role ' . $data['role'] . '. Un code de verification a ete envoye par email.');
+        return redirect()->back()->with('status', 'Utilisateur approuve avec le role '.$data['role'].'. Un code de verification a ete envoye par email.');
     }
 }

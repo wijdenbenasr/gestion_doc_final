@@ -2,6 +2,15 @@
 
 namespace App\Providers;
 
+use App\Events\DocumentApproved;
+use App\Events\DocumentRejected;
+use App\Events\DocumentSigned;
+use App\Events\DocumentSubmitted;
+use App\Events\DocumentValidated;
+use App\Listeners\CreateAuditLogListener;
+use App\Repositories\Eloquent\EloquentDocumentRepository;
+use App\Repositories\Interfaces\DocumentRepositoryInterface;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -12,8 +21,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(
-            \App\Repositories\Interfaces\DocumentRepositoryInterface::class,
-            \App\Repositories\Eloquent\EloquentDocumentRepository::class
+            DocumentRepositoryInterface::class,
+            EloquentDocumentRepository::class
         );
     }
 
@@ -23,15 +32,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         foreach ([
-            \App\Events\DocumentSubmitted::class,
-            \App\Events\DocumentValidated::class,
-            \App\Events\DocumentRejected::class,
-            \App\Events\DocumentApproved::class,
-            \App\Events\DocumentSigned::class,
+            DocumentSubmitted::class,
+            DocumentValidated::class,
+            DocumentRejected::class,
+            DocumentApproved::class,
+            DocumentSigned::class,
         ] as $eventClass) {
-            \Illuminate\Support\Facades\Event::listen(
+            Event::listen(
                 $eventClass,
-                \App\Listeners\CreateAuditLogListener::class
+                CreateAuditLogListener::class
             );
         }
     }

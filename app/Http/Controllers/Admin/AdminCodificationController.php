@@ -40,7 +40,7 @@ class AdminCodificationController extends Controller
         }
 
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:100', 'unique:documents,code,' . $document->id],
+            'code' => ['required', 'string', 'max:100', 'unique:documents,code,'.$document->id],
         ]);
 
         $this->workflowService->codify($document, Auth::user(), $data['code']);
@@ -48,6 +48,6 @@ class AdminCodificationController extends Controller
         $this->auditService->log(Auth::id(), 'document_codified', $document, ['code' => $data['code']], $request);
 
         return redirect()->route('admin.documents.codification')
-            ->with('status', 'Document codifié "' . $data['code'] . '" et renvoyé au créateur.');
+            ->with('status', 'Document codifié "'.$data['code'].'" et renvoyé au créateur.');
     }
 }

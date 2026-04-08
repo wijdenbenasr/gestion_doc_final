@@ -35,7 +35,7 @@ class ApiDocumentController extends BaseApiController
 
         if ($user->role === 'creator') {
             $baseQuery->where('created_by', $user->id);
-        } elseif (in_array($user->role, ['checker', 'approver'], true)) {
+        } elseif (in_array($user->role, ['validator', 'approver'], true)) {
             $baseQuery->where('current_role', $user->role);
         }
 
@@ -52,15 +52,15 @@ class ApiDocumentController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'      => 'required|string|max:255',
-            'type'      => 'required|in:' . implode(',', array_keys(Document::TYPES)),
-            'aio'       => 'required|in:' . implode(',', array_keys(Document::AIOS)),
-            'ligne'     => 'required|string|max:255',
-            'phase'     => 'required|in:serie,projet',
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:'.implode(',', array_keys(Document::TYPES)),
+            'aio' => 'required|in:'.implode(',', array_keys(Document::AIOS)),
+            'ligne' => 'required|string|max:255',
+            'phase' => 'required|in:serie,projet',
             'nom_phase' => 'nullable|required_if:phase,projet|string|max:255',
             'nom_serie' => 'nullable|string|max:255',
-            'deadline'  => 'nullable|date',
-            'file'      => 'required|file|mimes:docx,xlsx,pdf|max:20480',
+            'deadline' => 'nullable|date',
+            'file' => 'required|file|mimes:docx,xlsx,pdf|max:20480',
         ]);
 
         $document = $this->documentService->createDocument(
@@ -85,8 +85,8 @@ class ApiDocumentController extends BaseApiController
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:' . implode(',', array_keys(Document::TYPES)),
-            'aio' => 'required|in:' . implode(',', array_keys(Document::AIOS)),
+            'type' => 'required|in:'.implode(',', array_keys(Document::TYPES)),
+            'aio' => 'required|in:'.implode(',', array_keys(Document::AIOS)),
             'ligne' => 'required|string|max:255',
             'phase' => 'required|in:serie,projet',
             'nom_phase' => 'nullable|required_if:phase,projet|string|max:255',
@@ -113,7 +113,7 @@ class ApiDocumentController extends BaseApiController
         }
 
         $filename = $document->file_original_name
-            ?: ($document->name . '.' . pathinfo($document->file_path, PATHINFO_EXTENSION));
+            ?: ($document->name.'.'.pathinfo($document->file_path, PATHINFO_EXTENSION));
 
         return Storage::disk('private')->download($document->file_path, $filename);
     }

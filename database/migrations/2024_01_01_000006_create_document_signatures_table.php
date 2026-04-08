@@ -28,7 +28,7 @@ return new class extends Migration
             $table->timestamp('signed_at')->nullable();
             $table->timestamps();
 
-            $table->unique(array('document_id', 'role'));
+            $table->unique(['document_id', 'role']);
             // 1 signature par rôle par document
         });
     }

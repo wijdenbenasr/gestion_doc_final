@@ -27,7 +27,7 @@ class DocumentTaskNotification extends Notification
         return (new MailMessage)
             ->subject('Mise a jour documentaire')
             ->line($this->messageText)
-            ->line('Document : ' . $this->document->name)
+            ->line('Document : '.$this->document->name)
             ->action('Consulter la plateforme', url('/'))
             ->line('Le suivi complet reste disponible dans la GED.');
     }

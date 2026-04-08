@@ -11,20 +11,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Document extends Model
 {
-    use OptimisticLocking, HasFactory, SoftDeletes;
+    use HasFactory, OptimisticLocking, SoftDeletes;
 
     public const TYPES = [
-        'fmea_process'                => 'FMEA Process',
-        'sop'                         => 'SOP – Standard Operating Process / Work Instruction',
-        'defect_catalogue'            => 'Defect Catalogue',
-        'control_plan'                => 'Control Plan',
-        'process_flow_chart'          => 'Process Flow Chart',
-        'process_parameters_sheet'    => 'Process Parameters Sheet',
-        'control_sheet'               => 'Control Sheet',
-        'rework_instruction'          => 'Rework Instruction',
-        'quality_wall_instruction'    => 'Quality Wall Instruction',
+        'fmea_process' => 'FMEA Process',
+        'sop' => 'SOP – Standard Operating Process / Work Instruction',
+        'defect_catalogue' => 'Defect Catalogue',
+        'control_plan' => 'Control Plan',
+        'process_flow_chart' => 'Process Flow Chart',
+        'process_parameters_sheet' => 'Process Parameters Sheet',
+        'control_sheet' => 'Control Sheet',
+        'rework_instruction' => 'Rework Instruction',
+        'quality_wall_instruction' => 'Quality Wall Instruction',
         'checklist_cleaning_tracking' => 'Checklist & Cleaning Tracking',
-        'safety_sheet'                => 'Safety Sheet at the Workstation',
+        'safety_sheet' => 'Safety Sheet at the Workstation',
     ];
 
     public const AIOS = [
@@ -36,11 +36,12 @@ class Document extends Model
     ];
 
     public const STATUSES = [
-        'draft'                => 'Brouillon',
+        'draft' => 'Brouillon',
         'pending_codification' => 'En attente de codification',
-        'in_validation'        => 'En validation',
-        'rejected'             => 'Rejeté',
-        'finalized'            => 'Finalisé',
+        'in_validation' => 'En validation',
+        'ready_for_pdf' => 'Pret pour PDF',
+        'rejected' => 'Rejeté',
+        'finalized' => 'Finalisé',
     ];
 
     protected $fillable = [
@@ -53,19 +54,42 @@ class Document extends Model
     ];
 
     protected $casts = [
-        'deadline'        => 'datetime',
-        'version'         => 'integer',
-        'is_pdf'          => 'boolean',
+        'deadline' => 'datetime',
+        'version' => 'integer',
+        'is_pdf' => 'boolean',
         'is_fully_signed' => 'boolean',
-        'lock_version'    => 'integer',
+        'lock_version' => 'integer',
     ];
 
-    public function creator(): BelongsTo      { return $this->belongsTo(User::class, 'created_by'); }
-    public function currentOwner(): BelongsTo { return $this->belongsTo(User::class, 'current_owner_id'); }
-    public function versions(): HasMany       { return $this->hasMany(DocumentVersion::class); }
-    public function signatures(): HasMany     { return $this->hasMany(DocumentSignature::class)->orderBy('order'); }
-    public function transmissions(): HasMany  { return $this->hasMany(Transmission::class)->latest(); }
-    public function archives(): HasMany       { return $this->hasMany(Archive::class); }
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function currentOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'current_owner_id');
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(DocumentVersion::class);
+    }
+
+    public function signatures(): HasMany
+    {
+        return $this->hasMany(DocumentSignature::class)->orderBy('order');
+    }
+
+    public function transmissions(): HasMany
+    {
+        return $this->hasMany(Transmission::class)->latest();
+    }
+
+    public function archives(): HasMany
+    {
+        return $this->hasMany(Archive::class);
+    }
 
     public function auditLogs(): HasMany
     {
@@ -73,15 +97,27 @@ class Document extends Model
             ->where('auditable_type', self::class)->latest();
     }
 
-    public function getTypeLibelleAttribute(): string  { return self::TYPES[$this->type]    ?? $this->type; }
-    public function getAioLibelleAttribute(): string   { return self::AIOS[$this->aio]      ?? strtoupper($this->aio); }
-    public function getStatusLibelleAttribute(): string{ return self::STATUSES[$this->status] ?? $this->status; }
+    public function getTypeLibelleAttribute(): string
+    {
+        return self::TYPES[$this->type] ?? $this->type;
+    }
+
+    public function getAioLibelleAttribute(): string
+    {
+        return self::AIOS[$this->aio] ?? strtoupper($this->aio);
+    }
+
+    public function getStatusLibelleAttribute(): string
+    {
+        return self::STATUSES[$this->status] ?? $this->status;
+    }
 
     public function getPhaseLibelleAttribute(): string
     {
         if ($this->phase === 'projet') {
-            return 'Projet' . ($this->nom_phase ? ' – ' . $this->nom_phase : '');
+            return 'Projet'.($this->nom_phase ? ' – '.$this->nom_phase : '');
         }
-        return 'Série' . ($this->nom_serie ? ' – ' . $this->nom_serie : '');
+
+        return 'Série'.($this->nom_serie ? ' – '.$this->nom_serie : '');
     }
 }

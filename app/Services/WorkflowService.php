@@ -66,6 +66,42 @@ class WorkflowService
     public function submitToValidator(Document $document, User $user): void
     {
         DB::transaction(function () use ($document, $user) {
+            // Ne pas signer ici, juste avancer
+            $this->documentRepository->update($document, [
+                'status' => 'in_validation',
+                'current_role' => 'validator',
+                'current_owner_id' => null,
+            ]);
+
+            Transmission::create([
+                'document_id' => $document->id,
+                'from_role' => $user->role,
+                'to_role' => 'validator',
+                'action' => 'submit',
+                'sent_by' => $user->id,
+            ]);
+
+            $this->documentNotificationService->notifyRole(
+                'validator',
+                $document,
+                'Un document code a ete soumis et attend votre validation.',
+                'new_task'
+            );
+
+            if ($document->creator) {
+                $this->documentNotificationService->notifyUser(
+                    $document->creator,
+                    $document,
+                    'Votre document a ete soumis au validateur.',
+                    'submitted'
+                );
+            }
+        });
+    }
+
+    public function signAndSubmitToValidator(Document $document, User $user): void
+    {
+        DB::transaction(function () use ($document, $user) {
             $this->signatureService->sign($document, $user);
             DocumentSubmitted::dispatch($document, $user);
         });
@@ -75,6 +111,15 @@ class WorkflowService
     {
         DB::transaction(function () use ($document, $user) {
             $this->signatureService->sign($document, $user);
+            DocumentValidated::dispatch($document, $user);
+        });
+    }
+
+    public function validateOnly(Document $document, User $user): void
+    {
+        DB::transaction(function () use ($document, $user) {
+            // Advance without signing
+            $this->signatureService->advanceWithoutSigning($document, $user);
             DocumentValidated::dispatch($document, $user);
         });
     }
@@ -124,11 +169,11 @@ class WorkflowService
     private function incrementRevision(string $revision): string
     {
         if (! str_contains($revision, '.')) {
-            return $revision . '.1';
+            return $revision.'.1';
         }
 
         [$major, $minor] = explode('.', $revision, 2);
 
-        return $major . '.' . ((int) $minor + 1);
+        return $major.'.'.((int) $minor + 1);
     }
 }

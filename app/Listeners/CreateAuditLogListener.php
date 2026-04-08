@@ -2,7 +2,12 @@
 
 namespace App\Listeners;
 
+use App\Events\DocumentApproved;
 use App\Events\DocumentEvent;
+use App\Events\DocumentRejected;
+use App\Events\DocumentSigned;
+use App\Events\DocumentSubmitted;
+use App\Events\DocumentValidated;
 use App\Services\AuditService;
 
 class CreateAuditLogListener
@@ -12,11 +17,11 @@ class CreateAuditLogListener
     public function handle(DocumentEvent $event): void
     {
         $action = match (get_class($event)) {
-            \App\Events\DocumentSubmitted::class => 'document_submitted',
-            \App\Events\DocumentValidated::class => 'document_validated',
-            \App\Events\DocumentRejected::class => 'document_rejected',
-            \App\Events\DocumentApproved::class => 'document_approved',
-            \App\Events\DocumentSigned::class => 'document_signed',
+            DocumentSubmitted::class => 'document_submitted',
+            DocumentValidated::class => 'document_validated',
+            DocumentRejected::class => 'document_rejected',
+            DocumentApproved::class => 'document_approved',
+            DocumentSigned::class => 'document_signed',
             default => 'document_action',
         };
 

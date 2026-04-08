@@ -16,20 +16,20 @@ class AdminDashboardController extends Controller
 
         $from = match ($range) {
             'month' => now()->subMonth(),
-            'year'  => now()->subYear(),
+            'year' => now()->subYear(),
             default => now()->subWeek(),
         };
 
         $base = Document::query()->where('created_at', '>=', $from);
 
-        $createdCount      = (clone $base)->count();
+        $createdCount = (clone $base)->count();
         $inValidationCount = (clone $base)->whereIn('status', ['draft', 'in_validation', 'rejected', 'pending_codification'])->count();
-        $finalizedCount    = (clone $base)->where('status', 'finalized')->count();   // BUG CORRIGÉ : cohérent avec SignatureService
-        $rejectedCount     = (clone $base)->where('status', 'rejected')->count();
+        $finalizedCount = (clone $base)->where('status', 'finalized')->count();   // BUG CORRIGÉ : cohérent avec SignatureService
+        $rejectedCount = (clone $base)->where('status', 'rejected')->count();
 
         // Compteurs pour les badges dans le header
         $pendingCodification = Document::where('status', 'pending_codification')->count();
-        $pendingUsers        = User::where('is_admin_approved', false)->count();
+        $pendingUsers = User::where('is_admin_approved', false)->count();
         $awaitingVerification = User::where('is_admin_approved', true)->whereNull('email_verified_at')->count();
         $totalUsers = User::count();
         $usersByRole = User::query()
@@ -40,7 +40,7 @@ class AdminDashboardController extends Controller
         $recentLogs = AuditLog::with('user')->latest()->limit(10)->get();
 
         $documents = (clone $base)
-            ->with(['creator'])
+            ->with(['creator', 'signatures.user', 'transmissions.sender'])
             ->latest()
             ->paginate(20)
             ->withQueryString();
@@ -59,5 +59,44 @@ class AdminDashboardController extends Controller
             'recentLogs',
             'range'
         ));
+    }
+
+    public function documents(Request $request)
+    {
+        $status = $request->query('status');
+        $range = $request->query('range', 'week');
+
+        $from = match ($range) {
+            'month' => now()->subMonth(),
+            'year' => now()->subYear(),
+            default => now()->subWeek(),
+        };
+
+        $query = Document::query()->where('created_at', '>=', $from);
+
+        if ($status) {
+            switch ($status) {
+                case 'created':
+                    // Tous les documents créés dans la période
+                    break;
+                case 'in_validation':
+                    $query->whereIn('status', ['draft', 'in_validation', 'pending_codification']);
+                    break;
+                case 'finalized':
+                    $query->where('status', 'finalized');
+                    break;
+                case 'rejected':
+                    $query->where('status', 'rejected');
+                    break;
+            }
+        }
+
+        $documents = $query
+            ->with(['creator', 'signatures.user', 'transmissions.sender'])
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.documents', compact('documents', 'status', 'range'));
     }
 }

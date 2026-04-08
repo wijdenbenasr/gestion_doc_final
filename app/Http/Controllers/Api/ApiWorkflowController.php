@@ -77,6 +77,7 @@ class ApiWorkflowController extends BaseApiController
 
         return $this->success(null, 'Document validé par l\'approbateur');
     }
+
     public function sign(Document $document, Request $request): JsonResponse
     {
         if (! $this->signatureService->canSign($document, $request->user())) {

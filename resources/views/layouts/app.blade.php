@@ -75,6 +75,75 @@
             letter-spacing: .07em;
             color: var(--accent);
         }
+        .notifications-container { position: relative; display: flex; align-items: center; }
+        .notification-bell {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: .5rem;
+            padding: .35rem .5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            position: relative;
+            transition: border-color .15s, background .15s;
+            display: flex;
+            align-items: center;
+        }
+        .notification-bell:hover { border-color: var(--accent); background: rgba(56,189,248,0.08); }
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            background: var(--danger);
+            color: white;
+            border-radius: 999px;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .62rem;
+            font-weight: 700;
+            border: 2px solid var(--bg);
+        }
+        .notification-badge-empty {
+            background: var(--muted);
+            color: var(--text);
+            opacity: 0.7;
+        }
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: .5rem;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: .75rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            min-width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .notification-dropdown.active { display: block; }
+        .notification-item {
+            padding: .7rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: .78rem;
+            transition: background .15s;
+        }
+        .notification-item:hover { background: rgba(56,189,248,0.08); }
+        .notification-item:last-child { border-bottom: none; }
+        .notification-item-title { font-weight: 600; color: var(--text); margin-bottom: .25rem; }
+        .notification-item-meta { color: var(--muted); font-size: .72rem; }
+        .notification-item.urgent .notification-item-title { color: var(--danger); }
+        .notification-item.warning .notification-item-title { color: var(--warning); }
+        .notification-empty {
+            padding: 1.5rem 1rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: .78rem;
+        }
         .btn {
             display: inline-flex;
             align-items: center;
@@ -125,6 +194,18 @@
             border: 1px solid var(--border);
             background: rgba(15,23,42,0.85);
             padding: .85rem 1rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .stat-card:hover {
+            border-color: var(--accent);
+            background: rgba(15,23,42,0.95);
+        }
+        .stat-card.active {
+            border-color: var(--accent);
+            background: rgba(59,130,246,0.1);
         }
         .stat-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .25rem; }
         .stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
@@ -214,6 +295,165 @@
                     <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">Utilisateurs</a>
                 @endif
 
+                <a href="{{ route('documents.archive') }}" class="nav-link {{ request()->routeIs('documents.archive') ? 'active' : '' }}">Archive</a>
+
+                <div class="notifications-container">
+                    @php
+                        $unreadCount = 0;
+                        $notificationUrl = '#';
+                        $hasDropdown = false;
+                        $notifications = [];
+
+                        if (auth()->check()) {
+                            $user = auth()->user();
+                            $role = $user->role;
+
+                            if ($role === 'creator') {
+                                $notificationUrl = route('documents.creator.index', ['status' => 'rejected']);
+                                $hasDropdown = true;
+                                $unreadCount = \App\Models\Document::where('created_by', $user->id)
+                                    ->where('status', 'rejected')
+                                    ->count();
+
+                                $rejectedDocuments = \App\Models\Document::where('created_by', $user->id)
+                                    ->where('status', 'rejected')
+                                    ->latest()
+                                    ->limit(3)
+                                    ->get();
+
+                                foreach ($rejectedDocuments as $doc) {
+                                    $notifications[] = [
+                                        'title' => 'Document rejete : '.$doc->name,
+                                        'meta' => 'A corriger et renvoyer',
+                                        'type' => 'urgent',
+                                        'url' => $notificationUrl,
+                                    ];
+                                }
+                            } elseif ($role === 'validator') {
+                                $notificationUrl = route('workflow.validator.index', ['filter' => 'pending']);
+                                $hasDropdown = true;
+                                $unreadCount = \App\Models\Document::where('status', 'in_validation')
+                                    ->where('current_role', 'validator')
+                                    ->count();
+
+                                $pendingDocuments = \App\Models\Document::with('creator')
+                                    ->where('status', 'in_validation')
+                                    ->where('current_role', 'validator')
+                                    ->latest()
+                                    ->limit(3)
+                                    ->get();
+
+                                foreach ($pendingDocuments as $doc) {
+                                    $metaParts = [
+                                        $doc->code ?: 'Sans code',
+                                        $doc->creator->name ?? 'Createur inconnu',
+                                    ];
+
+                                    if ($doc->deadline) {
+                                        $metaParts[] = 'Deadline '.$doc->deadline->format('d/m/Y');
+                                    }
+
+                                    $notifications[] = [
+                                        'title' => 'Validation requise : '.$doc->name,
+                                        'meta' => implode(' | ', $metaParts),
+                                        'type' => $doc->deadline && $doc->deadline->isPast()
+                                            ? 'urgent'
+                                            : ($doc->deadline && $doc->deadline->isBefore(now()->addDays(2)) ? 'warning' : ''),
+                                        'url' => $notificationUrl,
+                                    ];
+                                }
+                            } elseif ($role === 'approver') {
+                                $notificationUrl = route('workflow.approver.index', ['filter' => 'pending']);
+                                $hasDropdown = true;
+                                $unreadCount = \App\Models\Document::where('status', 'in_validation')
+                                    ->where('current_role', 'approver')
+                                    ->count();
+
+                                $pendingDocuments = \App\Models\Document::with('creator')
+                                    ->where('status', 'in_validation')
+                                    ->where('current_role', 'approver')
+                                    ->latest()
+                                    ->limit(3)
+                                    ->get();
+
+                                foreach ($pendingDocuments as $doc) {
+                                    $metaParts = [
+                                        $doc->code ?: 'Sans code',
+                                        $doc->creator->name ?? 'Createur inconnu',
+                                    ];
+
+                                    if ($doc->deadline) {
+                                        $metaParts[] = 'Deadline '.$doc->deadline->format('d/m/Y');
+                                    }
+
+                                    $notifications[] = [
+                                        'title' => 'Approbation requise : '.$doc->name,
+                                        'meta' => implode(' | ', $metaParts),
+                                        'type' => $doc->deadline && $doc->deadline->isPast()
+                                            ? 'urgent'
+                                            : ($doc->deadline && $doc->deadline->isBefore(now()->addDays(2)) ? 'warning' : ''),
+                                        'url' => $notificationUrl,
+                                    ];
+                                }
+                            } elseif ($role === 'admin') {
+                                $pending = \App\Models\Document::where('status', 'pending_codification')->count();
+                                $pendingUsers = \App\Models\User::where('is_admin_approved', false)->count();
+                                $unreadCount = $pending + $pendingUsers;
+                                $hasDropdown = true;
+
+                                $pendingDocuments = \App\Models\Document::with('creator')
+                                    ->where('status', 'pending_codification')
+                                    ->latest()
+                                    ->limit(2)
+                                    ->get();
+
+                                foreach ($pendingDocuments as $doc) {
+                                    $notifications[] = [
+                                        'title' => 'Codification requise : '.$doc->name,
+                                        'meta' => 'Par '.($doc->creator->name ?? 'Inconnu'),
+                                        'type' => 'urgent',
+                                        'url' => route('admin.documents.codification'),
+                                    ];
+                                }
+
+                                $pendingUsersList = \App\Models\User::where('is_admin_approved', false)
+                                    ->latest()
+                                    ->limit(2)
+                                    ->get();
+
+                                foreach ($pendingUsersList as $pendingUser) {
+                                    $notifications[] = [
+                                        'title' => 'Compte en attente : '.$pendingUser->name,
+                                        'meta' => 'Validation admin requise',
+                                        'type' => 'warning',
+                                        'url' => route('admin.users.pending'),
+                                    ];
+                                }
+                            }
+                        }
+                    @endphp
+                    @if($hasDropdown)
+                        <button class="notification-bell" onclick="toggleNotifications(event)" title="Notifications ({{ $unreadCount }})">
+                            🔔
+                            @if($unreadCount > 0)
+                                <span class="notification-badge">{{ min($unreadCount, 9) }}{{ $unreadCount > 9 ? '+' : '' }}</span>
+                            @endif
+                        </button>
+                        <div class="notification-dropdown" id="notificationsDropdown">
+                            @if(count($notifications) > 0)
+                                @foreach($notifications as $notif)
+                                    <a href="{{ $notif['url'] }}" class="notification-item {{ $notif['type'] }}" onclick="closeDropdown()">
+                                        <div class="notification-item-title">{{ $notif['title'] }}</div>
+                                        <div class="notification-item-meta">{{ $notif['meta'] }}</div>
+                                    </a>
+                                @endforeach
+                            @else
+                                <div class="notification-empty">Aucune notification</div>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
                 <div class="user-chip">
                     <span>{{ auth()->user()->name }}</span>
                     <span class="role-tag">{{ $role }}</span>
@@ -257,5 +497,39 @@
         <span>Audit trail | RBAC | Archivage auto</span>
     </div>
 </footer>
+
+<script>
+function toggleNotifications(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const dropdown = document.getElementById('notificationsDropdown');
+    if (!dropdown) {
+        return;
+    }
+
+    dropdown.classList.toggle('active');
+}
+
+function closeDropdown() {
+    const dropdown = document.getElementById('notificationsDropdown');
+    if (!dropdown) {
+        return;
+    }
+
+    dropdown.classList.remove('active');
+}
+
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('notificationsDropdown');
+    const bell = event.target.closest('.notification-bell');
+    if (!dropdown) {
+        return;
+    }
+
+    if (!bell && !dropdown.contains(event.target)) {
+        dropdown.classList.remove('active');
+    }
+});
+</script>
 </body>
 </html>

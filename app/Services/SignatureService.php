@@ -71,13 +71,21 @@ class SignatureService
             DocumentSigned::dispatch($document, $user);
 
             match ($user->role) {
-                'creator' => $this->advanceTo(
-                    $document,
-                    $user,
-                    'validator',
-                    'submit',
-                    'Un document code a ete signe par le createur et attend votre validation.'
-                ),
+                'creator' => $document->status === 'ready_for_pdf'
+                    ? $this->advanceTo(
+                        $document,
+                        $user,
+                        'admin',
+                        'finalize',
+                        'Le document PDF a ete signe par le createur et attend votre validation finale.'
+                    )
+                    : $this->advanceTo(
+                        $document,
+                        $user,
+                        'validator',
+                        'submit',
+                        'Un document code a ete signe par le createur et attend votre validation.'
+                    ),
                 'validator' => $this->advanceTo(
                     $document,
                     $user,
@@ -92,12 +100,59 @@ class SignatureService
                     'validate',
                     'Un document approuve attend votre validation finale.'
                 ),
-                'admin' => $this->finalize($document, $user),
+                'admin' => $this->handleAdminSign($document, $user),
                 default => null,
             };
 
             $document->save();
         });
+    }
+
+    private function handleAdminSign(Document $document, User $user): void
+    {
+        if (DocumentSignature::where('document_id', $document->id)->where('role', 'admin')->exists()) {
+            // Second admin sign, finalize
+            $this->finalize($document, $user);
+        } else {
+            // First admin sign, send to creator for PDF
+            $this->advanceTo(
+                $document,
+                $user,
+                'creator',
+                'pdf_conversion',
+                'Le document a ete valide. Veuillez le convertir en PDF, le signer et le renvoyer.'
+            );
+        }
+    }
+
+    public function advanceWithoutSigning(Document $document, User $user): void
+    {
+        match ($user->role) {
+            'validator' => $this->advanceTo(
+                $document,
+                $user,
+                'approver',
+                'validate',
+                'Un document a ete valide et attend votre approbation.'
+            ),
+            'approver' => $this->advanceTo(
+                $document,
+                $user,
+                'admin',
+                'validate',
+                'Un document approuve attend votre validation finale.'
+            ),
+            'admin' => $this->advanceTo(
+                $document,
+                $user,
+                'creator',
+                'pdf_conversion',
+                'Le document a ete valide. Veuillez le convertir en PDF, le signer et le renvoyer.'
+            ),
+            default => null,
+        };
+
+        $document->save();
     }
 
     private function advanceTo(
@@ -107,12 +162,17 @@ class SignatureService
         string $action,
         string $message
     ): void {
-        if ($user->role === 'creator') {
-            $document->status = 'in_validation';
+        if ($nextRole === 'creator' && $action === 'pdf_conversion') {
+            $document->status = 'ready_for_pdf';
+            $document->current_owner_id = $document->created_by;
+        } else {
+            if ($user->role === 'creator') {
+                $document->status = 'in_validation';
+            }
+            $document->current_owner_id = null;
         }
 
         $document->current_role = $nextRole;
-        $document->current_owner_id = null;
 
         Transmission::create([
             'document_id' => $document->id,
@@ -122,6 +182,12 @@ class SignatureService
             'status' => 'done',
             'sent_by' => $user->id,
         ]);
+
+        if ($nextRole === 'creator' && $document->creator) {
+            $this->documentNotificationService->notifyUser($document->creator, $document, $message, 'new_task');
+
+            return;
+        }
 
         $this->documentNotificationService->notifyRole($nextRole, $document, $message, 'new_task');
     }
