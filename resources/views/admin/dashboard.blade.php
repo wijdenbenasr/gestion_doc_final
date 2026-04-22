@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Dashboard Admin')
 
@@ -46,6 +46,10 @@
     </a>
 </div>
 
+<div style="margin-bottom:1.25rem;">
+    <a href="{{ route('admin.documents.create') }}" class="btn btn-primary">Creer un document</a>
+</div>
+
 <div class="cards-row">
     <div class="card">
         <div class="card-header">
@@ -58,7 +62,8 @@
             <a href="{{ route('admin.users.index') }}" class="btn btn-primary">Ouvrir la gestion des utilisateurs</a>
             <a href="{{ route('admin.users.pending') }}" class="btn btn-ghost">Traiter les comptes en attente</a>
             <a href="{{ route('admin.documents.codification') }}" class="btn btn-ghost">Ouvrir la codification</a>
-            <a href="{{ route('admin.documents.export.csv') }}" class="btn btn-ghost">Exporter le suivi CSV</a>
+            <a href="{{ route('admin.documents.export.follow-up-pdf') }}" class="btn btn-ghost">Exporter PDF</a>
+            <a href="{{ route('admin.documents.export.follow-up-word') }}" class="btn btn-ghost">Exporter Word</a>
         </div>
     </div>
 
@@ -217,16 +222,24 @@
                     <td>
                         <div style="display:flex;gap:.25rem;flex-wrap:wrap;">
                             <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm">Source</a>
+                            <a href="{{ route('admin.documents.edit', $doc) }}" class="btn btn-ghost btn-sm">Modifier</a>
+                            @if(!$doc->is_fully_signed)
+                                <form method="POST" action="{{ route('admin.documents.destroy', $doc) }}" style="display:inline;" onsubmit="return confirm('Supprimer ce document ?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-ghost btn-sm btn-danger">Supprimer</button>
+                                </form>
+                            @endif
                             @if($doc->status === 'in_validation' && $doc->current_role === 'admin')
                                 @php
-                                    $hasAdminSignature = \App\Models\DocumentSignature::where('document_id', $doc->id)->where('role', 'admin')->exists();
+                                    $hasAdminSignature = $doc->signatures->where('role', 'admin')->isNotEmpty();
                                 @endphp
                                 @if($hasAdminSignature)
                                     <button type="button" class="btn btn-sm" onclick="openSignModal('{{ $doc->id }}')">Signer et finaliser</button>
                                 @else
                                     <form method="POST" action="{{ route('admin.workflow.validate', $doc) }}" style="display:inline;">
                                         @csrf
-                                        <button type="submit" class="btn btn-sm">Valider</button>
+                                        <button type="submit" class="btn btn-sm">Valider et envoyer au createur</button>
                                     </form>
                                 @endif
                                 <button type="button" class="btn btn-ghost btn-sm btn-danger" onclick="toggleReject('rej-{{ $doc->id }}')">Rejeter</button>
@@ -296,7 +309,7 @@
 @foreach($documents as $doc)
 @if($doc->status === 'in_validation' && $doc->current_role === 'admin')
 @php
-    $hasAdminSignature = \App\Models\DocumentSignature::where('document_id', $doc->id)->where('role', 'admin')->exists();
+    $hasAdminSignature = $doc->signatures->where('role', 'admin')->isNotEmpty();
 @endphp
 <div id="sign-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;">
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#020617;border-radius:.5rem;padding:1.5rem;max-width:400px;width:90%;">

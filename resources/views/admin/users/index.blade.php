@@ -3,40 +3,76 @@
 @section('title', 'Gestion des utilisateurs')
 
 @section('content')
+@php
+    $roles = \App\Models\User::ROLES;
+    $no_search = $filters['search'] === '';
+    $is_all = $no_search && $filters['role'] === '' && $filters['approval'] === '' && $filters['filter'] === '';
+    $is_pending = $no_search && $filters['approval'] === 'pending' && $filters['role'] === '' && $filters['filter'] === '';
+    $is_unverified = $no_search && $filters['filter'] === 'unverified' && $filters['role'] === '' && $filters['approval'] === '';
+    $is_admin_role = $no_search && $filters['role'] === 'admin' && $filters['approval'] === '' && $filters['filter'] === '';
+    $is_creator_role = $no_search && $filters['role'] === 'creator' && $filters['approval'] === '' && $filters['filter'] === '';
+    $is_validator_role = $no_search && $filters['role'] === 'validator' && $filters['approval'] === '' && $filters['filter'] === '';
+    $is_approver_role = $no_search && $filters['role'] === 'approver' && $filters['approval'] === '' && $filters['filter'] === '';
+
+    $active_filters = [];
+    if ($filters['search'] !== '') {
+        $active_filters[] = 'Recherche: '.$filters['search'];
+    }
+    if ($filters['role'] !== '') {
+        $active_filters[] = 'Role: '.($roles[$filters['role']] ?? $filters['role']);
+    }
+    if ($filters['approval'] === 'approved') {
+        $active_filters[] = 'Statut: Approuves';
+    }
+    if ($filters['approval'] === 'pending') {
+        $active_filters[] = 'Statut: En attente';
+    }
+    if ($filters['filter'] === 'unverified') {
+        $active_filters[] = 'Verification: Codes en attente';
+    }
+    $has_active_filters = count($active_filters) > 0;
+@endphp
 <div class="cards-row">
-    <div class="stat-card">
+    <a href="{{ route('admin.users.index') }}" class="stat-card {{ $is_all ? 'active' : '' }}">
         <div class="stat-label">Utilisateurs</div>
         <div class="stat-value">{{ $stats['total'] }}</div>
         <div class="stat-meta">Comptes dans la plateforme</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ route('admin.users.index', ['approval' => 'pending']) }}" class="stat-card {{ $is_pending ? 'active' : '' }}">
         <div class="stat-label">En attente</div>
         <div class="stat-value" style="color:#f59e0b;">{{ $stats['pending_approval'] }}</div>
         <div class="stat-meta">A approuver par l admin</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ route('admin.users.index', ['filter' => 'unverified']) }}" class="stat-card {{ $is_unverified ? 'active' : '' }}">
         <div class="stat-label">Codes a saisir</div>
         <div class="stat-value" style="color:#38bdf8;">{{ $stats['awaiting_email_verification'] }}</div>
         <div class="stat-meta">Comptes approuves non verifies</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ route('admin.users.index', ['role' => 'admin']) }}" class="stat-card {{ $is_admin_role ? 'active' : '' }}">
         <div class="stat-label">Admins</div>
         <div class="stat-value" style="color:#4ade80;">{{ $stats['admins'] }}</div>
         <div class="stat-meta">Acces d administration</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ route('admin.users.index', ['role' => 'creator']) }}" class="stat-card {{ $is_creator_role ? 'active' : '' }}">
         <div class="stat-label">Createurs</div>
         <div class="stat-value">{{ $stats['creators'] }}</div>
         <div class="stat-meta">Auteurs de documents</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ route('admin.users.index', ['role' => 'validator']) }}" class="stat-card {{ $is_validator_role ? 'active' : '' }}">
         <div class="stat-label">Validateurs</div>
-        <div class="stat-value">{{ $stats['reviewers'] }}</div>
-        <div class="stat-meta">Validateurs et approbateurs</div>
-    </div>
+        <div class="stat-value">{{ $stats['validators'] }}</div>
+        <div class="stat-meta">Comptes validateurs</div>
+    </a>
+    <a href="{{ route('admin.users.index', ['role' => 'approver']) }}" class="stat-card {{ $is_approver_role ? 'active' : '' }}">
+        <div class="stat-label">Approbateurs</div>
+        <div class="stat-value" style="color:#14b8a6;">{{ $stats['approvers'] }}</div>
+        <div class="stat-meta">Comptes approbateurs</div>
+    </a>
 </div>
 
-@if(!$filters['search'] && !$filters['approval'] && !$filters['filter'])
+@php
+    $open_quick_create = old('form_context') === 'quick-create-user';
+@endphp
 <div class="card">
     <div class="card-header">
         <div>
@@ -44,72 +80,118 @@
             <div class="card-sub">Ajoutez un compte depuis l interface admin et activez-le immediatement si besoin.</div>
         </div>
         <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+            <button
+                type="button"
+                id="quick-create-toggle"
+                class="btn btn-primary btn-sm"
+                style="gap:.35rem;"
+                aria-controls="quick-create-panel"
+                aria-expanded="{{ $open_quick_create ? 'true' : 'false' }}"
+                onclick="toggleQuickCreatePanel()"
+            >
+                <span id="quick-create-label">{{ $open_quick_create ? 'Masquer creation rapide' : 'Creation rapide' }}</span>
+                <span
+                    id="quick-create-icon"
+                    aria-hidden="true"
+                    style="display:inline-block;transition:transform .2s ease;transform:rotate({{ $open_quick_create ? '180deg' : '0deg' }});"
+                >▾</span>
+            </button>
             <a href="{{ route('admin.users.pending') }}" class="btn btn-ghost btn-sm">Comptes en attente</a>
             <a href="{{ route('admin.dashboard') }}" class="btn btn-ghost btn-sm">Dashboard</a>
         </div>
     </div>
 
-    <form method="POST" action="{{ route('admin.users.store') }}">
-        @csrf
-        <div class="form-grid">
-            <div class="field">
-                <label for="create_name">Nom</label>
-                <input id="create_name" type="text" name="name" value="{{ old('name') }}" required>
+    <div id="quick-create-panel" @if(! $open_quick_create) hidden @endif>
+        <form method="POST" action="{{ route('admin.users.store') }}">
+            @csrf
+            <input type="hidden" name="form_context" value="quick-create-user">
+            <div class="form-grid">
+                <div class="field">
+                    <label for="create_name">Nom</label>
+                    <input id="create_name" type="text" name="name" value="{{ old('name') }}" required>
+                </div>
+                <div class="field">
+                    <label for="create_prenom">Prenom</label>
+                    <input id="create_prenom" type="text" name="prenom" value="{{ old('prenom') }}">
+                </div>
+                <div class="field">
+                    <label for="create_email">Email</label>
+                    <input id="create_email" type="email" name="email" value="{{ old('email') }}" required>
+                </div>
+                <div class="field">
+                    <label for="create_role">Role</label>
+                    <select id="create_role" name="role" required>
+                        <option value="">Choisir un role</option>
+                        @foreach($roles as $roleValue => $roleLabel)
+                            <option value="{{ $roleValue }}" @selected(old('role') === $roleValue)>{{ $roleLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="create_cin">CIN</label>
+                    <input id="create_cin" type="text" name="cin" value="{{ old('cin') }}">
+                </div>
+                <div class="field">
+                    <label for="create_matricule">Matricule</label>
+                    <input id="create_matricule" type="text" name="matricule" value="{{ old('matricule') }}">
+                </div>
+                <div class="field">
+                    <label for="create_password">Mot de passe</label>
+                    <input id="create_password" type="password" name="password" required>
+                </div>
+                <div class="field">
+                    <label for="create_password_confirmation">Confirmation</label>
+                    <input id="create_password_confirmation" type="password" name="password_confirmation" required>
+                </div>
             </div>
-            <div class="field">
-                <label for="create_prenom">Prenom</label>
-                <input id="create_prenom" type="text" name="prenom" value="{{ old('prenom') }}">
-            </div>
-            <div class="field">
-                <label for="create_email">Email</label>
-                <input id="create_email" type="email" name="email" value="{{ old('email') }}" required>
-            </div>
-            <div class="field">
-                <label for="create_role">Role</label>
-                <select id="create_role" name="role" required>
-                    <option value="">Choisir un role</option>
-                    <option value="creator" @selected(old('role') === 'creator')>Createur</option>
-                    <option value="validator" @selected(old('role') === 'validator')>Validateur</option>
-                    <option value="approver" @selected(old('role') === 'approver')>Approbateur</option>
-                    <option value="admin" @selected(old('role') === 'admin')>Admin</option>
-                </select>
-            </div>
-            <div class="field">
-                <label for="create_cin">CIN</label>
-                <input id="create_cin" type="text" name="cin" value="{{ old('cin') }}">
-            </div>
-            <div class="field">
-                <label for="create_matricule">Matricule</label>
-                <input id="create_matricule" type="text" name="matricule" value="{{ old('matricule') }}">
-            </div>
-            <div class="field">
-                <label for="create_password">Mot de passe</label>
-                <input id="create_password" type="password" name="password" required>
-            </div>
-            <div class="field">
-                <label for="create_password_confirmation">Confirmation</label>
-                <input id="create_password_confirmation" type="password" name="password_confirmation" required>
-            </div>
-        </div>
 
-        <label style="display:flex;gap:.45rem;align-items:center;font-size:.78rem;margin-top:1rem;">
-            <input type="checkbox" name="is_admin_approved" value="1" @checked(old('is_admin_approved'))>
-            <span>Approuver ce compte a la creation</span>
-        </label>
+            <label style="display:flex;gap:.45rem;align-items:center;font-size:.78rem;margin-top:1rem;">
+                <input type="checkbox" name="is_admin_approved" value="1" @checked(old('is_admin_approved'))>
+                <span>Approuver ce compte a la creation</span>
+            </label>
 
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Creer l utilisateur</button>
-        </div>
-    </form>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Creer l utilisateur</button>
+            </div>
+        </form>
+    </div>
 </div>
-@endif
+
+<script>
+function toggleQuickCreatePanel() {
+    const panel = document.getElementById('quick-create-panel');
+    const button = document.getElementById('quick-create-toggle');
+    const label = document.getElementById('quick-create-label');
+    const icon = document.getElementById('quick-create-icon');
+
+    if (!panel || !button) {
+        return;
+    }
+
+    const shouldShow = panel.hidden;
+    panel.hidden = !shouldShow;
+    button.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
+    if (label) {
+        label.textContent = shouldShow ? 'Masquer creation rapide' : 'Creation rapide';
+    }
+    if (icon) {
+        icon.style.transform = shouldShow ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+}
+</script>
 
 <div class="card">
     <div class="card-header">
         <div>
             <div class="card-title">Gestion des utilisateurs</div>
             <div class="card-sub">Recherchez, modifiez, approuvez, renvoyez le code ou supprimez un compte.</div>
+            @if($has_active_filters)
+                <div style="font-size:.72rem;color:var(--accent);margin-top:.35rem;">Filtre actif: {{ implode(' | ', $active_filters) }}</div>
+            @endif
         </div>
+        @if($has_active_filters)
+            <a href="{{ route('admin.users.index') }}" class="btn btn-ghost btn-sm">Reinitialiser</a>
+        @endif
     </div>
 
     <form method="GET" style="display:flex;gap:.6rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem;">
@@ -121,10 +203,9 @@
             <label for="role">Role</label>
             <select id="role" name="role">
                 <option value="">Tous</option>
-                <option value="creator" @selected($filters['role'] === 'creator')>Createur</option>
-                <option value="validator" @selected($filters['role'] === 'validator')>Validateur</option>
-                <option value="approver" @selected($filters['role'] === 'approver')>Approbateur</option>
-                <option value="admin" @selected($filters['role'] === 'admin')>Admin</option>
+                @foreach($roles as $roleValue => $roleLabel)
+                    <option value="{{ $roleValue }}" @selected($filters['role'] === $roleValue)>{{ $roleLabel }}</option>
+                @endforeach
             </select>
         </div>
         <div class="field">
@@ -143,6 +224,9 @@
             </select>
         </div>
         <button type="submit" class="btn btn-sm">Filtrer</button>
+        @if($has_active_filters)
+            <a href="{{ route('admin.users.index') }}" class="btn btn-ghost btn-sm">Effacer filtres</a>
+        @endif
     </form>
 
     <div style="overflow-x:auto;">
@@ -203,10 +287,9 @@
                                     <input type="text" name="matricule" value="{{ $user->matricule }}" placeholder="Matricule">
                                     <select name="role">
                                         <option value="">Sans role</option>
-                                        <option value="creator" @selected($user->role === 'creator')>Createur</option>
-                                        <option value="validator" @selected($user->role === 'validator')>Validateur</option>
-                                        <option value="approver" @selected($user->role === 'approver')>Approbateur</option>
-                                        <option value="admin" @selected($user->role === 'admin')>Admin</option>
+                                        @foreach($roles as $roleValue => $roleLabel)
+                                            <option value="{{ $roleValue }}" @selected($user->role === $roleValue)>{{ $roleLabel }}</option>
+                                        @endforeach
                                     </select>
                                     <label style="display:flex;gap:.45rem;align-items:center;font-size:.78rem;">
                                         <input type="checkbox" name="is_admin_approved" value="1" @checked($user->is_admin_approved)>

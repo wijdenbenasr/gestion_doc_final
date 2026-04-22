@@ -13,7 +13,7 @@
                 Remplissez tous les champs obligatoires (*). Le fichier sera chiffré et un hash SHA-256 calculé.
             </div>
         </div>
-        <a href="{{ route('documents.creator.index') }}" class="btn btn-ghost">← Retour</a>
+        <a href="{{ $backRoute ?? route('documents.creator.index') }}" class="btn btn-ghost">← Retour</a>
     </div>
 
     <form method="POST"
@@ -69,11 +69,19 @@
 
                 {{-- Ligne de production --}}
                 <div class="field">
-                    <label for="ligne">Ligne de production <span class="required">*</span></label>
+                    <label for="ligne">
+                        Ligne de production
+                        <span class="required">*</span>
+                        @if(!$canEditLigne)
+                            <span class="field-badge field-badge-optional">Modifiable par l'admin uniquement</span>
+                        @endif
+                    </label>
                     <input id="ligne" type="text" name="ligne"
                            value="{{ old('ligne', $document->ligne ?? '') }}"
                            placeholder="Ex : Ligne A, Ligne 3, L12..."
-                           required>
+                           required
+                           @if(!$canEditLigne) readonly @endif
+                           style="{{ !$canEditLigne ? 'background:rgba(148,163,184,0.08);color:var(--muted);' : '' }}">
                     @error('ligne')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
 
@@ -168,7 +176,7 @@
         </div>
 
         <div class="form-actions">
-            <a href="{{ route('documents.creator.index') }}" class="btn btn-ghost">Annuler</a>
+            <a href="{{ $backRoute ?? route('documents.creator.index') }}" class="btn btn-ghost">Annuler</a>
             <button type="submit" class="btn btn-primary">
                 {{ isset($document) ? '💾 Enregistrer les modifications' : '+ Créer le document' }}
             </button>

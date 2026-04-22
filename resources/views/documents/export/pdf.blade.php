@@ -182,7 +182,7 @@
 @endif
 
 <div class="footer">
-    Généré le {{ $generatedAt->format('d/m/Y à H:i:s') }} — QMS Doc Control — Conformité ISO 9001
+    Généré le {{ $generatedAt->format('d/m/Y à H:i:s') }} — Gestion documentaire qualité — Conformité ISO 9001
     <br>
     <span class="hash-block">Intégrité fichier (SHA-256) : {{ $document->hash ?? 'Non calculé' }}</span>
 </div>

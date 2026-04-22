@@ -288,6 +288,10 @@ class DocumentWorkflowController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
+        $notifications = $user->notifications()
+            ->latest()
+            ->limit(6)
+            ->get();
 
         // Base query for documents
         $baseQuery = Document::with(['creator']);
@@ -337,9 +341,10 @@ class DocumentWorkflowController extends Controller
             'rejected' => Document::whereHas('transmissions', function ($query) use ($user) {
                 $query->where('sent_by', $user->id)->where('action', 'reject');
             })->count(),
+            'notifications' => $user->unreadNotifications()->count(),
         ];
 
-        return view($view, compact('documents', 'processedDocuments', 'stats', 'filter'));
+        return view($view, compact('documents', 'processedDocuments', 'stats', 'filter', 'notifications'));
     }
 
     private function checkRole(string $role): void

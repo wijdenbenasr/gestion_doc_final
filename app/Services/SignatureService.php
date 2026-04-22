@@ -27,17 +27,31 @@ class SignatureService
         if (
             $user->role === 'creator'
             && $document->created_by === $user->id
-            && $document->status === 'draft'
+            && $document->current_role === 'creator'
             && ! empty($document->code)
         ) {
-            return $document->current_role === 'creator';
+            return in_array($document->status, ['draft', 'rejected', 'ready_for_pdf'], true);
         }
 
-        if (! in_array($document->status, ['in_validation', 'approved'], true)) {
+        if ($document->status !== 'in_validation') {
             return false;
         }
 
         return $document->current_role === $user->role;
+    }
+
+    public function canAdminValidate(Document $document): bool
+    {
+        return $document->status === 'in_validation'
+            && $document->current_role === 'admin'
+            && ! $this->isAwaitingAdminFinalSignature($document);
+    }
+
+    public function canAdminFinalize(Document $document): bool
+    {
+        return $document->status === 'in_validation'
+            && $document->current_role === 'admin'
+            && $this->isAwaitingAdminFinalSignature($document);
     }
 
     public function sign(Document $document, User $user): void
@@ -108,23 +122,6 @@ class SignatureService
         });
     }
 
-    private function handleAdminSign(Document $document, User $user): void
-    {
-        if (DocumentSignature::where('document_id', $document->id)->where('role', 'admin')->exists()) {
-            // Second admin sign, finalize
-            $this->finalize($document, $user);
-        } else {
-            // First admin sign, send to creator for PDF
-            $this->advanceTo(
-                $document,
-                $user,
-                'creator',
-                'pdf_conversion',
-                'Le document a ete valide. Veuillez le convertir en PDF, le signer et le renvoyer.'
-            );
-        }
-    }
-
     public function advanceWithoutSigning(Document $document, User $user): void
     {
         match ($user->role) {
@@ -142,17 +139,43 @@ class SignatureService
                 'validate',
                 'Un document approuve attend votre validation finale.'
             ),
-            'admin' => $this->advanceTo(
-                $document,
-                $user,
-                'creator',
-                'pdf_conversion',
-                'Le document a ete valide. Veuillez le convertir en PDF, le signer et le renvoyer.'
-            ),
+            'admin' => $this->sendToCreatorForPdf($document, $user),
             default => null,
         };
 
         $document->save();
+    }
+
+    public function isAwaitingAdminFinalSignature(Document $document): bool
+    {
+        $latestTransmission = $this->latestTransmission($document);
+
+        return $latestTransmission?->to_role === 'admin'
+            && $latestTransmission->action === 'finalize';
+    }
+
+    private function handleAdminSign(Document $document, User $user): void
+    {
+        if (! $this->canAdminFinalize($document)) {
+            abort(409, 'Ce document doit d abord etre valide avant la signature finale admin.');
+        }
+
+        $this->finalize($document, $user);
+    }
+
+    private function sendToCreatorForPdf(Document $document, User $user): void
+    {
+        if (! $this->canAdminValidate($document)) {
+            abort(409, 'Ce document attend deja la signature finale admin.');
+        }
+
+        $this->advanceTo(
+            $document,
+            $user,
+            'creator',
+            'pdf_conversion',
+            'Le document a ete valide. Veuillez le convertir en PDF, le signer et le renvoyer.'
+        );
     }
 
     private function advanceTo(
@@ -166,9 +189,7 @@ class SignatureService
             $document->status = 'ready_for_pdf';
             $document->current_owner_id = $document->created_by;
         } else {
-            if ($user->role === 'creator') {
-                $document->status = 'in_validation';
-            }
+            $document->status = 'in_validation';
             $document->current_owner_id = null;
         }
 
@@ -216,6 +237,15 @@ class SignatureService
         ]);
 
         $this->documentNotificationService->notifyCreatorFinalized($document);
+    }
+
+    private function latestTransmission(Document $document): ?Transmission
+    {
+        if ($document->relationLoaded('transmissions')) {
+            return $document->transmissions->first();
+        }
+
+        return $document->transmissions()->latest()->first();
     }
 
     private function orderForRole(string $role): int

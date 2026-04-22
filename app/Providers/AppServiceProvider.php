@@ -10,7 +10,9 @@ use App\Events\DocumentValidated;
 use App\Listeners\CreateAuditLogListener;
 use App\Repositories\Eloquent\EloquentDocumentRepository;
 use App\Repositories\Interfaces\DocumentRepositoryInterface;
+use App\Services\HeaderNotificationService;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -43,5 +45,12 @@ class AppServiceProvider extends ServiceProvider
                 CreateAuditLogListener::class
             );
         }
+
+        View::composer('layouts.app', function ($view): void {
+            $view->with(
+                'headerNotifications',
+                app(HeaderNotificationService::class)->buildFor(auth()->user())
+            );
+        });
     }
 }

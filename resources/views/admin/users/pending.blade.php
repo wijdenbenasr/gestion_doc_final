@@ -3,6 +3,7 @@
 @section('title', 'Validation des comptes')
 
 @section('content')
+@php $roles = \App\Models\User::ROLES; @endphp
 <div class="cards-row">
     <div class="stat-card">
         <div class="stat-label">En attente</div>
@@ -55,17 +56,24 @@
                             @endif
                         </td>
                         <td>
-                            <form method="POST" action="{{ route('admin.users.approve', $user) }}" style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
-                                @csrf
-                                <select name="role" required>
-                                    <option value="">Choisir un role</option>
-                                    <option value="creator">Createur</option>
-                                    <option value="validator">Validateur</option>
-                                    <option value="approver">Approbateur</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                                <button type="submit" class="btn btn-sm">Approuver</button>
-                            </form>
+                            <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
+                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Supprimer cet utilisateur ?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                                </form>
+
+                                <form method="POST" action="{{ route('admin.users.approve', $user) }}" style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
+                                    @csrf
+                                    <select name="role" required>
+                                        <option value="">Choisir un role</option>
+                                        @foreach($roles as $roleValue => $roleLabel)
+                                            <option value="{{ $roleValue }}">{{ $roleLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" class="btn btn-sm">Approuver</button>
+                                </form>
+                            </div>
                         </td>
                         <td>
                             <a href="{{ route('admin.users.index', ['search' => $user->email]) }}" class="btn btn-ghost btn-sm">Ouvrir la fiche</a>

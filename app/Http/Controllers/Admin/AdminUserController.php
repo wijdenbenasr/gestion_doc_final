@@ -9,6 +9,7 @@ use App\Services\VerificationCodeService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -63,7 +64,8 @@ class AdminUserController extends Controller
                 ->count(),
             'admins' => User::where('role', 'admin')->count(),
             'creators' => User::where('role', 'creator')->count(),
-            'reviewers' => User::whereIn('role', ['validator', 'approver'])->count(),
+            'validators' => User::where('role', 'validator')->count(),
+            'approvers' => User::where('role', 'approver')->count(),
         ];
 
         return view('admin.users.index', [
@@ -93,7 +95,7 @@ class AdminUserController extends Controller
             'cin' => ['nullable', 'string', 'max:255', 'unique:users,cin'],
             'matricule' => ['nullable', 'string', 'max:255', 'unique:users,matricule'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:creator,validator,approver,admin'],
+            'role' => ['required', Rule::in(User::roleKeys())],
             'is_admin_approved' => ['nullable', 'boolean'],
         ]);
 
@@ -144,7 +146,7 @@ class AdminUserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'cin' => ['nullable', 'string', 'max:255', 'unique:users,cin,'.$user->id],
             'matricule' => ['nullable', 'string', 'max:255', 'unique:users,matricule,'.$user->id],
-            'role' => ['nullable', 'in:creator,validator,approver,admin'],
+            'role' => ['nullable', Rule::in(User::roleKeys())],
             'is_admin_approved' => ['nullable', 'boolean'],
         ]);
 

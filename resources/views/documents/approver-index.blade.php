@@ -19,6 +19,82 @@
         <div class="stat-value" style="color:#f87171;">{{ $stats['rejected'] }}</div>
         <div class="stat-meta">Documents retournes au createur</div>
     </a>
+    <a href="#notifications" class="stat-card">
+        <div class="stat-label">Notifications</div>
+        <div class="stat-value" style="color:#38bdf8;">{{ $stats['notifications'] }}</div>
+        <div class="stat-meta">Non lues</div>
+    </a>
+</div>
+
+<div class="card" id="recent-alerts">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Vos dernieres alertes documentaires</div>
+            <div class="card-sub">Documents prioritaires a traiter en priorite.</div>
+        </div>
+    </div>
+    @php
+        $urgentDocuments = null;
+        if (!$filter || $filter === 'pending') {
+            $urgentDocuments = \App\Models\Document::where('status', 'in_validation')
+                ->where('current_role', 'approver')
+                ->whereNotNull('deadline')
+                ->orderByRaw('CASE
+                    WHEN deadline < NOW() THEN 0
+                    WHEN deadline < DATE_ADD(NOW(), INTERVAL 2 DAY) THEN 1
+                    ELSE 2
+                END')
+                ->limit(5)
+                ->get();
+        }
+    @endphp
+
+    @if($urgentDocuments && $urgentDocuments->count() > 0)
+        <div style="display:grid;gap:.4rem;">
+            @foreach($urgentDocuments as $doc)
+                @php
+                    $isUrgent = $doc->deadline && $doc->deadline->isPast();
+                    $isWarning = !$isUrgent && $doc->deadline && $doc->deadline->isBefore(now()->addDays(2));
+                    $badgeClass = $isUrgent ? 'badge-danger' : ($isWarning ? 'badge-warning' : 'badge-info');
+                @endphp
+                <div style="padding:.6rem;border-radius:.4rem;background:rgba({{ $isUrgent ? '239,68,68' : ($isWarning ? '245,158,11' : '56,189,248') }},0.1);border-left:3px solid {{ $isUrgent ? 'var(--danger)' : ($isWarning ? 'var(--warning)' : 'var(--info)') }};">
+                    <div style="display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:.3rem;">
+                        <div>
+                            <div style="font-weight:600;font-size:.85rem;">{{ $doc->name }}</div>
+                            <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;">
+                                {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | v{{ $doc->revision }}
+                            </div>
+                        </div>
+                        <span class="badge {{ $badgeClass }}" style="font-size:.7rem;white-space:nowrap;">
+                            @if($isUrgent)
+                                URGENT
+                            @elseif($isWarning)
+                                WARNING
+                            @else
+                                INFO
+                            @endif
+                        </span>
+                    </div>
+                    <div style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem;">
+                        Deadline: <strong style="font-family:monospace;{{ $isUrgent ? 'color:var(--danger)' : '' }}">{{ $doc->deadline ? $doc->deadline->format('d/m/Y H:i') : 'N/A' }}</strong>
+                        @if($doc->deadline && !$isUrgent && !$isWarning)
+                            (dans {{ $doc->deadline->diffInDays(now()) }} jour(s))
+                        @elseif($isUrgent)
+                            (dépassée de {{ now()->diffInDays($doc->deadline, false) }} jour(s))
+                        @endif
+                    </div>
+                    <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
+                        <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Télécharger</a>
+                        <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openValidateModal('{{ $doc->id }}')">Signer</button>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @else
+        <div style="color:var(--muted);padding:.6rem;text-align:center;">
+            Aucun document critique en attente.
+        </div>
+    @endif
 </div>
 
 <div class="card">
@@ -147,21 +223,40 @@
 </div>
 @endforeach
 
-<div class="card">
-    <div class="card-header">
-        <div>
-            <div class="card-title">Historique recent</div>
-            <div class="card-sub">Derniers documents que vous avez deja approuves.</div>
+<div class="cards-row">
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Historique recent</div>
+                <div class="card-sub">Derniers documents que vous avez deja approuves.</div>
+            </div>
         </div>
+        @forelse($processedDocuments as $doc)
+            <div style="padding:.55rem 0;border-bottom:1px solid rgba(31,41,55,0.8);">
+                <div style="font-weight:600;">{{ $doc->name }}</div>
+                <div style="font-size:.74rem;color:var(--muted);">{{ $doc->code ?: 'Sans code' }} | v{{ $doc->revision }}</div>
+            </div>
+        @empty
+            <div style="color:var(--muted);">Aucun document traite pour le moment.</div>
+        @endforelse
     </div>
-    @forelse($processedDocuments as $doc)
-        <div style="padding:.55rem 0;border-bottom:1px solid rgba(31,41,55,0.8);">
-            <div style="font-weight:600;">{{ $doc->name }}</div>
-            <div style="font-size:.74rem;color:var(--muted);">{{ $doc->code ?: 'Sans code' }} | v{{ $doc->revision }}</div>
+
+    <div class="card" id="notifications">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Notifications</div>
+                <div class="card-sub">Vos dernieres alertes documentaires.</div>
+            </div>
         </div>
-    @empty
-        <div style="color:var(--muted);">Aucun document traite pour le moment.</div>
-    @endforelse
+        @forelse($notifications as $notification)
+            <div style="padding:.55rem 0;border-bottom:1px solid rgba(31,41,55,0.8);">
+                <div style="font-size:.78rem;">{{ $notification->data['message'] ?? ($notification->data['type'] ?? 'Notification') }}</div>
+                <div style="font-size:.72rem;color:var(--muted);">{{ $notification->created_at->format('d/m/Y H:i') }}</div>
+            </div>
+        @empty
+            <div style="color:var(--muted);">Aucune notification pour le moment.</div>
+        @endforelse
+    </div>
 </div>
 
 <script>

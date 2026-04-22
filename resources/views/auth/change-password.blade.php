@@ -9,6 +9,7 @@
             <div class="card-title">Changer le mot de passe</div>
             <div class="card-sub">Mettez a jour votre mot de passe sans attendre un email de reinitialisation.</div>
         </div>
+        <a href="{{ route('account.profile.show') }}" class="btn btn-ghost btn-sm">Mon profil</a>
     </div>
 
     <form method="POST" action="{{ route('account.password.update') }}">

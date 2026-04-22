@@ -66,40 +66,22 @@ class WorkflowService
     public function submitToValidator(Document $document, User $user): void
     {
         DB::transaction(function () use ($document, $user) {
-            // Ne pas signer ici, juste avancer
-            $this->documentRepository->update($document, [
-                'status' => 'in_validation',
-                'current_role' => 'validator',
-                'current_owner_id' => null,
-            ]);
-
-            Transmission::create([
-                'document_id' => $document->id,
-                'from_role' => $user->role,
-                'to_role' => 'validator',
-                'action' => 'submit',
-                'sent_by' => $user->id,
-            ]);
-
-            $this->documentNotificationService->notifyRole(
-                'validator',
-                $document,
-                'Un document code a ete soumis et attend votre validation.',
-                'new_task'
-            );
+            $this->signatureService->sign($document, $user);
 
             if ($document->creator) {
                 $this->documentNotificationService->notifyUser(
                     $document->creator,
                     $document,
-                    'Votre document a ete soumis au validateur.',
+                    'Votre document a ete signe et soumis au validateur.',
                     'submitted'
                 );
             }
+
+            DocumentSubmitted::dispatch($document, $user);
         });
     }
 
-    public function signAndSubmitToValidator(Document $document, User $user): void
+    public function signAfterPdfAndSubmitToAdmin(Document $document, User $user): void
     {
         DB::transaction(function () use ($document, $user) {
             $this->signatureService->sign($document, $user);
@@ -118,13 +100,12 @@ class WorkflowService
     public function validateOnly(Document $document, User $user): void
     {
         DB::transaction(function () use ($document, $user) {
-            // Advance without signing
             $this->signatureService->advanceWithoutSigning($document, $user);
             DocumentValidated::dispatch($document, $user);
         });
     }
 
-    public function reject(Document $document, User $user, string $message, string $deadline): void
+    public function reject(Document $document, User $user, string $message, ?string $deadline): void
     {
         DB::transaction(function () use ($document, $user, $message, $deadline) {
             $newRevision = $this->incrementRevision($document->revision);

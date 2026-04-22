@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminCodificationController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
@@ -32,6 +33,9 @@ Route::middleware('guest')->group(function () {
 // ─── Routes authentifiées ─────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/account/profile', [AccountController::class, 'show'])->name('account.profile.show');
+    Route::post('/account/profile/image', [AccountController::class, 'updateProfileImage'])->name('account.profile.image.update');
+    Route::delete('/account/profile/image', [AccountController::class, 'destroyProfileImage'])->name('account.profile.image.destroy');
     Route::get('/account/password', [AuthController::class, 'showChangePassword'])->name('account.password.edit');
     Route::put('/account/password', [AuthController::class, 'changePassword'])->name('account.password.update');
 
@@ -96,6 +100,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{user}/resend-code', [AdminUserController::class, 'resendVerificationCode'])->name('users.resend_code');
         Route::post('/users/{user}/approve', [UserApprovalController::class, 'approve'])->name('users.approve');
 
+        // Export - AVANT les routes avec parametres
+        Route::get('/documents/export/csv', [ExportController::class, 'csv'])->name('documents.export.csv');
+        Route::get('/documents/export/pdf', [ExportController::class, 'pdfExport'])->name('documents.export.follow-up-pdf');
+        Route::get('/documents/export/word', [ExportController::class, 'wordExport'])->name('documents.export.follow-up-word');
+
+        // Gestion des documents (CRUD admin)
+        Route::get('/documents/create', [DocumentController::class, 'create'])->name('documents.create');
+        Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
+        Route::get('/documents/{document}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
+        Route::put('/documents/{document}', [DocumentController::class, 'update'])->name('documents.update');
+        Route::delete('/documents/{document}', [DocumentController::class, 'destroyAdmin'])->name('documents.destroy');
+
         // Codification (étape 2 du workflow)
         Route::get('/documents/codification', [AdminCodificationController::class, 'index'])->name('documents.codification');
 
@@ -108,8 +124,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/workflow/{document}/sign', [DocumentWorkflowController::class, 'adminSign'])->name('workflow.sign');
         Route::post('/workflow/{document}/reject', [DocumentWorkflowController::class, 'adminReject'])->name('workflow.reject');
 
-        // Export
+        // Export PDF pour un document specifique
         Route::get('/documents/{document}/pdf', [ExportController::class, 'pdf'])->name('documents.export.pdf');
-        Route::get('/documents/export/csv', [ExportController::class, 'csv'])->name('documents.export.csv');
     });
 });

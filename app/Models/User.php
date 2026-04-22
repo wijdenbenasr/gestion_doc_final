@@ -7,21 +7,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
     public const ROLES = [
-        'creator' => 'Créateur',
+        'creator' => 'Createur',
         'validator' => 'Validateur',
         'approver' => 'Approbateur',
         'admin' => 'Administrateur',
     ];
 
     /**
-     * The attributes that are mass assignable.
-     *
      * @var array<int, string>
      */
     protected $fillable = [
@@ -29,6 +29,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'prenom',
         'cin',
         'matricule',
+        'profile_image_path',
         'email',
         'password',
         'role',
@@ -37,8 +38,6 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
      * @var array<int, string>
      */
     protected $hidden = [
@@ -47,8 +46,6 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
      * @return array<string, string>
      */
     protected function casts(): array
@@ -59,6 +56,14 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_admin_approved' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function roleKeys(): array
+    {
+        return array_keys(self::ROLES);
     }
 
     public function createdDocuments(): HasMany
@@ -79,5 +84,35 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getRoleLabelAttribute(): string
     {
         return self::ROLES[$this->role] ?? 'Sans role';
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        $fullName = collect([$this->name, $this->prenom])
+            ->filter()
+            ->implode(' ');
+
+        return $fullName !== '' ? $fullName : $this->email;
+    }
+
+    public function getInitialsAttribute(): string
+    {
+        $initials = collect([$this->name, $this->prenom])
+            ->filter()
+            ->map(function (?string $value): string {
+                return Str::upper(Str::substr(trim((string) $value), 0, 1));
+            })
+            ->implode('');
+
+        return $initials !== '' ? $initials : 'U';
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        if (! $this->profile_image_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->profile_image_path);
     }
 }

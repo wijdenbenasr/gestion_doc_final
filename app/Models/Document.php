@@ -15,7 +15,7 @@ class Document extends Model
 
     public const TYPES = [
         'fmea_process' => 'FMEA Process',
-        'sop' => 'SOP – Standard Operating Process / Work Instruction',
+        'sop' => 'SOP - Standard Operating Process / Work Instruction',
         'defect_catalogue' => 'Defect Catalogue',
         'control_plan' => 'Control Plan',
         'process_flow_chart' => 'Process Flow Chart',
@@ -40,8 +40,8 @@ class Document extends Model
         'pending_codification' => 'En attente de codification',
         'in_validation' => 'En validation',
         'ready_for_pdf' => 'Pret pour PDF',
-        'rejected' => 'Rejeté',
-        'finalized' => 'Finalisé',
+        'rejected' => 'Rejete',
+        'finalized' => 'Finalise',
     ];
 
     protected $fillable = [
@@ -94,7 +94,8 @@ class Document extends Model
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class, 'auditable_id')
-            ->where('auditable_type', self::class)->latest();
+            ->where('auditable_type', self::class)
+            ->latest();
     }
 
     public function getTypeLibelleAttribute(): string
@@ -115,9 +116,9 @@ class Document extends Model
     public function getPhaseLibelleAttribute(): string
     {
         if ($this->phase === 'projet') {
-            return 'Projet'.($this->nom_phase ? ' – '.$this->nom_phase : '');
+            return 'Projet'.($this->nom_phase ? ' - '.$this->nom_phase : '');
         }
 
-        return 'Série'.($this->nom_serie ? ' – '.$this->nom_serie : '');
+        return 'Serie'.($this->nom_serie ? ' - '.$this->nom_serie : '');
     }
 }

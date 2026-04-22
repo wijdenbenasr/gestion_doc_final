@@ -39,12 +39,20 @@ class DocumentPolicy
 
     public function update(User $user, Document $document): bool
     {
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         return $user->id === $document->created_by
             && in_array($document->status, ['draft', 'rejected'], true);
     }
 
     public function requestDeletion(User $user, Document $document): bool
     {
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         return $user->id === $document->created_by
             && $document->status === 'draft';
     }
@@ -52,6 +60,11 @@ class DocumentPolicy
     public function forceDelete(User $user, Document $document): bool
     {
         return $user->role === 'admin';
+    }
+
+    public function create(User $user): bool
+    {
+        return in_array($user->role, ['creator', 'admin'], true);
     }
 
     public function assignCode(User $user, Document $document): bool

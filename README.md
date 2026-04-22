@@ -31,7 +31,7 @@ php artisan storage:link
 php artisan serve
 ```
 
-**Compte admin par défaut :** `admin@example.com` / `admin1234`
+**Compte admin par défaut (dev only) :** `admin@example.com` / `admin1234`
 
 ---
 
@@ -78,7 +78,7 @@ php artisan serve
 
 ---
 
-## 🗄️ Base de données (7 migrations propres)
+## 🗄️ Base de données
 
 | Table | Description |
 |---|---|
@@ -103,7 +103,7 @@ php artisan serve
 | Rôle | Permissions |
 |---|---|
 | `creator` | Créer, modifier, supprimer (brouillon), soumettre |
-| `checker` | Valider ou rejeter les documents en attente |
+| `validator` | Valider ou rejeter les documents en attente |
 | `approver` | Approuver ou rejeter les documents validés |
 | `admin` | Codifier, signer, superviser, gérer les comptes |
 
@@ -151,6 +151,6 @@ database/migrations/  (7 fichiers ordonnés, propres, sans doublons)
 resources/views/
 ├── layouts/app.blade.php
 ├── auth/  (login, register, verify-email, forgot-password, reset-password)
-├── documents/  (create, creator-index, checker-index, approver-index, export/pdf)
+├── documents/  (create, creator-index, validator-index, approver-index, export/pdf)
 └── admin/  (dashboard, codification/index, users/pending)
 ```

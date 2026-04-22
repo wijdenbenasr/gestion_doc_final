@@ -38,13 +38,9 @@ class DocumentService
     public function updateDocument(Document $document, DocumentData $data, ?UploadedFile $file = null): Document
     {
         $payload = $data->toArray();
+        $oldFilePath = $document->file_path;
 
         if ($file) {
-            // Supprimer l'ancien fichier
-            if ($document->file_path && Storage::disk('private')->exists($document->file_path)) {
-                Storage::disk('private')->delete($document->file_path);
-            }
-
             $path = $file->store('documents', 'private');
             $hash = hash('sha256', Storage::disk('private')->get($path));
 
@@ -53,12 +49,15 @@ class DocumentService
             $payload['hash'] = $hash;
         }
 
-        // Incrémenter la révision si le document a été codifié et est modifié par le créateur
         if ($document->code && $document->status === 'draft' && $document->current_role === 'creator') {
             $payload['revision'] = $this->incrementRevision($document->revision ?? '1.0');
         }
 
         $this->documentRepository->update($document, $payload);
+
+        if ($file && $oldFilePath && Storage::disk('private')->exists($oldFilePath)) {
+            Storage::disk('private')->delete($oldFilePath);
+        }
 
         return $document->refresh();
     }

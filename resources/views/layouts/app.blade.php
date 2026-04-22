@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="utf-8">
@@ -144,6 +144,139 @@
             color: var(--muted);
             font-size: .78rem;
         }
+        .profile-menu-container { position: relative; }
+        .profile-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: .65rem;
+            padding: .3rem .45rem;
+            border-radius: .9rem;
+            border: 1px solid var(--border);
+            background: rgba(15,23,42,0.72);
+            color: var(--text);
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+        }
+        .profile-trigger:hover,
+        .profile-trigger.active {
+            border-color: rgba(56,189,248,0.45);
+            background: rgba(56,189,248,0.08);
+        }
+        .profile-trigger-copy {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 0;
+        }
+        .profile-trigger-name {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: .78rem;
+            font-weight: 600;
+        }
+        .profile-trigger-role {
+            font-size: .64rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+        .profile-chevron {
+            width: 12px;
+            height: 12px;
+            color: var(--muted);
+            flex-shrink: 0;
+        }
+        .profile-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            border-radius: 50%;
+            border: 1px solid rgba(56,189,248,0.35);
+            background: linear-gradient(135deg, rgba(14,165,233,0.92), rgba(15,23,42,0.95));
+            color: #f8fafc;
+            font-weight: 700;
+            box-shadow: 0 10px 24px rgba(2,6,23,0.45);
+        }
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .profile-avatar-sm { width: 36px; height: 36px; font-size: .8rem; }
+        .profile-avatar-lg { width: 68px; height: 68px; font-size: 1.15rem; }
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: .55rem;
+            width: min(360px, calc(100vw - 2rem));
+            background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(2,6,23,0.98));
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.55);
+            padding: 1rem;
+            z-index: 1000;
+        }
+        .profile-dropdown.active { display: block; }
+        .profile-summary {
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+            padding-bottom: .9rem;
+            border-bottom: 1px solid rgba(148,163,184,0.14);
+        }
+        .profile-summary-name {
+            font-size: .92rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .profile-summary-role {
+            margin-top: .2rem;
+            font-size: .66rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .profile-summary-email {
+            margin-top: .3rem;
+            font-size: .72rem;
+            color: var(--muted);
+            word-break: break-word;
+        }
+        .profile-detail-list {
+            display: grid;
+            gap: .55rem;
+            margin-top: .9rem;
+        }
+        .profile-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: .6rem .7rem;
+            border-radius: .8rem;
+            border: 1px solid rgba(148,163,184,0.12);
+            background: rgba(15,23,42,0.72);
+            font-size: .75rem;
+        }
+        .profile-detail-item span { color: var(--muted); }
+        .profile-detail-item strong {
+            color: var(--text);
+            font-weight: 600;
+            text-align: right;
+            word-break: break-word;
+        }
+        .profile-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .55rem;
+            margin-top: 1rem;
+        }
         .btn {
             display: inline-flex;
             align-items: center;
@@ -259,6 +392,7 @@
         @media (max-width: 600px) {
             .cards-row { grid-template-columns: 1fr; }
             .header-inner, .footer-inner { flex-direction: column; align-items: flex-start; }
+            .profile-trigger-copy { display: none; }
         }
     </style>
 </head>
@@ -268,14 +402,18 @@
         <a href="{{ route('dashboard') }}" class="brand">
             <div class="brand-logo"></div>
             <div>
-                <div class="brand-title">QMS Doc Control</div>
-                <div class="brand-sub">Gestion electronique des documents</div>
+                <div class="brand-title">Gestion documentaire qualité </div>
+                <div class="brand-sub">Plateforme sécurisée de gestion documentaire </div>
             </div>
         </a>
 
         <nav>
             @auth
-                @php $role = auth()->user()->role; @endphp
+                @php
+                    $user = auth()->user();
+                    $role = $user->role;
+                    $accountMenuActive = request()->routeIs('account.profile.*', 'account.password.*');
+                @endphp
 
                 @if($role === 'creator')
                     <a href="{{ route('documents.creator.index') }}" class="nav-link {{ request()->routeIs('documents.creator.*', 'documents.create', 'documents.edit') ? 'active' : '' }}">Mes documents</a>
@@ -298,150 +436,16 @@
                 <a href="{{ route('documents.archive') }}" class="nav-link {{ request()->routeIs('documents.archive') ? 'active' : '' }}">Archive</a>
 
                 <div class="notifications-container">
-                    @php
-                        $unreadCount = 0;
-                        $notificationUrl = '#';
-                        $hasDropdown = false;
-                        $notifications = [];
-
-                        if (auth()->check()) {
-                            $user = auth()->user();
-                            $role = $user->role;
-
-                            if ($role === 'creator') {
-                                $notificationUrl = route('documents.creator.index', ['status' => 'rejected']);
-                                $hasDropdown = true;
-                                $unreadCount = \App\Models\Document::where('created_by', $user->id)
-                                    ->where('status', 'rejected')
-                                    ->count();
-
-                                $rejectedDocuments = \App\Models\Document::where('created_by', $user->id)
-                                    ->where('status', 'rejected')
-                                    ->latest()
-                                    ->limit(3)
-                                    ->get();
-
-                                foreach ($rejectedDocuments as $doc) {
-                                    $notifications[] = [
-                                        'title' => 'Document rejete : '.$doc->name,
-                                        'meta' => 'A corriger et renvoyer',
-                                        'type' => 'urgent',
-                                        'url' => $notificationUrl,
-                                    ];
-                                }
-                            } elseif ($role === 'validator') {
-                                $notificationUrl = route('workflow.validator.index', ['filter' => 'pending']);
-                                $hasDropdown = true;
-                                $unreadCount = \App\Models\Document::where('status', 'in_validation')
-                                    ->where('current_role', 'validator')
-                                    ->count();
-
-                                $pendingDocuments = \App\Models\Document::with('creator')
-                                    ->where('status', 'in_validation')
-                                    ->where('current_role', 'validator')
-                                    ->latest()
-                                    ->limit(3)
-                                    ->get();
-
-                                foreach ($pendingDocuments as $doc) {
-                                    $metaParts = [
-                                        $doc->code ?: 'Sans code',
-                                        $doc->creator->name ?? 'Createur inconnu',
-                                    ];
-
-                                    if ($doc->deadline) {
-                                        $metaParts[] = 'Deadline '.$doc->deadline->format('d/m/Y');
-                                    }
-
-                                    $notifications[] = [
-                                        'title' => 'Validation requise : '.$doc->name,
-                                        'meta' => implode(' | ', $metaParts),
-                                        'type' => $doc->deadline && $doc->deadline->isPast()
-                                            ? 'urgent'
-                                            : ($doc->deadline && $doc->deadline->isBefore(now()->addDays(2)) ? 'warning' : ''),
-                                        'url' => $notificationUrl,
-                                    ];
-                                }
-                            } elseif ($role === 'approver') {
-                                $notificationUrl = route('workflow.approver.index', ['filter' => 'pending']);
-                                $hasDropdown = true;
-                                $unreadCount = \App\Models\Document::where('status', 'in_validation')
-                                    ->where('current_role', 'approver')
-                                    ->count();
-
-                                $pendingDocuments = \App\Models\Document::with('creator')
-                                    ->where('status', 'in_validation')
-                                    ->where('current_role', 'approver')
-                                    ->latest()
-                                    ->limit(3)
-                                    ->get();
-
-                                foreach ($pendingDocuments as $doc) {
-                                    $metaParts = [
-                                        $doc->code ?: 'Sans code',
-                                        $doc->creator->name ?? 'Createur inconnu',
-                                    ];
-
-                                    if ($doc->deadline) {
-                                        $metaParts[] = 'Deadline '.$doc->deadline->format('d/m/Y');
-                                    }
-
-                                    $notifications[] = [
-                                        'title' => 'Approbation requise : '.$doc->name,
-                                        'meta' => implode(' | ', $metaParts),
-                                        'type' => $doc->deadline && $doc->deadline->isPast()
-                                            ? 'urgent'
-                                            : ($doc->deadline && $doc->deadline->isBefore(now()->addDays(2)) ? 'warning' : ''),
-                                        'url' => $notificationUrl,
-                                    ];
-                                }
-                            } elseif ($role === 'admin') {
-                                $pending = \App\Models\Document::where('status', 'pending_codification')->count();
-                                $pendingUsers = \App\Models\User::where('is_admin_approved', false)->count();
-                                $unreadCount = $pending + $pendingUsers;
-                                $hasDropdown = true;
-
-                                $pendingDocuments = \App\Models\Document::with('creator')
-                                    ->where('status', 'pending_codification')
-                                    ->latest()
-                                    ->limit(2)
-                                    ->get();
-
-                                foreach ($pendingDocuments as $doc) {
-                                    $notifications[] = [
-                                        'title' => 'Codification requise : '.$doc->name,
-                                        'meta' => 'Par '.($doc->creator->name ?? 'Inconnu'),
-                                        'type' => 'urgent',
-                                        'url' => route('admin.documents.codification'),
-                                    ];
-                                }
-
-                                $pendingUsersList = \App\Models\User::where('is_admin_approved', false)
-                                    ->latest()
-                                    ->limit(2)
-                                    ->get();
-
-                                foreach ($pendingUsersList as $pendingUser) {
-                                    $notifications[] = [
-                                        'title' => 'Compte en attente : '.$pendingUser->name,
-                                        'meta' => 'Validation admin requise',
-                                        'type' => 'warning',
-                                        'url' => route('admin.users.pending'),
-                                    ];
-                                }
-                            }
-                        }
-                    @endphp
-                    @if($hasDropdown)
-                        <button class="notification-bell" onclick="toggleNotifications(event)" title="Notifications ({{ $unreadCount }})">
+                    @if($headerNotifications['has_dropdown'])
+                        <button class="notification-bell" onclick="toggleNotifications(event)" title="Notifications ({{ $headerNotifications['unread_count'] }})">
                             🔔
-                            @if($unreadCount > 0)
-                                <span class="notification-badge">{{ min($unreadCount, 9) }}{{ $unreadCount > 9 ? '+' : '' }}</span>
+                            @if($headerNotifications['unread_count'] > 0)
+                                <span class="notification-badge">{{ min($headerNotifications['unread_count'], 9) }}{{ $headerNotifications['unread_count'] > 9 ? '+' : '' }}</span>
                             @endif
                         </button>
                         <div class="notification-dropdown" id="notificationsDropdown">
-                            @if(count($notifications) > 0)
-                                @foreach($notifications as $notif)
+                            @if(count($headerNotifications['items']) > 0)
+                                @foreach($headerNotifications['items'] as $notif)
                                     <a href="{{ $notif['url'] }}" class="notification-item {{ $notif['type'] }}" onclick="closeDropdown()">
                                         <div class="notification-item-title">{{ $notif['title'] }}</div>
                                         <div class="notification-item-meta">{{ $notif['meta'] }}</div>
@@ -454,12 +458,65 @@
                     @endif
                 </div>
 
-                <div class="user-chip">
-                    <span>{{ auth()->user()->name }}</span>
-                    <span class="role-tag">{{ $role }}</span>
-                </div>
+                <div class="profile-menu-container">
+                    <button type="button" class="profile-trigger {{ $accountMenuActive ? 'active' : '' }}" onclick="toggleProfileMenu(event)" aria-label="Ouvrir le menu profil">
+                        <span class="profile-avatar profile-avatar-sm">
+                            @if($user->profile_image_url)
+                                <img src="{{ $user->profile_image_url }}" alt="Photo de profil de {{ $user->full_name }}">
+                            @else
+                                {{ $user->initials }}
+                            @endif
+                        </span>
+                        <span class="profile-trigger-copy">
+                            <span class="profile-trigger-name">{{ $user->full_name }}</span>
+                            <span class="profile-trigger-role">{{ $user->role_label }}</span>
+                        </span>
+                        <svg class="profile-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.51a.75.75 0 0 1-1.08 0l-4.25-4.51a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
 
-                <a href="{{ route('account.password.edit') }}" class="nav-link {{ request()->routeIs('account.password.*') ? 'active' : '' }}">Mot de passe</a>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="profile-summary">
+                            <span class="profile-avatar profile-avatar-lg">
+                                @if($user->profile_image_url)
+                                    <img src="{{ $user->profile_image_url }}" alt="Photo de profil de {{ $user->full_name }}">
+                                @else
+                                    {{ $user->initials }}
+                                @endif
+                            </span>
+                            <div>
+                                <div class="profile-summary-name">{{ $user->full_name }}</div>
+                                <div class="profile-summary-role">{{ $user->role_label }}</div>
+                                <div class="profile-summary-email">{{ $user->email }}</div>
+                            </div>
+                        </div>
+
+                        <div class="profile-detail-list">
+                            <div class="profile-detail-item">
+                                <span>Nom</span>
+                                <strong>{{ $user->name ?: '-' }}</strong>
+                            </div>
+                            <div class="profile-detail-item">
+                                <span>Prenom</span>
+                                <strong>{{ $user->prenom ?: '-' }}</strong>
+                            </div>
+                            <div class="profile-detail-item">
+                                <span>CIN</span>
+                                <strong>{{ $user->cin ?: '-' }}</strong>
+                            </div>
+                            <div class="profile-detail-item">
+                                <span>Matricule</span>
+                                <strong>{{ $user->matricule ?: '-' }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions">
+                            <a href="{{ route('account.profile.show') }}" class="btn btn-primary btn-sm" onclick="closeProfileMenu()">Mon profil</a>
+                            <a href="{{ route('account.password.edit') }}" class="btn btn-ghost btn-sm" onclick="closeProfileMenu()">Changer le mot de passe</a>
+                        </div>
+                    </div>
+                </div>
 
                 <form method="POST" action="{{ route('logout') }}" style="margin:0;">
                     @csrf
@@ -493,8 +550,7 @@
 
 <footer>
     <div class="footer-inner">
-        <span>Copyright {{ date('Y') }} QMS Doc Control</span>
-        <span>Audit trail | RBAC | Archivage auto</span>
+        <span> {{ date('Y') }} Gestion documentaire qualité  </span>
     </div>
 </footer>
 
@@ -502,6 +558,7 @@
 function toggleNotifications(event) {
     event.preventDefault();
     event.stopPropagation();
+    closeProfileMenu();
     const dropdown = document.getElementById('notificationsDropdown');
     if (!dropdown) {
         return;
@@ -519,15 +576,40 @@ function closeDropdown() {
     dropdown.classList.remove('active');
 }
 
-document.addEventListener('click', function(event) {
-    const dropdown = document.getElementById('notificationsDropdown');
-    const bell = event.target.closest('.notification-bell');
+function toggleProfileMenu(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeDropdown();
+    const dropdown = document.getElementById('profileDropdown');
     if (!dropdown) {
         return;
     }
 
-    if (!bell && !dropdown.contains(event.target)) {
+    dropdown.classList.toggle('active');
+}
+
+function closeProfileMenu() {
+    const dropdown = document.getElementById('profileDropdown');
+    if (!dropdown) {
+        return;
+    }
+
+    dropdown.classList.remove('active');
+}
+
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('notificationsDropdown');
+    const bell = event.target.closest('.notification-bell');
+    const profileDropdown = document.getElementById('profileDropdown');
+    const profileTrigger = event.target.closest('.profile-trigger');
+    if (!dropdown) {
+        closeProfileMenu();
+    } else if (!bell && !dropdown.contains(event.target)) {
         dropdown.classList.remove('active');
+    }
+
+    if (profileDropdown && !profileTrigger && !profileDropdown.contains(event.target)) {
+        profileDropdown.classList.remove('active');
     }
 });
 </script>

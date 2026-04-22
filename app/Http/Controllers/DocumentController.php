@@ -119,15 +119,23 @@ class DocumentController extends Controller
 
     public function create(): View
     {
+        $isAdmin = auth()->user()->role === 'admin';
+        $canEditLigne = $isAdmin;
+        $backRoute = $isAdmin ? route('admin.dashboard') : route('documents.creator.index');
+
         return view('documents.create', [
             'types' => Document::TYPES,
             'aios' => Document::AIOS,
             'document' => null,
+            'canEditLigne' => $canEditLigne,
+            'backRoute' => $backRoute,
         ]);
     }
 
     public function store(Request $request): RedirectResponse|JsonResponse
     {
+        $isAdmin = $request->user()->role === 'admin';
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:'.implode(',', array_keys(Document::TYPES))],
@@ -142,37 +150,58 @@ class DocumentController extends Controller
             'nom_phase.required_if' => 'Le nom de la phase est obligatoire lorsque le type est "Projet".',
             'type.in' => 'Type de document invalide.',
             'aio.in' => 'AIO invalide.',
-            'file.mimes' => 'Format accepté : .docx, .xlsx, .pdf (max 20 Mo).',
+            'file.mimes' => 'Format accepte : .docx, .xlsx, .pdf (max 20 Mo).',
         ]);
 
+        $ligne = $isAdmin ? $data['ligne'] : ($data['ligne'] ?: 'Ligne 1');
+
         $document = $this->documentService->createDocument(
-            DocumentData::fromArray($data),
+            new DocumentData(
+                name: $data['name'],
+                type: $data['type'],
+                aio: $data['aio'],
+                ligne: $ligne,
+                phase: $data['phase'],
+                nom_phase: $data['nom_phase'] ?? null,
+                nom_serie: $data['nom_serie'] ?? null,
+                deadline: $data['deadline'] ?? null,
+            ),
             $request->file('file'),
             $request->user()
         );
 
         if ($request->expectsJson()) {
-            return response()->json(['message' => 'Document créé.', 'data' => $document], 201);
+            return response()->json(['message' => 'Document cree.', 'data' => $document], 201);
         }
 
-        return redirect()->route('documents.creator.index')
-            ->with('status', 'Document "'.$document->name.'" créé avec succès.');
+        $redirectRoute = $isAdmin ? 'admin.dashboard' : 'documents.creator.index';
+
+        return redirect()->route($redirectRoute)
+            ->with('status', 'Document "'.$document->name.'" cree avec succes.');
     }
 
     public function edit(Document $document): View
     {
         $this->authorize('update', $document);
 
+        $isAdmin = auth()->user()->role === 'admin';
+        $canEditLigne = $isAdmin;
+        $backRoute = $isAdmin ? route('admin.dashboard') : route('documents.creator.index');
+
         return view('documents.create', [
             'types' => Document::TYPES,
             'aios' => Document::AIOS,
             'document' => $document,
+            'canEditLigne' => $canEditLigne,
+            'backRoute' => $backRoute,
         ]);
     }
 
     public function update(Request $request, Document $document): RedirectResponse|JsonResponse
     {
         $this->authorize('update', $document);
+
+        $isAdmin = $request->user()->role === 'admin';
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -188,13 +217,15 @@ class DocumentController extends Controller
             'nom_phase.required_if' => 'Le nom de la phase est obligatoire lorsque le type est "Projet".',
         ]);
 
+        $ligne = $isAdmin ? $data['ligne'] : ($document->ligne ?: $data['ligne']);
+
         $updated = $this->documentService->updateDocument(
             $document,
             new DocumentData(
                 name: $data['name'],
                 type: $data['type'],
                 aio: $data['aio'],
-                ligne: $data['ligne'],
+                ligne: $ligne,
                 phase: $data['phase'],
                 nom_phase: $data['nom_phase'] ?? null,
                 nom_serie: $data['nom_serie'] ?? null,
@@ -203,11 +234,13 @@ class DocumentController extends Controller
             $request->file('file')
         );
 
+        $redirectRoute = $isAdmin ? 'admin.dashboard' : 'documents.creator.index';
+
         if ($request->expectsJson()) {
             return response()->json(['message' => 'Document mis à jour.', 'data' => $updated]);
         }
 
-        return redirect()->route('documents.creator.index')
+        return redirect()->route($redirectRoute)
             ->with('status', 'Document mis à jour.');
     }
 
@@ -221,6 +254,19 @@ class DocumentController extends Controller
         }
 
         return redirect()->route('documents.creator.index')
+            ->with('status', 'Document supprimé.');
+    }
+
+    public function destroyAdmin(Request $request, Document $document): RedirectResponse|JsonResponse
+    {
+        $this->authorize('forceDelete', $document);
+        $this->documentRepository->delete($document);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Document supprimé.']);
+        }
+
+        return redirect()->route('admin.dashboard')
             ->with('status', 'Document supprimé.');
     }
 }

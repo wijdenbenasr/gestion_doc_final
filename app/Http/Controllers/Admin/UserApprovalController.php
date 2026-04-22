@@ -8,6 +8,7 @@ use App\Services\AuditService;
 use App\Services\VerificationCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class UserApprovalController extends Controller
@@ -26,7 +27,7 @@ class UserApprovalController extends Controller
         VerificationCodeService $verificationCodeService
     ): RedirectResponse {
         $data = $request->validate([
-            'role' => ['required', 'in:creator,checker,approver,admin'],
+            'role' => ['required', Rule::in(User::roleKeys())],
         ]);
 
         $user->forceFill([

@@ -87,14 +87,14 @@ class AdminUserManagementTest extends TestCase
                 'email' => 'pending@example.com',
                 'cin' => 'CIN-100',
                 'matricule' => 'MAT-100',
-                'role' => 'checker',
+'role' => 'validator',
                 'is_admin_approved' => '1',
             ])
             ->assertRedirect();
 
         $this->assertDatabaseHas('users', [
             'id' => $pendingUser->id,
-            'role' => 'checker',
+            'role' => 'validator',
             'is_admin_approved' => true,
         ]);
 

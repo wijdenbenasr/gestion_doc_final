@@ -81,4 +81,39 @@ class ExportController extends Controller
 
         return Response::stream($callback, 200, $headers);
     }
+
+    public function pdfExport()
+    {
+        $documents = Document::with(['creator'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $pdf = Pdf::loadView('documents.export.follow-up', [
+            'documents' => $documents,
+            'generatedAt' => now(),
+        ])->setPaper('A4', 'landscape');
+
+        return $pdf->download('qms_suivi_documents_'.now()->format('Y-m-d').'.pdf');
+    }
+
+    public function wordExport()
+    {
+        $documents = Document::with(['creator'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $html = view('documents.export.follow-up', [
+            'documents' => $documents,
+            'generatedAt' => now(),
+        ])->render();
+
+        $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body>'.$html.'</body></html>';
+
+        $headers = [
+            'Content-Type' => 'application/vnd.ms-word; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="qms_suivi_documents_'.now()->format('Y-m-d').'.doc"',
+        ];
+
+        return response($html, 200, $headers);
+    }
 }

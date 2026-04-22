@@ -78,7 +78,7 @@ return new class extends Migration
             $table->enum('status', [
                 'draft',                // Brouillon (chez le créateur)
                 'pending_codification', // En attente de code par l'admin
-                'in_validation',        // En cours de validation (checker → approver → admin)
+                'in_validation',        // En cours de validation (validator → approver → admin)
                 'rejected',             // Rejeté, retour au créateur
                 'finalized',            // Signé par tous, archivé, verrouillé
             ])->default('draft')->index();
