@@ -24,8 +24,11 @@ class AdminDashboardController extends Controller
 
         $createdCount = (clone $base)->count();
         $inValidationCount = (clone $base)->whereIn('status', ['draft', 'in_validation', 'rejected', 'pending_codification'])->count();
-        $finalizedCount = (clone $base)->where('status', 'finalized')->count();   // BUG CORRIGÉ : cohérent avec SignatureService
+        $finalizedCount = (clone $base)->where('status', 'finalized')->count();
         $rejectedCount = (clone $base)->where('status', 'rejected')->count();
+
+        // Activity chart data - last 7 days
+        $activityChart = $this->getActivityChartData();
 
         // Compteurs pour les badges dans le header
         $pendingCodification = Document::where('status', 'pending_codification')->count();
@@ -57,8 +60,32 @@ class AdminDashboardController extends Controller
             'totalUsers',
             'usersByRole',
             'recentLogs',
-            'range'
+            'range',
+            'activityChart'
         ));
+    }
+
+    private function getActivityChartData(): array
+    {
+        $labels = [];
+        $created = [];
+        $validated = [];
+        $rejected = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $labels[] = $date->format('d/m');
+            $created[] = Document::whereDate('created_at', $date)->count();
+            $validated[] = Document::whereDate('created_at', $date)->where('status', 'finalized')->count();
+            $rejected[] = Document::whereDate('created_at', $date)->where('status', 'rejected')->count();
+        }
+
+        return [
+            'labels' => $labels,
+            'created' => $created,
+            'validated' => $validated,
+            'rejected' => $rejected,
+        ];
     }
 
     public function documents(Request $request)

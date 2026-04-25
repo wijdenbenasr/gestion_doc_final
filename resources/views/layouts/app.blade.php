@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - QMS Doc Control</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-rETDkeu3aJr4P7NfO5MvPQpVGJv9oZ3vKPT9G3EfnmY3oA4T3R0FZ9G47S" crossorigin="anonymous">
+    @yield('styles')
     <style>
         :root {
             --bg: #0f172a;
@@ -116,16 +118,31 @@
             top: 100%;
             right: 0;
             margin-top: .5rem;
-            background: var(--panel);
+            background: #0f172a;
             border: 1px solid var(--border);
             border-radius: .75rem;
             box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            min-width: 320px;
-            max-height: 400px;
-            overflow-y: auto;
+            min-width: 300px;
+            max-height: 420px;
+            overflow: hidden;
             z-index: 1000;
         }
         .notification-dropdown.active { display: block; }
+        .notification-header {
+            padding: .85rem 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-weight: 600;
+            font-size: .9rem;
+            color: var(--text);
+        }
+        .notification-header i { color: var(--accent); }
+        .notification-list {
+            max-height: 280px;
+            overflow-y: auto;
+        }
         .notification-item {
             padding: .7rem 1rem;
             border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -139,11 +156,28 @@
         .notification-item.urgent .notification-item-title { color: var(--danger); }
         .notification-item.warning .notification-item-title { color: var(--warning); }
         .notification-empty {
-            padding: 1.5rem 1rem;
+            padding: 2rem 1rem;
             text-align: center;
             color: var(--muted);
-            font-size: .78rem;
         }
+        .notification-empty i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: .75rem;
+            opacity: .4;
+        }
+        .notification-footer {
+            padding: .75rem 1rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+        .notification-footer-link {
+            color: var(--accent);
+            font-size: .85rem;
+            font-weight: 500;
+            transition: opacity .15s;
+        }
+        .notification-footer-link:hover { opacity: .8; }
         .profile-menu-container { position: relative; }
         .profile-trigger {
             display: inline-flex;
@@ -319,7 +353,7 @@
             margin-bottom: 1.25rem;
         }
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; gap: .75rem; }
-        .card-title { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+        .card-title { font-size: 1rem; font-weight: 700; text-transform: none; letter-spacing: .05em; }
         .card-sub { font-size: .76rem; color: var(--muted); margin-top: .15rem; }
         .cards-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
         .stat-card {
@@ -341,7 +375,7 @@
             background: rgba(59,130,246,0.1);
         }
         .stat-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .25rem; }
-        .stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+        .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
         .stat-meta { font-size: .68rem; color: var(--muted); margin-top: .2rem; }
         .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem 1.25rem; }
         .field { display: flex; flex-direction: column; gap: .2rem; }
@@ -416,6 +450,9 @@
                 @endphp
 
                 @if($role === 'creator')
+                    <a href="{{ route('documents.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Creer
+                    </a>
                     <a href="{{ route('documents.creator.index') }}" class="nav-link {{ request()->routeIs('documents.creator.*', 'documents.create', 'documents.edit') ? 'active' : '' }}">Mes documents</a>
                 @endif
 
@@ -428,6 +465,9 @@
                 @endif
 
                 @if($role === 'admin')
+                    <a href="{{ route('admin.documents.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Creer
+                    </a>
                     <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
                     <a href="{{ route('admin.documents.codification') }}" class="nav-link {{ request()->routeIs('admin.documents.codification') ? 'active' : '' }}">Codification</a>
                     <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">Utilisateurs</a>
@@ -444,15 +484,29 @@
                             @endif
                         </button>
                         <div class="notification-dropdown" id="notificationsDropdown">
+                            <div class="notification-header">
+                                <i class="fas fa-bell"></i>
+                                Notifications
+                            </div>
                             @if(count($headerNotifications['items']) > 0)
-                                @foreach($headerNotifications['items'] as $notif)
-                                    <a href="{{ $notif['url'] }}" class="notification-item {{ $notif['type'] }}" onclick="closeDropdown()">
-                                        <div class="notification-item-title">{{ $notif['title'] }}</div>
-                                        <div class="notification-item-meta">{{ $notif['meta'] }}</div>
+                                <div class="notification-list">
+                                    @foreach($headerNotifications['items'] as $notif)
+                                        <a href="{{ $notif['url'] }}" class="notification-item {{ $notif['type'] }}" onclick="closeDropdown()">
+                                            <div class="notification-item-title">{{ $notif['title'] }}</div>
+                                            <div class="notification-item-meta">{{ $notif['meta'] }}</div>
+                                        </a>
+                                    @endforeach
+                                </div>
+                                <div class="notification-footer">
+                                    <a href="#" class="notification-footer-link">
+                                        <i class="fas fa-list"></i> Voir tout
                                     </a>
-                                @endforeach
+                                </div>
                             @else
-                                <div class="notification-empty">Aucune notification</div>
+                                <div class="notification-empty">
+                                    <i class="fas fa-bell-slash"></i>
+                                    Aucune notification
+                                </div>
                             @endif
                         </div>
                     @endif
@@ -486,9 +540,9 @@
                                 @endif
                             </span>
                             <div>
-                                <div class="profile-summary-name">{{ $user->full_name }}</div>
+                                <div class="profile-summary-name"><i class="fa fa-user"></i> {{ $user->full_name }}</div>
                                 <div class="profile-summary-role">{{ $user->role_label }}</div>
-                                <div class="profile-summary-email">{{ $user->email }}</div>
+                                <div class="profile-summary-email"><i class="fa fa-envelope"></i> {{ $user->email }}</div>
                             </div>
                         </div>
 
@@ -510,6 +564,8 @@
                                 <strong>{{ $user->matricule ?: '-' }}</strong>
                             </div>
                         </div>
+
+                        <hr style="margin:.75rem 0;border:none;border-top:1px solid #e5e7eb;">
 
                         <div class="profile-actions">
                             <a href="{{ route('account.profile.show') }}" class="btn btn-primary btn-sm" onclick="closeProfileMenu()">Mon profil</a>
@@ -613,5 +669,6 @@ document.addEventListener('click', function(event) {
     }
 });
 </script>
+@yield('scripts')
 </body>
 </html>

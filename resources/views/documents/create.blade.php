@@ -73,7 +73,7 @@
                         Ligne de production
                         <span class="required">*</span>
                         @if(!$canEditLigne)
-                            <span class="field-badge field-badge-optional">Modifiable par l'admin uniquement</span>
+                            <span class="field-badge field-badge-optional"><i class="fas fa-lock"></i> Modifiable par l'admin uniquement</span>
                         @endif
                     </label>
                     <input id="ligne" type="text" name="ligne"
@@ -137,21 +137,25 @@
             <div class="form-section-title">Fichier & Planning</div>
             <div class="form-grid">
 
-                {{-- Fichier --}}
+{{-- Fichier --}}
                 <div class="field">
                     <label for="file">
                         Fichier
                         @if(!isset($document))
                             <span class="required">*</span>
                         @else
-                            <span class="field-badge field-badge-optional">Optionnel – laisser vide pour garder l'actuel</span>
+                            <span class="field-badge field-badge-optional">Optionnel - laisser vide pour garder l'actuel</span>
                         @endif
                     </label>
-                    <input id="file" type="file" name="file"
+                    <label for="fichier" class="btn-upload">
+                        <i class="fas fa-upload"></i> Choisir un fichier
+                    </label>
+                    <input id="fichier" type="file" name="file" hidden
                            accept=".docx,.xlsx,.pdf"
                            {{ !isset($document) ? 'required' : '' }}>
+                    <div id="file-name" class="field-hint" style="margin-top:.5rem;"></div>
                     <div class="field-hint">
-                        Formats acceptés : <strong>.docx</strong>, <strong>.xlsx</strong>, <strong>.pdf</strong> · Taille max : 20 Mo
+                        Formats acceptes : <strong>.docx</strong>, <strong>.xlsx</strong>, <strong>.pdf</strong> - Taille max : 20 Mo
                     </div>
                     @if(isset($document))
                         <div class="field-hint" style="color:var(--accent);">
@@ -185,6 +189,21 @@
 </div>
 
 <style>
+.btn-upload {
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    padding:.625rem 1rem;
+    background:#374151;
+    color:#fff;
+    border-radius:.375rem;
+    cursor:pointer;
+    font-size:.875rem;
+    font-weight:500;
+    transition:background .15s;
+    border:1px solid rgba(55,65,81,.5);
+}
+.btn-upload:hover{background:#4b5563}
 .form-section {
     border: 1px solid var(--border);
     border-radius: .85rem;
@@ -238,6 +257,10 @@ select option { background: #020617; color: #e5e7eb; }
 </style>
 
 <script>
+document.getElementById('fichier').addEventListener('change',function(e){
+    var name=e.target.files[0]?.name||'';
+    document.getElementById('file-name').textContent=name;
+});
 function handlePhaseChange() {
     var phase     = document.getElementById('phase').value;
     var phaseDiv  = document.getElementById('field-nom-phase');

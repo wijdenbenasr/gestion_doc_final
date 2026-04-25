@@ -84,9 +84,13 @@ class DocumentController extends Controller
             ->where('status', 'finalized')
             ->latest();
 
-        // Filters
-        if ($request->filled('name')) {
-            $query->where('name', 'like', '%' . $request->name . '%');
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('code', 'like', '%' . $search . '%')
+                  ->orWhere('ligne', 'like', '%' . $search . '%');
+            });
         }
         if ($request->filled('type')) {
             $query->where('type', $request->type);
@@ -101,10 +105,10 @@ class DocumentController extends Controller
             $query->where('phase', $request->phase);
         }
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+            $query->whereDate('updated_at', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+            $query->whereDate('updated_at', '<=', $request->date_to);
         }
 
         $documents = $query->paginate(20);
@@ -113,7 +117,7 @@ class DocumentController extends Controller
             'documents' => $documents,
             'types' => Document::TYPES,
             'aios' => Document::AIOS,
-            'filters' => $request->only(['name', 'type', 'aio', 'ligne', 'phase', 'date_from', 'date_to'])
+            'filters' => $request->only(['search', 'type', 'aio', 'ligne', 'phase', 'date_from', 'date_to'])
         ]);
     }
 

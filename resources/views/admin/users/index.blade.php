@@ -44,7 +44,7 @@
         <div class="stat-meta">A approuver par l admin</div>
     </a>
     <a href="{{ route('admin.users.index', ['filter' => 'unverified']) }}" class="stat-card {{ $is_unverified ? 'active' : '' }}">
-        <div class="stat-label">Codes a saisir</div>
+        <div class="stat-label">Codes a verifier</div>
         <div class="stat-value" style="color:#38bdf8;">{{ $stats['awaiting_email_verification'] }}</div>
         <div class="stat-meta">Comptes approuves non verifies</div>
     </a>
@@ -89,6 +89,7 @@
                 aria-expanded="{{ $open_quick_create ? 'true' : 'false' }}"
                 onclick="toggleQuickCreatePanel()"
             >
+                <i class="fa fa-plus"></i>
                 <span id="quick-create-label">{{ $open_quick_create ? 'Masquer creation rapide' : 'Creation rapide' }}</span>
                 <span
                     id="quick-create-icon"
@@ -302,20 +303,27 @@ function toggleQuickCreatePanel() {
                             <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Supprimer cet utilisateur ?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                                <button type="submit" class="btn btn-danger btn-sm text-danger">Supprimer</button>
                             </form>
                         </div>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" style="text-align:center;color:var(--muted);padding:1.5rem;">Aucun utilisateur trouve.</td>
+                    <td colspan="6">
+                        <div style="text-align:center;padding:2rem;color:var(--muted);">
+                            <i class="fas fa-users" style="font-size:2rem;display:block;margin-bottom:.75rem;opacity:.4;"></i>
+                            <div>Aucun utilisateur trouve</div>
+                        </div>
+                    </td>
                 </tr>
             @endforelse
             </tbody>
         </table>
     </div>
 
-    <div class="pagination">{{ $users->links() }}</div>
+    <div class="pagination">
+        {{ $users->appends(request()->query())->links() }}
+    </div>
 </div>
 @endsection

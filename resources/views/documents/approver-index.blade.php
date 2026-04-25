@@ -3,19 +3,19 @@
 @section('title', 'Documents a approuver')
 
 @section('content')
-<div class="cards-row">
+<div class="cards-row" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1rem;">
     <a href="{{ route('workflow.approver.index') }}" class="stat-card {{ !$filter || $filter === 'pending' ? 'active' : '' }}">
         <div class="stat-label">En attente</div>
-        <div class="stat-value">{{ $stats['pending'] }}</div>
+        <div class="stat-value" style="color:#f59e0b;">{{ $stats['pending'] }}</div>
         <div class="stat-meta">Documents a approuver</div>
     </a>
     <a href="{{ route('workflow.approver.index', ['filter' => 'processed']) }}" class="stat-card {{ $filter === 'processed' ? 'active' : '' }}">
-        <div class="stat-label">Approuves</div>
+        <div class="stat-label">Approuvés</div>
         <div class="stat-value" style="color:#4ade80;">{{ $stats['processed'] }}</div>
         <div class="stat-meta">Historique personnel</div>
     </a>
     <a href="{{ route('workflow.approver.index', ['filter' => 'rejected']) }}" class="stat-card {{ $filter === 'rejected' ? 'active' : '' }}">
-        <div class="stat-label">Rejetes</div>
+        <div class="stat-label">Rejetés</div>
         <div class="stat-value" style="color:#f87171;">{{ $stats['rejected'] }}</div>
         <div class="stat-meta">Documents retournes au createur</div>
     </a>
@@ -26,11 +26,11 @@
     </a>
 </div>
 
-<div class="card" id="recent-alerts">
+<div class="card" id="recent-alerts" style="margin-bottom: 1rem;">
     <div class="card-header">
         <div>
-            <div class="card-title">Vos dernieres alertes documentaires</div>
-            <div class="card-sub">Documents prioritaires a traiter en priorite.</div>
+            <div class="card-title"><i class="fas fa-bell" style="color:#f59e0b;margin-right:.5rem;"></i>Alertes prioritaires</div>
+            <div class="card-sub">Documents a traiter en priorite.</div>
         </div>
     </div>
     @php
@@ -75,38 +75,31 @@
                             @endif
                         </span>
                     </div>
-                    <div style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem;">
-                        Deadline: <strong style="font-family:monospace;{{ $isUrgent ? 'color:var(--danger)' : '' }}">{{ $doc->deadline ? $doc->deadline->format('d/m/Y H:i') : 'N/A' }}</strong>
-                        @if($doc->deadline && !$isUrgent && !$isWarning)
-                            (dans {{ $doc->deadline->diffInDays(now()) }} jour(s))
-                        @elseif($isUrgent)
-                            (dépassée de {{ now()->diffInDays($doc->deadline, false) }} jour(s))
-                        @endif
-                    </div>
                     <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
-                        <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Télécharger</a>
+                        <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
                         <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openValidateModal('{{ $doc->id }}')">Signer</button>
                     </div>
                 </div>
             @endforeach
         </div>
     @else
-        <div style="color:var(--muted);padding:.6rem;text-align:center;">
+        <div style="color:var(--muted);padding:1.25rem;text-align:center;">
+            <i class="fas fa-bell-slash fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
             Aucun document critique en attente.
         </div>
     @endif
 </div>
 
-<div class="card">
+<div class="card" style="margin-bottom: 1rem;">
     <div class="card-header">
         <div>
             <div class="card-title">
                 @if($filter === 'processed')
-                    Documents approuves
+                    <i class="fas fa-check-circle" style="color:#4ade80;margin-right:.5rem;"></i>Documents approuves
                 @elseif($filter === 'rejected')
-                    Documents rejetes
+                    <i class="fas fa-times-circle" style="color:#f87171;margin-right:.5rem;"></i>Documents rejetes
                 @else
-                    Documents a approuver
+                    <i class="fas fa-file-signature" style="color:#f59e0b;margin-right:.5rem;"></i>Documents a approuver
                 @endif
             </div>
             <div class="card-sub">
@@ -119,13 +112,19 @@
                 @endif
             </div>
         </div>
-        <span class="badge badge-warning" style="font-size:.8rem;padding:.3rem .7rem;">
+        @php
+            $badgeClass = $documents->total() > 0 
+                ? ($filter === 'rejected' ? 'badge-danger' : 'badge-warning')
+                : 'badge-muted';
+        @endphp
+        <span class="badge {{ $badgeClass }}" style="font-size:.8rem;padding:.3rem .7rem;">
             {{ $documents->total() }} document(s)
         </span>
     </div>
 
     @if($documents->isEmpty())
         <div style="text-align:center;padding:2rem;color:var(--muted);">
+            <i class="fas fa-{{ $filter === 'processed' ? 'check-circle' : ($filter === 'rejected' ? 'times-circle' : 'file-signature') }} fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
             <div>
                 @if($filter === 'processed')
                     Aucun document approuve.
@@ -201,15 +200,14 @@
 </div>
 
 
-
 <!-- Modal de signature -->
 @foreach($documents as $doc)
 <div id="validate-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;">
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#020617;border-radius:.5rem;padding:1.5rem;max-width:400px;width:90%;">
         <h3 style="margin:0 0 1rem 0;color:#e5e7eb;">Signer le document</h3>
-        <p style="margin:0 0 1rem 0;font-size:.9rem;color:#9ca3af;">Téléchargez le document, appliquez votre signature numérique, puis uploadez le fichier signé.</p>
+        <p style="margin:0 0 1rem 0;font-size:.9rem;color:#9ca3af;">Telechargez le document, appliquez votre signature numerique, puis uploadez le fichier signe.</p>
         <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="downloadDocument('{{ $doc->id }}')">Télécharger</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="downloadDocument('{{ $doc->id }}')">Telecharger</button>
         </div>
         <form method="POST" action="{{ route('workflow.approver.validate', $doc) }}" enctype="multipart/form-data">
             @csrf
@@ -223,11 +221,11 @@
 </div>
 @endforeach
 
-<div class="cards-row">
-    <div class="card">
+<div class="cards-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+    <div class="card" style="min-height: 150px;">
         <div class="card-header">
             <div>
-                <div class="card-title">Historique recent</div>
+                <div class="card-title"><i class="fas fa-history" style="color:#38bdf8;margin-right:.5rem;"></i>Historique recent</div>
                 <div class="card-sub">Derniers documents que vous avez deja approuves.</div>
             </div>
         </div>
@@ -237,14 +235,17 @@
                 <div style="font-size:.74rem;color:var(--muted);">{{ $doc->code ?: 'Sans code' }} | v{{ $doc->revision }}</div>
             </div>
         @empty
-            <div style="color:var(--muted);">Aucun document traite pour le moment.</div>
+            <div style="color:var(--muted);padding:1rem;text-align:center;">
+                <i class="fas fa-history fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
+                Aucun document traite pour le moment.
+            </div>
         @endforelse
     </div>
 
-    <div class="card" id="notifications">
+    <div class="card" id="notifications" style="min-height: 150px;">
         <div class="card-header">
             <div>
-                <div class="card-title">Notifications</div>
+                <div class="card-title"><i class="fas fa-bell" style="color:#38bdf8;margin-right:.5rem;"></i>Notifications</div>
                 <div class="card-sub">Vos dernieres alertes documentaires.</div>
             </div>
         </div>
@@ -254,7 +255,10 @@
                 <div style="font-size:.72rem;color:var(--muted);">{{ $notification->created_at->format('d/m/Y H:i') }}</div>
             </div>
         @empty
-            <div style="color:var(--muted);">Aucune notification pour le moment.</div>
+            <div style="color:var(--muted);padding:1rem;text-align:center;">
+                <i class="fas fa-bell-slash fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
+                Aucune notification pour le moment.
+            </div>
         @endforelse
     </div>
 </div>

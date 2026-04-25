@@ -3,7 +3,7 @@
 @section('title', 'Mes documents')
 
 @section('content')
-<div class="cards-row">
+<div class="cards-row" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1rem;">
     <a href="{{ route('documents.creator.index', ['status' => 'draft']) }}" class="stat-card {{ $status === 'draft' ? 'active' : '' }}">
         <div class="stat-label">Brouillons</div>
         <div class="stat-value">{{ (int) ($stats->drafts ?? 0) }}</div>
@@ -19,6 +19,8 @@
         <div class="stat-value" style="color:#38bdf8;">{{ (int) ($stats->in_validation ?? 0) }}</div>
         <div class="stat-meta">Documents en circuit</div>
     </a>
+</div>
+<div class="cards-row" style="grid-template-columns: repeat(3, 1fr);">
     <a href="{{ route('documents.creator.index', ['status' => 'ready_for_pdf']) }}" class="stat-card {{ $status === 'ready_for_pdf' ? 'active' : '' }}">
         <div class="stat-label">Pret pour PDF</div>
         <div class="stat-value" style="color:#10b981;">{{ (int) ($stats->ready_for_pdf ?? 0) }}</div>
@@ -45,9 +47,10 @@
         <a href="{{ route('documents.create') }}" class="btn btn-primary">Nouveau document</a>
     </div>
 
-    @if($documents->isEmpty())
-        <div style="text-align:center;padding:2rem;color:var(--muted);">
-            <div>
+@if($documents->isEmpty())
+        <div style="text-align:center;padding:3rem;color:var(--muted);">
+            <i class="fas fa-file-alt fa-3x mb-3" style="color:rgba(255,255,255,0.15);display:block;"></i>
+            <div style="font-size:.95rem;margin-bottom:.5rem;">
                 @if($status === 'draft')
                     Aucun brouillon pour le moment.
                 @elseif($status === 'pending_codification')
@@ -55,16 +58,18 @@
                 @elseif($status === 'in_validation')
                     Aucun document en cours de validation.
                 @elseif($status === 'ready_for_pdf')
-                    Aucun document prêt pour PDF.
+                    Aucun document pret pour PDF.
                 @elseif($status === 'rejected')
-                    Aucun document rejeté.
+                    Aucun document rejecte.
                 @elseif($status === 'finalized')
-                    Aucun document finalisé.
+                    Aucun document finalise.
                 @else
                     Aucun document pour le moment.
                 @endif
             </div>
-            <a href="{{ route('documents.create') }}" class="btn" style="margin-top:.75rem;">Creer mon premier document</a>
+            <a href="{{ route('documents.create') }}" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:.5rem;">
+                <i class="fas fa-plus"></i> Creer mon premier document
+            </a>
         </div>
     @else
         <div style="overflow-x:auto;margin-top:.75rem;">

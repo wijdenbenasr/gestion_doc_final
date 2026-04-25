@@ -3,6 +3,23 @@
 @section('title', 'Mon profil')
 
 @section('content')
+<style>
+.file-upload-btn {
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    padding:.625rem 1rem;
+    background:#374151;
+    color:#fff;
+    border-radius:.375rem;
+    cursor:pointer;
+    font-size:.875rem;
+    font-weight:500;
+    transition:background .15s;
+}
+.file-upload-btn:hover { background:#4b5563; }
+input[type="file"] { display:none; }
+</style>
 <div style="display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:1rem;align-items:start;">
     <div class="card">
         <div class="card-header">
@@ -31,7 +48,9 @@
                 @csrf
 
                 <div class="field">
-                    <label for="profile_image">Choisir une image</label>
+                    <label for="profile_image" class="file-upload-btn">
+                        <i class="fa fa-folder-open"></i> Choisir une image
+                    </label>
                     <input id="profile_image" type="file" name="profile_image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
                     <div class="card-sub">Formats acceptes : JPG, PNG, WEBP. Taille max : 2 Mo.</div>
                     @error('profile_image')<div class="field-error">{{ $message }}</div>@enderror
@@ -68,33 +87,37 @@
         <div class="form-grid">
             <div class="field">
                 <label>Nom</label>
-                <input type="text" value="{{ $user->name ?: '-' }}" readonly>
+                <input type="text" value="{{ $user->name ?: '-' }}" readonly style="opacity:.6;cursor:not-allowed;">
             </div>
 
             <div class="field">
                 <label>Prenom</label>
-                <input type="text" value="{{ $user->prenom ?: '-' }}" readonly>
+                <input type="text" value="{{ $user->prenom ?: '-' }}" readonly style="opacity:.6;cursor:not-allowed;">
             </div>
 
             <div class="field">
                 <label>CIN</label>
-                <input type="text" value="{{ $user->cin ?: '-' }}" readonly>
+                <input type="text" value="{{ $user->cin ?: '-' }}" readonly style="opacity:.6;cursor:not-allowed;">
             </div>
 
             <div class="field">
                 <label>Matricule</label>
-                <input type="text" value="{{ $user->matricule ?: '-' }}" readonly>
+                <input type="text" value="{{ $user->matricule ?: '-' }}" readonly style="opacity:.6;cursor:not-allowed;">
             </div>
 
             <div class="field">
                 <label>Email</label>
-                <input type="text" value="{{ $user->email }}" readonly>
+                <input type="text" value="{{ $user->email }}" readonly style="opacity:.6;cursor:not-allowed;">
             </div>
 
             <div class="field">
                 <label>Role</label>
-                <input type="text" value="{{ $user->role_label }}" readonly>
+                <input type="text" value="{{ $user->role_label }}" readonly style="opacity:.6;cursor:not-allowed;">
             </div>
+        </div>
+
+        <div class="form-actions" style="margin-top:1rem;">
+            <button type="button" class="btn btn-primary" style="width:100%;">Enregistrer les informations</button>
         </div>
     </div>
 </div>
