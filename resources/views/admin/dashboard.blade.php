@@ -132,101 +132,138 @@
 </div>
 
 <div class="card">
-    <div class="card-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
         <div>
-            <div class="card-title">Supervision globale</div>
-            <div class="card-sub">Tous les documents du systeme selon la periode selectionnee.</div>
+            <div style="font-size:1rem;font-weight:700;">Supervision globale</div>
+            <div style="font-size:.76rem;color:var(--muted);margin-top:.15rem;">Tous les documents du systeme selon la periode selectionnee.</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <form method="GET" style="display:flex;align-items:center;gap:8px;margin:0;">
-                <select name="range" onchange="this.form.submit()" style="padding: 6px; border-radius: 4px; background: #1f2937; color: #e5e7eb; border: 1px solid #374151;">
-                    <option value="week" @selected($range==='week')>7 jours</option>
-                    <option value="month" @selected($range==='month')>30 jours</option>
-                    <option value="year" @selected($range==='year')>1 an</option>
-                </select>
-            </form>
-        </div>
+        <form method="GET" style="display:flex;align-items:center;gap:8px;margin:0;">
+            <select name="range" onchange="this.form.submit()" style="padding:6px;border-radius:4px;background:#1f2937;color:#e5e7eb;border:1px solid #374151;">
+                <option value="week" @selected($range==='week')>7 jours</option>
+                <option value="month" @selected($range==='month')>30 jours</option>
+                <option value="year" @selected($range==='year')>1 an</option>
+            </select>
+        </form>
     </div>
-
-    <div style="overflow-x:auto;">
-        <table>
+    <div style="position:relative;">
+            <table style="position:relative;">
             <thead>
             <tr>
-                <th>Nom</th><th>Code</th><th>Type</th>
+                <th class="col-nom">Nom</th>
+                <th class="col-code">Code</th>
+                <th class="col-type">Type</th>
                 <th class="col-createur">Createur</th>
                 <th class="col-aio">AIO</th>
                 <th class="col-ligne">Ligne</th>
                 <th class="col-phase">Phase</th>
                 <th class="col-rev">Rev.</th>
-                <th>Role actuel</th><th>Statut</th><th>Cree le</th>
+                <th class="col-statut">Statut</th>
+                <th class="col-date">Cree le</th>
                 <th class="col-valide">Validateur</th>
                 <th class="col-approuve">Approbateur</th>
-                <th class="col-rejete">Rejete le</th>
+                <th class="col-rejete">Rejete</th>
                 <th class="col-signe">Signe</th>
-                <th>Actions</th>
+                <th class="col-actions">Actions</th>
             </tr>
             </thead>
             <tbody>
             @forelse($documents as $doc)
-                <tr>
-                    <td style="font-weight:500;max-width:150px;">
+<tr>
+                    <td class="col-nom" style="font-weight:500;max-width:150px;">
                         <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ $doc->name }}">{{ $doc->name }}</div>
                     </td>
-                    <td style="font-family:monospace;font-size:.72rem;color:var(--accent);">{{ $doc->code ?? '-' }}</td>
-                    <td style="font-size:.7rem;max-width:110px;">{{ \Illuminate\Support\Str::limit($doc->type_libelle, 20) }}</td>
-                    <td class="col-createur">{{ $doc->creator->name ?? '' }}</td>
+                    <td class="col-code" style="font-family:monospace;font-size:.72rem;">
+                        @if($doc->code)
+                            <span class="badge bg-secondary">{{ $doc->code }}</span>
+                        @else
+                            <span class="badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);">Non code</span>
+                        @endif
+                    </td>
+                    <td class="col-type" style="font-size:.7rem;max-width:110px;" title="{{ $doc->type_libelle }}">{{ Str::limit($doc->type_libelle, 20) }}</td>
+                    <td class="col-createur">{{ $doc->creator->name ?? '—' }}</td>
                     <td class="col-aio"><span class="badge badge-info">{{ \App\Models\Document::AIOS[$doc->aio] ?? $doc->aio }}</span></td>
-                    <td class="col-ligne">{{ $doc->ligne }}</td>
-                    <td class="col-phase">{{ $doc->phase }}</td>
-                    <td class="col-rev">{{ $doc->revision }}</td>
+                    <td class="col-ligne">{{ $doc->ligne ?? '—' }}</td>
+                    <td class="col-phase">{{ $doc->phase_libelle ?? '—' }}</td>
+                    <td class="col-rev" style="font-family:monospace;font-size:.75rem;">v{{ $doc->revision }}</td>
                     @php
-$r = ['createur' => 'badge-info', 'validateur' => 'badge-warning', 'approbateur' => 'badge-primary', 'admin' => 'badge-muted'];
-$rt = $r[$doc->role] ?? 'badge-muted';
-@endphp
-<td><span class="badge {{ $rt }}">{{ $doc->role }}</span></td>
-@php
 $s = ['finalized' => 'badge-success', 'rejected' => 'badge-danger', 'pending_codification' => 'badge-warning', 'in_validation' => 'badge-info', 'draft' => 'badge-muted'];
 $st = $s[$doc->status] ?? 'badge-muted';
 $sl = ['finalized' => 'Finalise', 'rejected' => 'Rejete', 'pending_codification' => 'Codification', 'in_validation' => 'Validation', 'draft' => 'Brouillon'];
 $sl2 = $sl[$doc->status] ?? $doc->status;
 @endphp
-<td><span class="badge {{ $st }}">{{ $sl2 }}</span></td>
-<td>{{ $doc->created_at->format('d/m/y') }}</td>
-                    <td class="col-valide">
+<td class="col-statut"><span class="badge {{ $st }}">{{ $sl2 }}</span></td>
+                    <td class="col-date">{{ $doc->created_at->format('d/m/y') }}</td>
+                    <td class="col-valide" style="text-align:center;color:var(--muted);">
                         @php $v = $doc->signatures->where('role', 'validator')->first(); @endphp
                         @if($v)
-                        <div>{{ $v->user->name ?? '-' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $v->signed_at->format('d/m/y') }}</div>
+                        <div>{{ $v->user->name ?? '—' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $v->signed_at->format('d/m/y') }}</div>
+                        @else
+                        —
                         @endif
                     </td>
-                    <td class="col-approuve">
+                    <td class="col-approuve" style="text-align:center;color:var(--muted);">
                         @php $a = $doc->signatures->where('role', 'approver')->first(); @endphp
                         @if($a)
-                        <div>{{ $a->user->name ?? '-' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $a->signed_at->format('d/m/y') }}</div>
+                        <div>{{ $a->user->name ?? '—' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $a->signed_at->format('d/m/y') }}</div>
+                        @else
+                        —
                         @endif
                     </td>
-                    <td class="col-rejete">
+                    <td class="col-rejete" style="text-align:center;color:var(--muted);">
                         @if($doc->rejected_at)
-                        <div>{{ $doc->rejected_by->name ?? '' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $doc->rejected_at->format('d/m/y') }}</div>
+                        <div>{{ $doc->rejected_by->name ?? '—' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $doc->rejected_at->format('d/m/y') }}</div>
+                        @else
+                        —
                         @endif
                     </td>
-                    <td class="col-signe">
+                    <td class="col-signe" style="text-align:center;color:var(--muted);">
                         @if($doc->signed_at)
-                        <div>{{ $doc->signed_by->name ?? '' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $doc->signed_at->format('d/m/y') }}</div>
+                        <div>{{ $doc->signed_by->name ?? '—' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $doc->signed_at->format('d/m/y') }}</div>
+                        @else
+                        —
                         @endif
                     </td>
-                    <td>
-                        <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                            <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm">Source</a>
-                            <a href="{{ route('admin.documents.edit', $doc) }}" class="btn btn-ghost btn-sm">Modifier</a>
-                            @if(!$doc->is_fully_signed)<form method="POST" action="{{ route('admin.documents.destroy', $doc) }}" onsubmit="return confirm('Supprimer ?');">@csrf @method('DELETE')<button type="submit" class="btn btn-ghost btn-sm btn-danger">Supprimer</button></form>@endif
-                            @if($doc->status==='in_validation' && $doc->current_role==='admin')
-                                @php $h=$doc->signatures->where('role','admin')->isNotEmpty(); @endphp
-                                @if($h)<button type="button" class="btn btn-sm" onclick="openSign('{{ $doc->id }}')">Signer</button>@else<form method="POST" action="{{ route('admin.workflow.validate', $doc) }}">@csrf<button type="submit" class="btn btn-sm">Valider</button></form>@endif
-                                <button type="button" class="btn btn-ghost btn-sm btn-danger" onclick="document.getElementById('rej-{{$doc->id}}').style.display=document.getElementById('rej-{{$doc->id}}').style.display==='none'?'block':'none'">Rejeter</button>
-                                <div id="rej-{{$doc->id}}" style="display:none;margin-top:4px;"><form method="POST" action="{{ route('admin.workflow.reject', $doc) }}">@csrf<textarea name="message" placeholder="Motif" required style="width:100%;min-height:50px;"></textarea><button type="submit" class="btn btn-sm btn-danger">Confirmer</button></form></div>
+                    <td class="col-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleMenu(this)">Actions ▾</button>
+                        <ul class="action-menu" style="display:none;position:fixed;background:#1a2035;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 0;z-index:9999;min-width:160px;list-style:none;margin:0;">
+                            <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-code me-2"></i>Source</a></li>
+                            <li><a class="dropdown-item" href="{{ route('admin.documents.edit', $doc) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-edit me-2"></i>Modifier</a></li>
+                            @if(!$doc->is_fully_signed)
+                                <li style="border-top:1px solid rgba(255,255,255,0.1);margin:4px 0;"></li>
+                                <li>
+                                    <form method="POST" action="{{ route('admin.documents.destroy', $doc) }}" onsubmit="return confirm('Supprimer ?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#ef4444;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-trash me-2"></i>Supprimer</button>
+                                    </form>
+                                </li>
                             @endif
-                            @if($doc->is_fully_signed)<a href="{{ route('admin.documents.export.pdf', $doc) }}" class="btn btn-ghost btn-sm">PDF</a>@endif
-                        </div>
+                            @if($doc->status==='in_validation' && $doc->current_role==='admin')
+                                <li style="border-top:1px solid rgba(255,255,255,0.1);margin:4px 0;"></li>
+                                @php $h=$doc->signatures->where('role','admin')->isNotEmpty(); @endphp
+                                @if($h)
+                                    <li><button type="button" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#22c55e;text-align:left;font-size:.75rem;cursor:pointer;" onclick="openSign('{{ $doc->id }}')"><i class="fas fa-signature me-2"></i>Signer</button></li>
+                                @else
+                                    <li>
+                                        <form method="POST" action="{{ route('admin.workflow.validate', $doc) }}">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#22c55e;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-check me-2"></i>Valider</button>
+                                        </form>
+                                    </li>
+                                @endif
+                                <li>
+                                    <a class="dropdown-item text-danger"
+                                       href="#"
+                                       data-bs-toggle="modal"
+                                       data-bs-target="#modalRejet{{ $doc->id }}">
+                                        <i class="fas fa-times me-2"></i>Rejeter
+                                    </a>
+                                </li>
+                            @endif
+                            @if($doc->is_fully_signed)
+                                <li><a class="dropdown-item" href="{{ route('admin.documents.export.pdf', $doc) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-file-pdf me-2"></i>PDF</a></li>
+                            @endif
+                        </ul>
                     </td>
                 </tr>
             @empty<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:1.5rem;">Aucun document.</td></tr>
@@ -240,7 +277,7 @@ $sl2 = $sl[$doc->status] ?? $doc->status;
 <div class="card">
     <div class="card-header">
         <div>
-            <div class="card-title">Journaux recents</div>
+            <div class="card-title"><i class="fas fa-history" style="color:#f59e0b;margin-right:.5rem;"></i>Journaux recents</div>
             <div class="card-sub">Dernieres actions tracees.</div>
         </div>
     </div>
@@ -252,7 +289,22 @@ $sl2 = $sl[$doc->status] ?? $doc->status;
                 <tr>
                     <td>{{ $log->created_at->format('d/m/Y H:i') }}</td>
                     <td>{{ $log->user?->name ?? 'Systeme' }}</td>
-                    <td><span class="badge {{ in_array($log->action,['login','document_validated','user_approved'])?'badge-success':($log->action==='logout'?'badge-danger':'badge-muted') }}">{{ $log->action }}</span></td>
+                    <td>
+                        @php
+                        $actionColors = [
+                            'login' => '#22c55e',
+                            'logout' => '#ef4444',
+                            'document_submitted' => '#3b82f6',
+                            'submitted_to_admin' => '#1d4ed8',
+                            'document_approved' => '#22c55e',
+                            'user_approved' => '#8b5cf6',
+                            'code_assigned' => '#f59e0b',
+                            'document_rejected' => '#ef4444',
+                        ];
+                        $color = $actionColors[strtolower($log->action)] ?? '#6b7280';
+                        @endphp
+                        <span class="badge" style="background-color:{{ $color }};">{{ strtoupper($log->action) }}</span>
+                    </td>
                     <td style="font-size:.72rem;">{{ class_basename($log->auditable_type) }} #{{ $log->auditable_id }}</td>
                 </tr>
             @empty<tr><td colspan="4" style="text-align:center;color:var(--muted);">Aucun journal.</td></tr>
@@ -264,6 +316,33 @@ $sl2 = $sl[$doc->status] ?? $doc->status;
 
 @foreach($documents as $doc)
 @if($doc->status==='in_validation' && $doc->current_role==='admin')
+<div class="modal fade" id="modalRejet{{ $doc->id }}">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background:#1a2035;color:white;">
+            <div class="modal-header">
+                <h5>Rejeter : {{ $doc->name }}</h5>
+                <button data-bs-dismiss="modal" class="btn-close btn-close-white"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ route('admin.workflow.reject', $doc) }}">
+                    @csrf
+                    <div class="mb-3">
+                        <label>Motif du rejet *</label>
+                        <textarea name="message" required rows="3" class="form-control mt-1" style="background:#0f172a;color:white;" placeholder="Raison du rejet..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Deadline de correction *</label>
+                        <input type="datetime-local" name="deadline" required class="form-control mt-1" style="background:#0f172a;color:white;">
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Confirmer le rejet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 <div id="sign-{{$doc->id}}" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;">
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;border-radius:8px;padding:24px;max-width:400px;width:90%;">
         <h3 style="margin:0 0 16px 0;">Signer le document</h3>

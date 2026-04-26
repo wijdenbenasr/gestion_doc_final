@@ -165,17 +165,8 @@
                                         <button type="submit" class="btn btn-sm">Valider</button>
                                     </form>
                                 @endif
-                                <button type="button" class="btn btn-ghost btn-sm btn-danger" onclick="toggleReject('rej-{{ $doc->id }}')">Rejeter</button>
-                            @endif
-                            <div id="rej-{{ $doc->id }}" style="display:none;margin-top:.5rem;">
-                                <form method="POST" action="{{ route('admin.workflow.reject', $doc) }}" style="display:flex;flex-direction:column;gap:.4rem;">
-                                    @csrf
-                                    <textarea name="message" placeholder="Motif du rejet" required style="width:100%;min-height:60px;padding:.3rem;border:1px solid var(--border);border-radius:.25rem;"></textarea>
-                                    <input type="date" name="deadline" placeholder="Delai (optionnel)" style="padding:.3rem;border:1px solid var(--border);border-radius:.25rem;">
-                                    <button type="submit" class="btn btn-sm btn-danger">Confirmer le rejet</button>
-                                </form>
+<button type="button" class="btn btn-ghost btn-sm btn-danger" onclick="openRejectModal('{{ $doc->id }}')">Rejeter</button>
                             </div>
-                            @if($doc->is_fully_signed)
                                 <a href="{{ route('admin.documents.export.pdf', $doc) }}" class="btn btn-ghost btn-sm">PDF</a>
                             @endif
                         </div>
@@ -214,6 +205,38 @@
     </div>
     <div class="pagination">{{ $documents->links() }}</div>
 </div>
+
+<!-- Modals de rejet -->
+@foreach($documents as $doc)
+@if($doc->status === 'in_validation' && $doc->current_role === 'admin')
+<div id="rejetModal{{ $doc->id }}" class="modal" style="display:none;">
+    <div class="modal-content" style="background:#1a2035;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:10px;">
+        <div class="modal-header">
+            <h3 style="margin:0;color:white;">Rejeter le document</h3>
+            <button type="button" class="modal-close" onclick="closeRejectModal('{{ $doc->id }}')">&times;</button>
+        </div>
+        <form method="POST" action="{{ route('admin.workflow.reject', $doc) }}">
+            @csrf
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" style="color:white;">Motif du rejet *</label>
+                    <textarea name="message" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;" rows="4" placeholder="Expliquez la raison du rejet..." required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="color:white;">Deadline de correction</label>
+                    <input type="date" name="deadline" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;">
+                    <small style="color:#9ca3af;">Date limite pour que le créateur corrige et renvoie le document</small>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="closeRejectModal('{{ $doc->id }}')">Annuler</button>
+                    <button type="submit" class="btn btn-danger">Confirmer le rejet</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+@endforeach
 
 <!-- Modals de signature admin -->
 @foreach($documents as $doc)
@@ -257,9 +280,16 @@ function closeSignModal(docId) {
     document.getElementById('signModal-' + docId).style.display = 'none';
 }
 
-function toggleReject(id) {
-    const el = document.getElementById(id);
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+function openRejectModal(docId) {
+    document.getElementById('rejetModal' + docId).style.display = 'block';
+}
+
+function closeRejectModal(docId) {
+    document.getElementById('rejetModal' + docId).style.display = 'none';
+}
+
+function downloadDocument(id) {
+    window.open('/documents/' + id + '/download', '_blank');
 }
 </script>
 @endsection

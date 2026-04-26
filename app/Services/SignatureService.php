@@ -85,34 +85,26 @@ class SignatureService
             DocumentSigned::dispatch($document, $user);
 
             match ($user->role) {
-                'creator' => $document->status === 'ready_for_pdf'
-                    ? $this->advanceTo(
-                        $document,
-                        $user,
-                        'admin',
-                        'finalize',
-                        'Le document PDF a ete signe par le createur et attend votre validation finale.'
-                    )
-                    : $this->advanceTo(
-                        $document,
-                        $user,
-                        'validator',
-                        'submit',
-                        'Un document code a ete signe par le createur et attend votre validation.'
-                    ),
+                'creator' => $this->advanceTo(
+                    $document,
+                    $user,
+                    'validator',
+                    'submit',
+                    'Un document a été signé et converti en PDF. Il attend votre validation.'
+                ),
                 'validator' => $this->advanceTo(
                     $document,
                     $user,
                     'approver',
                     'validate',
-                    'Un document a ete valide et attend votre approbation.'
+                    'Un document a été validé par le validateur. Il attend votre approbation.'
                 ),
                 'approver' => $this->advanceTo(
                     $document,
                     $user,
                     'admin',
                     'validate',
-                    'Un document approuve attend votre validation finale.'
+                    'Un document a été approuvé. Il est prêt pour la signature finale.'
                 ),
                 'admin' => $this->handleAdminSign($document, $user),
                 default => null,
@@ -130,14 +122,14 @@ class SignatureService
                 $user,
                 'approver',
                 'validate',
-                'Un document a ete valide et attend votre approbation.'
+                'Un document a été validé par le validateur. Il attend votre approbation.'
             ),
             'approver' => $this->advanceTo(
                 $document,
                 $user,
                 'admin',
                 'validate',
-                'Un document approuve attend votre validation finale.'
+                'Un document a été approuvé. Il est prêt pour la signature finale.'
             ),
             'admin' => $this->sendToCreatorForPdf($document, $user),
             default => null,

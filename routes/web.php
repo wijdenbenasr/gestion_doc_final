@@ -10,6 +10,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentWorkflowController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Routes publiques (invités) ───────────────────────────────────────────────
@@ -39,12 +40,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/account/password', [AuthController::class, 'showChangePassword'])->name('account.password.edit');
     Route::put('/account/password', [AuthController::class, 'changePassword'])->name('account.password.update');
 
-    // Dashboard général (redirige selon rôle)
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+
+    // Dashboard general (redirige selon rôle)
     Route::get('/', [DocumentController::class, 'dashboard'])->name('dashboard');
 
     // Téléchargement (tous rôles authentifiés)
     Route::get('/documents/{document}/download', DownloadController::class)->name('documents.download');
     Route::get('/documents/{document}/pdf', [ExportController::class, 'pdf'])->name('documents.export.pdf');
+    Route::get('/documents/{id}/convert-pdf', [DocumentController::class, 'convertToPdf'])->name('documents.convert.pdf');
 
     // Mes documents (tous rôles)
     Route::get('/my-documents', [DocumentController::class, 'myDocuments'])->name('documents.my');
@@ -63,13 +70,14 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{document}', [DocumentController::class, 'requestDeletion'])->name('requestDeletion');
         });
 
+        // Signature
+        Route::post('/workflow/{id}/sign', [DocumentWorkflowController::class, 'creatorSign'])->name('workflow.creator.sign');
+
         Route::prefix('workflow')->name('workflow.')->group(function () {
             // Étape 1 : envoi à l'admin pour codification
             Route::post('/creator/{document}/send', [DocumentWorkflowController::class, 'creatorSendToAdmin'])->name('creator.send');
             // Étape 3 : envoi au validateur après réception du code
             Route::post('/creator/{document}/send-to-validator', [DocumentWorkflowController::class, 'creatorSendToValidator'])->name('creator.send_to_validator');
-            // Étape après PDF : signer et envoyer au validateur
-            Route::post('/creator/{document}/sign-and-send', [DocumentWorkflowController::class, 'creatorSignAndSend'])->name('creator.sign_and_send');
         });
     });
 

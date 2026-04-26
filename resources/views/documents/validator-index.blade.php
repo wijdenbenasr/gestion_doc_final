@@ -36,6 +36,7 @@
         </div>
         @php
             $urgentDocuments = null;
+            $showActionButtons = false;
             if (!$filter || $filter === 'pending') {
                 $urgentDocuments = \App\Models\Document::where('status', 'in_validation')
                     ->where('current_role', 'validator')
@@ -47,6 +48,7 @@
                     END')
                     ->limit(5)
                     ->get();
+                $showActionButtons = $urgentDocuments->count() > 0;
             }
         @endphp
 
@@ -77,8 +79,11 @@
                             </span>
                         </div>
                         <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
-                            <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
-                            <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openValidateModal('{{ $doc->id }}')">Signer</button>
+                            @if($showActionButtons && $doc->current_role === 'validator')
+                                <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
+                                <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openValidateModal('{{ $doc->id }}')">Signer</button>
+                                <button type="button" class="btn btn-sm btn-danger" style="font-size:.72rem;" onclick="openRejectModal('{{ $doc->id }}')">Rejeter</button>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -139,8 +144,8 @@
                 </div>
             </div>
         @else
-            <div style="overflow-x:auto;margin-top:.75rem;">
-                <table>
+            <div style="overflow-x:auto;margin-top:.75rem;position:relative;">
+                <table style="position:relative;">
                     <thead>
                     <tr>
                         <th>Nom</th><th>Code</th><th>Type</th><th>AIO</th>
@@ -156,9 +161,15 @@
                                     {{ $doc->name }}
                                 </div>
                             </td>
-                            <td style="font-family:monospace;font-size:.73rem;color:var(--accent);">{{ $doc->code }}</td>
-                            <td style="font-size:.72rem;max-width:120px;" title="{{ $doc->type_libelle }}">
-                                {{ \Illuminate\Support\Str::limit($doc->type_libelle, 22) }}
+                            <td>
+                                @if($doc->code)
+                                    <span class="badge bg-secondary">{{ $doc->code }}</span>
+                                @else
+                                    <span class="badge bg-secondary" style="opacity:0.5;">Non codifie</span>
+                                @endif
+                            </td>
+                            <td>
+                                <span title="{{ $doc->type_libelle }}">{{ Str::limit($doc->type_libelle, 20) }}</span>
                             </td>
                             <td><span class="badge badge-info">{{ \App\Models\Document::AIOS[$doc->aio] ?? $doc->aio }}</span></td>
                             <td>{{ $doc->ligne }}</td>
@@ -175,24 +186,24 @@
                                 @endif
                             </td>
                             <td>
-                                <div style="display:flex;gap:.25rem;flex-wrap:wrap;">
-                                    <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" title="Telecharger">Source</a>
-                                    <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);" onclick="openValidateModal('{{ $doc->id }}')">Signer</button>
-                                    <button type="button" class="btn btn-ghost btn-sm btn-danger" onclick="toggleReject('rej-{{ $doc->id }}')">Rejeter</button>
-                                </div>
-                                <div id="rej-{{ $doc->id }}" style="display:none;margin-top:.5rem;">
-                                    <form method="POST" action="{{ route('workflow.validator.reject', $doc) }}" style="display:flex;flex-direction:column;gap:.4rem;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleMenu(this)">Actions ▾</button>
+                            <ul class="action-menu" style="display:none;position:fixed;background:#1a2035;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 0;z-index:9999;min-width:160px;list-style:none;margin:0;">
+                                <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-download"></i> Telecharger</a></li>
+                                <li>
+                                    <form method="POST" action="{{ route('workflow.validator.validate', $doc) }}" enctype="multipart/form-data">
                                         @csrf
-                                        <textarea name="message" placeholder="Motif du rejet" required style="font-size:.78rem;padding:.4rem;border-radius:.4rem;border:1px solid rgba(239,68,68,0.4);background:#020617;color:#e5e7eb;min-height:70px;resize:vertical;"></textarea>
-                                        <label style="font-size:.72rem;color:var(--muted);">Nouvelle deadline</label>
-                                        <input type="datetime-local" name="deadline" value="{{ now()->addDays(7)->format('Y-m-d\TH:i') }}" required style="font-size:.78rem;padding:.3rem .5rem;border-radius:.4rem;border:1px solid var(--border);background:#020617;color:#e5e7eb;">
-                                        <div style="display:flex;gap:.3rem;">
-                                            <button type="submit" class="btn btn-danger btn-sm">Confirmer</button>
-                                            <button type="button" class="btn btn-ghost btn-sm" onclick="toggleReject('rej-{{ $doc->id }}')">Annuler</button>
-                                        </div>
+                                        <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#4ade80;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-check"></i> Valider</button>
                                     </form>
-                                </div>
-                            </td>
+                                </li>
+                                <li>
+                                    <form method="POST" action="{{ route('documents.requestDeletion', $doc) }}" onsubmit="return confirm('Supprimer ce document ?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#f87171;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-trash"></i> Rejeter</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </td>
                         </tr>
                     @endforeach
                     </tbody>
@@ -206,6 +217,7 @@
 
 <!-- Modal de signature -->
 @foreach($documents as $doc)
+@if($doc->current_role === 'validator')
 <div id="validate-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;">
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#020617;border-radius:.5rem;padding:1.5rem;max-width:400px;width:90%;">
         <h3 style="margin:0 0 1rem 0;color:#e5e7eb;">Signer le document</h3>
@@ -223,6 +235,33 @@
         </form>
     </div>
 </div>
+@endif
+@endforeach
+
+<!-- Modal de rejet -->
+@foreach($documents as $doc)
+@if($doc->current_role === 'validator')
+<div id="rejetModal{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2035;border-radius:.5rem;padding:1.5rem;max-width:400px;width:90%;border:1px solid rgba(255,255,255,0.1);">
+        <h3 style="margin:0 0 1rem 0;color:white;">Rejeter le document</h3>
+        <form method="POST" action="{{ route('workflow.validator.reject', $doc) }}">
+            @csrf
+            <div class="mb-3">
+                <label class="form-label" style="color:white;">Motif du rejet *</label>
+                <textarea name="message" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;" rows="4" placeholder="Expliquez la raison du rejet..." required></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" style="color:white;">Deadline de correction</label>
+                <input type="date" name="deadline" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;">
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" onclick="closeRejectModal('{{ $doc->id }}')">Annuler</button>
+                <button type="submit" class="btn btn-danger">Confirmer le rejet</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 @endforeach
 
 <div class="cards-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -279,6 +318,14 @@ function openValidateModal(id) {
 
 function closeValidateModal(id) {
     document.getElementById('validate-modal-' + id).style.display = 'none';
+}
+
+function openRejectModal(id) {
+    document.getElementById('rejetModal' + id).style.display = 'block';
+}
+
+function closeRejectModal(id) {
+    document.getElementById('rejetModal' + id).style.display = 'none';
 }
 
 function downloadDocument(id) {

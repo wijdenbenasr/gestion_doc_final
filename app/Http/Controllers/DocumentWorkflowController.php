@@ -73,7 +73,7 @@ class DocumentWorkflowController extends Controller
             abort(400, 'Le document doit etre pret pour PDF.');
         }
 
-        $this->workflowService->signAndSubmitToValidator($document, $request->user());
+        $this->workflowService->signAfterPdfAndSubmitToAdmin($document, $request->user());
         $this->auditService->log(Auth::id(), 'creator_signed_and_submitted_after_pdf', $document, [], $request);
 
         if ($request->expectsJson()) {
@@ -368,5 +368,40 @@ class DocumentWorkflowController extends Controller
         }
 
         return back()->withErrors(['integrity' => 'Echec de verification d integrite du fichier.']);
+    }
+
+    public function creatorSign(Request $request, $id): RedirectResponse|JsonResponse
+    {
+        $request->validate([
+            'document_signe' => 'required|file|mimes:pdf,docx|max:20480',
+            'commentaire' => 'nullable|string',
+        ]);
+
+        $document = Document::findOrFail($id);
+
+        if (Auth::user()->role !== 'creator' || $document->created_by !== Auth::id()) {
+            abort(403);
+        }
+
+        if ($document->status !== 'ready_for_pdf') {
+            abort(400, 'Le document doit etre pret pour signature.');
+        }
+
+        $path = $request->file('document_signe')->store('documents/signes', 'public');
+
+        $document->update([
+            'fichier_signe_path' => $path,
+            'status' => 'in_validation',
+            'current_role' => 'validator',
+        ]);
+
+        $this->auditService->log(Auth::id(), 'document_signe_createur', $document, ['commentaire' => $request->commentaire], $request);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Document signe et envoye au validateur.', 'data' => $document->refresh()]);
+        }
+
+        return redirect()->route('documents.creator.index')
+            ->with('status', 'Document signe et envoye au validateur avec succes !');
     }
 }

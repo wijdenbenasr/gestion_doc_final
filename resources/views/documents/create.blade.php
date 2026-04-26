@@ -72,7 +72,9 @@
                     <label for="ligne">
                         Ligne de production
                         <span class="required">*</span>
-                        @if(!$canEditLigne)
+                        @if(!isset($document) && !$canEditLigne)
+                            <span class="field-badge field-badge-optional"><i class="fas fa-lock"></i> Modifiable par l'admin apres codification</span>
+                        @elseif(isset($document) && !$canEditLigne)
                             <span class="field-badge field-badge-optional"><i class="fas fa-lock"></i> Modifiable par l'admin uniquement</span>
                         @endif
                     </label>

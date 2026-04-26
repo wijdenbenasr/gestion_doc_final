@@ -27,6 +27,7 @@
             background: radial-gradient(circle at top, #1e293b 0, #020617 50%, #000 100%);
             color: var(--text);
             min-height: 100vh;
+            overflow-x: hidden;
         }
         a { color: inherit; text-decoration: none; }
         header {
@@ -95,7 +96,7 @@
             position: absolute;
             top: -6px;
             right: -8px;
-            background: var(--danger);
+            background: #f59e0b;
             color: white;
             border-radius: 999px;
             width: 18px;
@@ -106,6 +107,7 @@
             font-size: .62rem;
             font-weight: 700;
             border: 2px solid var(--bg);
+            animation: pulse 2s infinite;
         }
         .notification-badge-empty {
             background: var(--muted);
@@ -115,17 +117,25 @@
         .notification-dropdown {
             display: none;
             position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: .5rem;
-            background: #0f172a;
-            border: 1px solid var(--border);
-            border-radius: .75rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            background-color: #1a2035 !important;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
             min-width: 300px;
-            max-height: 420px;
-            overflow: hidden;
-            z-index: 1000;
+            max-width: 320px;
+            padding: 0;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: translateX(0) !important;
+        }
+        .notification-dropdown * {
+            color: white !important;
+        }
+        .notification-dropdown .dropdown-item {
+            color: white !important;
+            background-color: transparent !important;
+        }
+        .notification-dropdown .dropdown-item:hover {
+            background-color: rgba(255,255,255,0.05) !important;
         }
         .notification-dropdown.active { display: block; }
         .notification-header {
@@ -154,7 +164,7 @@
         .notification-item-title { font-weight: 600; color: var(--text); margin-bottom: .25rem; }
         .notification-item-meta { color: var(--muted); font-size: .72rem; }
         .notification-item.urgent .notification-item-title { color: var(--danger); }
-        .notification-item.warning .notification-item-title { color: var(--warning); }
+        .notification-item.warning .notification-item-title { color: #f59e0b; }
         .notification-empty {
             padding: 2rem 1rem;
             text-align: center;
@@ -351,6 +361,7 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.7);
             padding: 1.4rem 1.6rem;
             margin-bottom: 1.25rem;
+            overflow: visible;
         }
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; gap: .75rem; }
         .card-title { font-size: 1rem; font-weight: 700; text-transform: none; letter-spacing: .05em; }
@@ -374,7 +385,7 @@
             border-color: var(--accent);
             background: rgba(59,130,246,0.1);
         }
-        .stat-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .25rem; }
+        .stat-label { font-size: .72rem; color: var(--muted); margin-bottom: .25rem; font-weight: 600; }
         .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
         .stat-meta { font-size: .68rem; color: var(--muted); margin-top: .2rem; }
         .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem 1.25rem; }
@@ -394,7 +405,7 @@
             box-shadow: 0 0 0 2px rgba(56,189,248,0.15);
         }
         .form-actions { margin-top: 1.1rem; display: flex; justify-content: flex-end; gap: .6rem; }
-        table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+        table { width: 100%; border-collapse: collapse; font-size: .78rem; overflow: visible; }
         th, td { padding: .55rem .5rem; border-bottom: 1px solid rgba(31,41,55,0.8); text-align: left; }
         th { font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
         tr:hover td { background: rgba(14,165,233,0.03); }
@@ -409,13 +420,105 @@
             white-space: nowrap;
         }
         .badge-success { background: rgba(34,197,94,0.13); color: #86efac; }
+        @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+.badge-pulse { animation: pulse 2s infinite; }
+        .badge-attente { animation: pulse 2s infinite; }
         .badge-warning { background: rgba(234,179,8,0.13); color: #fde68a; }
+.badge-pending { background: rgba(245,158,11,0.2); color: #f59e0b; }
+.badge-validation { background: rgba(56,189,248,0.13); color: #38bdf8; }
+.badge-approved { background: rgba(34,197,94,0.13); color: #86efac; }
+.badge-rejected { background: rgba(239,68,68,0.13); color: #fca5a5; }
+.badge-signed { background: rgba(168,85,247,0.13); color: #c084fc; }
         .badge-danger { background: rgba(239,68,68,0.13); color: #fca5a5; }
         .badge-muted { background: rgba(148,163,184,0.12); color: #d1d5db; }
         .badge-info { background: rgba(14,165,233,0.13); color: #7dd3fc; }
         .pagination { margin-top: .75rem; display: flex; justify-content: flex-end; gap: .25rem; font-size: .75rem; }
         .pagination span, .pagination a { padding: .2rem .45rem; border-radius: .3rem; border: 1px solid transparent; }
         .pagination .active span { border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.1); color: var(--accent); }
+
+        .notif-dropdown {
+            display: none;
+            position: absolute;
+            background-color: #1a2035 !important;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            min-width: 300px;
+            max-width: 320px;
+            padding: 0;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: translateX(0) !important;
+        }
+        .notif-dropdown * {
+            color: white !important;
+        }
+        .notif-dropdown .dropdown-item {
+            color: white !important;
+            background-color: transparent !important;
+        }
+        .notif-dropdown .dropdown-item:hover {
+            background-color: rgba(255,255,255,0.05) !important;
+        }
+        .notif-dropdown.show { display: block; }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: .6rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            min-width: 180px;
+            z-index: 100;
+            padding: .25rem 0;
+        }
+        .dropdown-menu.show { display: block; }
+        .dropdown-item {
+            display: block;
+            padding: .45rem .85rem;
+            font-size: .75rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .dropdown-item:hover { background: rgba(56,189,248,0.1); }
+        .dropdown-item.text-danger { color: var(--danger); }
+        .action-menu {
+            display: none;
+            position: fixed;
+            background: #1a2035;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px 0;
+            z-index: 9999;
+            min-width: 160px;
+            list-style: none;
+            margin: 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .action-menu .dropdown-item:hover { background: rgba(56,189,248,0.15); }
+        .action-menu.show { display: block; }
+        .dropdown-divider { border-top: 1px solid var(--border); margin: .25rem 0; }
+        .btn-outline-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline-secondary:hover {
+            background: rgba(148,163,184,0.1);
+            border-color: var(--muted);
+        }
+        .bg-secondary { background: rgba(148,163,184,0.12); color: #d1d5db; }
+
+        /* Responsive table columns */
+        @media (max-width: 1024px) {
+            .col-valide, .col-approuve, .col-rejete, .col-signe { display: none; }
+        }
+        @media (max-width: 768px) {
+            .col-ligne, .col-type { display: none; }
+        }
         footer { padding: 1rem 2rem 1.5rem; border-top: 1px solid var(--border); font-size: .72rem; color: var(--muted); }
         .footer-inner { max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; gap: 1rem; }
         @media (max-width: 900px) {
@@ -475,41 +578,37 @@
 
                 <a href="{{ route('documents.archive') }}" class="nav-link {{ request()->routeIs('documents.archive') ? 'active' : '' }}">Archive</a>
 
-                <div class="notifications-container">
-                    @if($headerNotifications['has_dropdown'])
-                        <button class="notification-bell" onclick="toggleNotifications(event)" title="Notifications ({{ $headerNotifications['unread_count'] }})">
-                            🔔
-                            @if($headerNotifications['unread_count'] > 0)
-                                <span class="notification-badge">{{ min($headerNotifications['unread_count'], 9) }}{{ $headerNotifications['unread_count'] > 9 ? '+' : '' }}</span>
-                            @endif
-                        </button>
-                        <div class="notification-dropdown" id="notificationsDropdown">
-                            <div class="notification-header">
-                                <i class="fas fa-bell"></i>
-                                Notifications
-                            </div>
-                            @if(count($headerNotifications['items']) > 0)
-                                <div class="notification-list">
-                                    @foreach($headerNotifications['items'] as $notif)
-                                        <a href="{{ $notif['url'] }}" class="notification-item {{ $notif['type'] }}" onclick="closeDropdown()">
-                                            <div class="notification-item-title">{{ $notif['title'] }}</div>
-                                            <div class="notification-item-meta">{{ $notif['meta'] }}</div>
-                                        </a>
-                                    @endforeach
-                                </div>
-                                <div class="notification-footer">
-                                    <a href="#" class="notification-footer-link">
-                                        <i class="fas fa-list"></i> Voir tout
-                                    </a>
-                                </div>
-                            @else
-                                <div class="notification-empty">
-                                    <i class="fas fa-bell-slash"></i>
-                                    Aucune notification
-                                </div>
-                            @endif
+                <div class="dropdown" style="position: relative;">
+                    <button type="button" class="notification-bell" onclick="toggleNotifDropdown(this)" style="background:transparent;border:1px solid var(--border);border-radius:.5rem;padding:.35rem .5rem;cursor:pointer;">
+                        🔔
+                        @if(auth()->user()->unreadNotifications->count() > 0)
+                            <span class="notification-badge">
+                                {{ auth()->user()->unreadNotifications->count() }}
+                            </span>
+                        @endif
+                    </button>
+                    <div class="notif-dropdown">
+                        <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.1);color:white;font-weight:600;display:flex;justify-content:space-between;">
+                            <span>🔔 Notifications</span>
+                            <span class="badge bg-danger">{{ auth()->user()->unreadNotifications->count() }}</span>
                         </div>
-                    @endif
+                        @forelse(auth()->user()->unreadNotifications->take(5) as $notif)
+                            <a href="{{ route('notifications.read', $notif->id) }}" class="dropdown-item py-2 px-3" style="border-bottom:1px solid rgba(255,255,255,0.05);display:block;">
+                                <i class="fas fa-file-alt me-2" style="color:#f59e0b;"></i>
+                                {{ $notif->data['message'] ?? 'Notification' }}
+                                <br>
+                                <small style="color:rgba(255,255,255,0.6);">{{ $notif->created_at->diffForHumans() }}</small>
+                            </a>
+                        @empty
+                            <div style="text-align:center; padding: 24px 16px;">
+                                <span style="font-size:2rem;">🔕</span>
+                                <p style="color:rgba(255,255,255,0.5); margin-top:8px;">Aucune notification</p>
+                            </div>
+                        @endforelse
+                        <div style="border-top:1px solid rgba(255,255,255,0.1)">
+                            <a href="{{ route('notifications.index') }}" style="display:block;text-align:center;padding:10px;color:#3b82f6;font-weight:600;border-top:1px solid rgba(255,255,255,0.1);text-decoration:none;">Voir tout →</a>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="profile-menu-container">
@@ -591,7 +690,7 @@
 <main>
     <div class="main-inner">
         @if(session('status'))
-            <div class="alert alert-success">{{ session('status') }}</div>
+            <div class="alert alert-success"><i class="fas fa-check-circle"></i> {{ session('status') }}</div>
         @endif
         @if(session('error'))
             <div class="alert alert-error">{{ session('error') }}</div>
@@ -651,6 +750,61 @@ function closeProfileMenu() {
     }
 
     dropdown.classList.remove('active');
+}
+
+document.querySelectorAll('.dropdown-toggle').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const dropdown = this.nextElementSibling;
+        document.querySelectorAll('.dropdown-menu.show').forEach(function(d) {
+            if (d !== dropdown) d.classList.remove('show');
+        });
+        if (dropdown) dropdown.classList.toggle('show');
+    });
+});
+
+document.addEventListener('click', function() {
+    document.querySelectorAll('.dropdown-menu.show').forEach(function(d) {
+        d.classList.remove('show');
+    });
+});
+
+function toggleMenu(btn) {
+    const menu = btn.nextElementSibling;
+    const rect = btn.getBoundingClientRect();
+    menu.style.top = (rect.bottom + 5) + 'px';
+    menu.style.left = (rect.left - 100) + 'px';
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    event.stopPropagation();
+}
+
+function toggleNotifDropdown(btn) {
+    event.stopPropagation();
+    const dropdown = btn.nextElementSibling;
+    document.querySelectorAll('.notif-dropdown').forEach(function(d) {
+        if (d !== dropdown) d.style.display = 'none';
+    });
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('click', function() {
+    document.querySelectorAll('.notif-dropdown').forEach(function(d) {
+        d.style.display = 'none';
+    });
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.matches('button') && !e.target.closest('.action-menu')) {
+        document.querySelectorAll('.action-menu').forEach(m => m.style.display = 'none');
+    }
+});
+
+function toggleRowActions(btn) {
+    var menu = btn.nextElementSibling;
+    var isOpen = menu.style.display === 'block';
+    document.querySelectorAll('.row-actions-menu').forEach(function(m) { m.style.display = 'none'; });
+    if (!isOpen) { menu.style.display = 'block'; }
+    event.stopPropagation();
 }
 
 document.addEventListener('click', function(event) {

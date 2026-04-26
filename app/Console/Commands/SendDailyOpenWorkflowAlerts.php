@@ -67,6 +67,7 @@ class SendDailyOpenWorkflowAlerts extends Command
                 $documents,
                 route('documents.creator.index')
             ));
+            usleep(1100000);
 
             $recipients++;
             $documentsCount += $documents->count();
@@ -98,6 +99,7 @@ class SendDailyOpenWorkflowAlerts extends Command
                 $documents,
                 $this->dashboardUrlForRole($role)
             ));
+            usleep(1100000);
 
             $recipients++;
         }
@@ -135,6 +137,7 @@ class SendDailyOpenWorkflowAlerts extends Command
                 $documents,
                 route('admin.dashboard')
             ));
+            usleep(1100000);
 
             $recipients++;
         }

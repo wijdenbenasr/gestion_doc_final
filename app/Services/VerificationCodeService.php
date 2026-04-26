@@ -22,5 +22,6 @@ class VerificationCodeService
         );
 
         $user->notify(new EmailVerificationCodeNotification($code));
+        usleep(1100000);
     }
 }

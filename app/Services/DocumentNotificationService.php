@@ -15,18 +15,21 @@ class DocumentNotificationService
     {
         $this->activeUsersByRole($role)->each(function (User $user) use ($document, $message, $type) {
             $user->notify(new DocumentTaskNotification($document, $message, $type));
+            usleep(1100000);
         });
     }
 
     public function notifyUser(User $user, Document $document, string $message, string $type = 'task'): void
     {
         $user->notify(new DocumentTaskNotification($document, $message, $type));
+        usleep(1100000);
     }
 
     public function notifyCreatorRejected(Document $document, string $message): void
     {
         if ($document->creator) {
             $document->creator->notify(new DocumentRejected($document, $message));
+            usleep(1100000);
         }
     }
 
@@ -34,6 +37,7 @@ class DocumentNotificationService
     {
         if ($document->creator) {
             $document->creator->notify(new DocumentSigned($document));
+            usleep(1100000);
         }
     }
 

@@ -124,7 +124,7 @@ class DocumentController extends Controller
     public function create(): View
     {
         $isAdmin = auth()->user()->role === 'admin';
-        $canEditLigne = $isAdmin;
+        $canEditLigne = true;
         $backRoute = $isAdmin ? route('admin.dashboard') : route('documents.creator.index');
 
         return view('documents.create', [
@@ -272,5 +272,21 @@ class DocumentController extends Controller
 
         return redirect()->route('admin.dashboard')
             ->with('status', 'Document supprimé.');
+    }
+
+    public function convertToPdf($id)
+    {
+        $document = Document::findOrFail($id);
+
+        if ($document->status !== 'ready_for_pdf') {
+            abort(403, 'Document non autorisé');
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('documents.pdf_template', compact('document'));
+
+        $document->pdf_converti = true;
+        $document->save();
+
+        return $pdf->download($document->code . '_' . str_replace(' ', '_', $document->nom) . '.pdf');
     }
 }

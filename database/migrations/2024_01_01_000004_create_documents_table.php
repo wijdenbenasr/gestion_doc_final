@@ -79,6 +79,7 @@ return new class extends Migration
                 'draft',                // Brouillon (chez le créateur)
                 'pending_codification', // En attente de code par l'admin
                 'in_validation',        // En cours de validation (validator → approver → admin)
+                'ready_for_pdf',      // Prêt pour conversion PDF (chez créateur)
                 'rejected',             // Rejeté, retour au créateur
                 'finalized',            // Signé par tous, archivé, verrouillé
             ])->default('draft')->index();

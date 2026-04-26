@@ -54,10 +54,13 @@
                             <form method="POST" action="{{ route('admin.documents.codify', $doc) }}" style="display:flex;flex-direction:column;gap:.35rem;">
                                 @csrf
                                 <div style="display:flex;gap:.35rem;align-items:center;flex-wrap:wrap;">
-                                    <input type="text" name="code" placeholder="Ex: QMS-SOP-AIO1-001" required style="font-size:.78rem;padding:.35rem .5rem;width:190px;font-family:monospace;">
+                                    <input type="text" id="code-input-{{ $doc->id }}" name="code" placeholder="Ex: QMS-SOP-AIO1-001" required style="font-size:.78rem;padding:.35rem .5rem;width:190px;font-family:monospace;">
                                     <button type="submit" class="btn btn-sm">Valider</button>
                                     <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm">Source</a>
                                 </div>
+                                <small style="color:var(--muted);font-size:.68rem;cursor:pointer;" onclick="document.getElementById('code-input-{{ $doc->id }}').value='QMS-SOP-AIO1-001'">
+                                    <i class="fas fa-lightbulb"></i> Suggestion : QMS-SOP-AIO1-001 (cliquer pour utiliser)
+                                </small>
                                 <div style="font-size:.67rem;color:var(--muted);">Suggestion : QMS-{{ strtoupper(substr($doc->type, 0, 3)) }}-{{ strtoupper($doc->aio) }}-{{ str_pad($doc->id, 3, '0', STR_PAD_LEFT) }}</div>
                             </form>
                         </td>
