@@ -34,7 +34,19 @@ class DocumentPolicy
 
     public function download(User $user, Document $document): bool
     {
-        return $this->view($user, $document);
+        if ($user->role === 'admin') {
+            return true;
+        }
+        if ($user->id === $document->created_by) {
+            return true;
+        }
+        if ($user->role === 'validator' && in_array($document->current_role, ['validator'])) {
+            return true;
+        }
+        if ($user->role === 'approver' && $document->current_role === 'approver') {
+            return true;
+        }
+        return false;
     }
 
     public function update(User $user, Document $document): bool

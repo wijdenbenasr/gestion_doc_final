@@ -37,11 +37,17 @@ class Document extends Model
 
     public const STATUSES = [
         'draft' => 'Brouillon',
-        'pending_codification' => 'En attente de codification',
+        'pending_codification' => 'En attente codification',
         'in_validation' => 'En validation',
-        'ready_for_pdf' => 'Pret pour PDF',
-        'rejected' => 'Rejete',
-        'finalized' => 'Finalise',
+        'approbation' => 'En approbation',
+        'validation_admin' => 'Validation finale admin',
+        'ready_for_pdf' => 'Prêt pour PDF',
+        'pdf_converti' => 'PDF converti',
+        'signing_validator' => 'Signature validateur',
+        'signing_approver' => 'Signature approbateur',
+        'signing_admin' => 'Signature admin finale',
+        'finalized' => 'Archivé',
+        'rejected' => 'Rejeté',
     ];
 
     protected $fillable = [
@@ -52,6 +58,12 @@ class Document extends Model
         'version', 'revision', 'status', 'current_role',
         'deadline', 'is_pdf', 'is_fully_signed', 'lock_version',
         'fichier_signe_path', 'pdf_converti',
+        'validated_by', 'validated_at',
+        'approved_by', 'approved_at',
+        'admin_validated_by', 'admin_validated_at',
+        'pdf_signe_createur', 'pdf_signe_validateur',
+        'pdf_signe_approbateur', 'pdf_signe_final',
+        'commentaire_rejet', 'deadline_correction', 'archived_at',
     ];
 
     protected $casts = [
@@ -60,6 +72,12 @@ class Document extends Model
         'is_pdf' => 'boolean',
         'is_fully_signed' => 'boolean',
         'lock_version' => 'integer',
+        'pdf_converti' => 'boolean',
+        'validated_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'admin_validated_at' => 'datetime',
+        'deadline_correction' => 'datetime',
+        'archived_at' => 'datetime',
     ];
 
     public function creator(): BelongsTo
@@ -70,6 +88,21 @@ class Document extends Model
     public function currentOwner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'current_owner_id');
+    }
+
+    public function validatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function adminValidatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_validated_by');
     }
 
     public function versions(): HasMany

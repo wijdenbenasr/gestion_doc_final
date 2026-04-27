@@ -160,8 +160,8 @@
 </div>
 @endif
 
-{{-- Audit trail --}}
-@if($document->auditLogs->count())
+{{-- Audit trail (admin only) --}}
+@if(auth()->user()->role === 'admin' && $document->auditLogs->count())
 <div class="section">
     <div class="section-title">Journal d'audit (10 dernières actions)</div>
     <table>

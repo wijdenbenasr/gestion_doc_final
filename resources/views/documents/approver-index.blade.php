@@ -3,6 +3,20 @@
 @section('title', 'Documents a approuver')
 
 @section('content')
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show mx-3 mt-3" style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#22c55e;border-radius:8px;" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3" style="background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;border-radius:8px;" role="alert">
+        <i class="fas fa-times-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 <div class="cards-row" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1rem;">
     <a href="{{ route('workflow.approver.index') }}" class="stat-card {{ !$filter || $filter === 'pending' ? 'active' : '' }}">
         <div class="stat-label">En attente</div>
@@ -34,31 +48,73 @@
         </div>
     </div>
     @php
-        $urgentDocuments = null;
-        $showActionButtons = false;
-        if (!$filter || $filter === 'pending') {
-            $urgentDocuments = \App\Models\Document::where('status', 'ready_for_pdf')
-                ->where('current_role', 'approver')
-                ->whereNotNull('deadline')
-                ->orderByRaw('CASE
-                    WHEN deadline < NOW() THEN 0
-                    WHEN deadline < DATE_ADD(NOW(), INTERVAL 2 DAY) THEN 1
-                    ELSE 2
-                END')
-                ->limit(5)
-                ->get();
-            $showActionButtons = $urgentDocuments->count() > 0;
-        }
+        $showAlertes = isset($alertes) && $alertes->count() > 0;
     @endphp
 
-    @if($urgentDocuments && $urgentDocuments->count() > 0)
+    @if($showAlertes)
         <div style="display:grid;gap:.4rem;">
-            @foreach($urgentDocuments as $doc)
+            @forelse($alertes as $doc)
                 @php
                     $isUrgent = $doc->deadline && $doc->deadline->isPast();
                     $isWarning = !$isUrgent && $doc->deadline && $doc->deadline->isBefore(now()->addDays(2));
                     $badgeClass = $isUrgent ? 'badge-danger' : ($isWarning ? 'badge-warning' : 'badge-info');
                 @endphp
+                <div id="sign-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
+                    <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
+                        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                            <h4 style="margin:0;">✍️ Signer et envoyer le document</h4>
+                            <button type="button" class="btn-close btn-close-white" onclick="closeSignModal('{{ $doc->id }}')"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.approver.sign', $doc) }}">
+                                @csrf
+                                <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
+                                    <small class="text-muted">Document :</small>
+                                    <p class="mb-0 fw-bold">{{ $doc->name }}</p>
+                                    <small class="text-muted">Code : {{ $doc->code }}</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                                    <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
+                                    <small class="text-muted">Format accepte : PDF</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">💬 Commentaire (optionnel)</label>
+                                    <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
+                                </div>
+                                <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                                    <button type="button" class="btn btn-secondary" onclick="closeSignModal('{{ $doc->id }}')">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">Signer et envoyer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div id="rejet-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
+                    <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;border:1px solid rgba(255,255,255,0.1);">
+                        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                            <h4 style="margin:0;color:white;">Rejeter le document</h4>
+                            <button type="button" class="btn-close btn-close-white" onclick="closeRejectModal('{{ $doc->id }}')"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form method="POST" action="{{ route('workflow.approver.reject', $doc) }}">
+                                @csrf
+                                <div class="mb-3">
+                                    <label class="form-label" style="color:#9ca3af;">Motif du rejet *</label>
+                                    <textarea name="message" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;" rows="4" placeholder="Expliquez la raison du rejet..." required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="color:#9ca3af;">Deadline de correction</label>
+                                    <input type="date" name="deadline" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;">
+                                </div>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="button" class="btn btn-secondary" onclick="closeRejectModal('{{ $doc->id }}')">Annuler</button>
+                                    <button type="submit" class="btn btn-danger">Confirmer le rejet</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
                 <div style="padding:.6rem;border-radius:.4rem;background:rgba({{ $isUrgent ? '239,68,68' : ($isWarning ? '245,158,11' : '56,189,248') }},0.1);border-left:3px solid {{ $isUrgent ? 'var(--danger)' : ($isWarning ? 'var(--warning)' : 'var(--info)') }};">
                     <div style="display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:.3rem;">
                         <div>
@@ -73,24 +129,21 @@
                             @elseif($isWarning)
                                 WARNING
                             @else
-                                INFO
+                                PRET POUR SIGNATURE
                             @endif
                         </span>
                     </div>
                     <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
-                        @if($showActionButtons && ($doc->status === 'ready_for_pdf' || $doc->current_role === 'approver'))
-                            <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
-                            <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openValidateModal('{{ $doc->id }}')">Signer</button>
-                            <button type="button" class="btn btn-sm btn-danger" style="font-size:.72rem;" onclick="openRejectModal('{{ $doc->id }}')">Rejeter</button>
-                        @endif
+                        <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
+                        <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openSignModal('{{ $doc->id }}')">Signer</button>
                     </div>
                 </div>
-            @endforeach
-        </div>
-    @else
-        <div style="color:var(--muted);padding:1.25rem;text-align:center;">
-            <i class="fas fa-bell-slash fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
-            Aucun document critique en attente.
+            @empty
+                <div style="color:var(--muted);padding:1.25rem;text-align:center;">
+                    <i class="fas fa-check-circle fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
+                    Aucun document pret pour signature.
+                </div>
+            @endforelse
         </div>
     @endif
 </div>
@@ -183,23 +236,15 @@
                             @endif
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleMenu(this)">Actions ▾</button>
-                            <ul class="action-menu" style="display:none;position:fixed;background:#1a2035;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 0;z-index:9999;min-width:160px;list-style:none;margin:0;">
-                                <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-download"></i> Telecharger</a></li>
-                                <li>
-                                    <form method="POST" action="{{ route('workflow.approver.validate', $doc) }}" enctype="multipart/form-data">
-                                        @csrf
-                                        <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#4ade80;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-check"></i> Approuver</button>
-                                    </form>
-                                </li>
-                                <li>
-                                    <form method="POST" action="{{ route('documents.requestDeletion', $doc) }}" onsubmit="return confirm('Supprimer ce document ?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#f87171;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-trash"></i> Rejeter</button>
-                                    </form>
-                                </li>
-                            </ul>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Actions
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}"><i class="fas fa-download me-2"></i>Telecharger</a></li>
+                                    <li><button type="button" class="dropdown-item" style="color:#4ade80;cursor:pointer;" onclick="openTableSignModal('{{ $doc->id }}')"><i class="fas fa-signature me-2"></i>Signer</button></li>
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                 @endforeach
@@ -211,51 +256,76 @@
 </div>
 
 
-<!-- Modal de signature -->
-@foreach($documents as $doc)
-<div id="validate-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#020617;border-radius:.5rem;padding:1.5rem;max-width:400px;width:90%;">
-        <h3 style="margin:0 0 1rem 0;color:#e5e7eb;">Signer le document</h3>
-        <p style="margin:0 0 1rem 0;font-size:.9rem;color:#9ca3af;">Telechargez le document, appliquez votre signature numerique, puis uploadez le fichier signe.</p>
-        <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="downloadDocument('{{ $doc->id }}')">Telecharger</button>
+<!-- Modal de signature (alertes) -->
+@if($showAlertes)
+@foreach($alertes as $doc)
+<div id="sign-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
+        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h4 style="margin:0;">✍️ Signer et envoyer le document</h4>
+            <button type="button" class="btn-close btn-close-white" onclick="closeSignModal('{{ $doc->id }}')"></button>
         </div>
-        <form method="POST" action="{{ route('workflow.approver.validate', $doc) }}" enctype="multipart/form-data">
-            @csrf
-            <input type="file" name="signed_file" accept=".pdf,.docx,.xlsx" required style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:.25rem;background:#020617;color:#e5e7eb;">
-            <div style="display:flex;gap:.5rem;margin-top:1rem;">
-                <button type="submit" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);">Signer</button>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="closeValidateModal('{{ $doc->id }}')">Annuler</button>
-            </div>
-        </form>
+        <div class="modal-body">
+            <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.approver.sign', $doc) }}">
+                @csrf
+                <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
+                    <small class="text-muted">Document :</small>
+                    <p class="mb-0 fw-bold">{{ $doc->name }}</p>
+                    <small class="text-muted">Code : {{ $doc->code }}</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                    <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
+                    <small class="text-muted">Format accepte : PDF</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">💬 Commentaire (optionnel)</label>
+                    <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
+                </div>
+                <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeSignModal('{{ $doc->id }}')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Signer et envoyer</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endforeach
+@endif
 
-<!-- Modal de rejet -->
+<!-- Modal de signature (table) -->
 @foreach($documents as $doc)
-@if($doc->current_role === 'approver')
-<div id="rejetModal{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2035;border-radius:.5rem;padding:1.5rem;max-width:400px;width:90%;border:1px solid rgba(255,255,255,0.1);">
-        <h3 style="margin:0 0 1rem 0;color:white;">Rejeter le document</h3>
-        <form method="POST" action="{{ route('workflow.approver.reject', $doc) }}">
-            @csrf
-            <div class="mb-3">
-                <label class="form-label" style="color:white;">Motif du rejet *</label>
-                <textarea name="message" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;" rows="4" placeholder="Expliquez la raison du rejet..." required></textarea>
-            </div>
-            <div class="mb-3">
-                <label class="form-label" style="color:white;">Deadline de correction</label>
-                <input type="date" name="deadline" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;">
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" onclick="closeRejectModal('{{ $doc->id }}')">Annuler</button>
-                <button type="submit" class="btn btn-danger">Confirmer le rejet</button>
-            </div>
-        </form>
+<div id="table-sign-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
+        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h4 style="margin:0;">✍️ Signer et envoyer le document</h4>
+            <button type="button" class="btn-close btn-close-white" onclick="closeTableSignModal('{{ $doc->id }}')"></button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.approver.sign', $doc) }}">
+                @csrf
+                <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
+                    <small class="text-muted">Document :</small>
+                    <p class="mb-0 fw-bold">{{ $doc->name }}</p>
+                    <small class="text-muted">Code : {{ $doc->code }}</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                    <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
+                    <small class="text-muted">Format accepte : PDF</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">💬 Commentaire (optionnel)</label>
+                    <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
+                </div>
+                <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeTableSignModal('{{ $doc->id }}')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Signer et envoyer</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-@endif
 @endforeach
 
 <div class="cards-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -301,24 +371,29 @@
 </div>
 
 <script>
-function toggleReject(id) {
-    var el = document.getElementById(id);
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+function openSignModal(id) {
+    document.getElementById('sign-modal-' + id).style.display = 'block';
 }
-function openValidateModal(id) {
-    document.getElementById('validate-modal-' + id).style.display = 'block';
+function closeSignModal(id) {
+    document.getElementById('sign-modal-' + id).style.display = 'none';
 }
-function closeValidateModal(id) {
-    document.getElementById('validate-modal-' + id).style.display = 'none';
+function openTableSignModal(id) {
+    document.getElementById('table-sign-modal-' + id).style.display = 'block';
 }
-function openRejectModal(id) {
-    document.getElementById('rejetModal' + id).style.display = 'block';
-}
-function closeRejectModal(id) {
-    document.getElementById('rejetModal' + id).style.display = 'none';
+function closeTableSignModal(id) {
+    document.getElementById('table-sign-modal-' + id).style.display = 'none';
 }
 function downloadDocument(id) {
     window.open('/documents/' + id + '/download', '_blank');
 }
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
+});
 </script>
 @endsection

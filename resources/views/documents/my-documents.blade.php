@@ -3,6 +3,20 @@
 @section('title', 'Mes documents')
 
 @section('content')
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show mx-3 mt-3" style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#22c55e;border-radius:8px;" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3" style="background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;border-radius:8px;" role="alert">
+        <i class="fas fa-times-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 <div class="cards-row">
     <a href="{{ route('documents.my') }}" class="stat-card {{ !$status ? 'active' : '' }}">
         <div class="stat-label">Brouillons</div>
@@ -110,66 +124,40 @@
                             @endphp
                             <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
                         </td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleMenu(this)">Actions ▾</button>
-                            <ul class="action-menu" style="display:none;position:fixed;background:#1a2035;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 0;z-index:9999;min-width:160px;list-style:none;margin:0;">
-                                @if(in_array($document->status, ['draft', 'rejected']) && auth()->user()->role === 'creator')
-                                    <li><a class="dropdown-item" href="{{ route('documents.edit', $document) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-edit"></i> Modifier</a></li>
-                                @endif
-
-                                @if($document->status === 'draft' && empty($document->code) && auth()->user()->role === 'creator')
-                                    <li>
-                                        <form method="POST" action="{{ route('workflow.creator.send', $document) }}">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#e5e7eb;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-paper-plane"></i> Envoyer a l admin</button>
-                                        </form>
-                                    </li>
-                                @endif
-
-                                @if($document->status === 'draft' && ! empty($document->code) && auth()->user()->role === 'creator')
-                                    <li>
-                                        <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#e5e7eb;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-paper-plane"></i> Envoyer pour validation</button>
-                                        </form>
-                                    </li>
-                                @endif
-
-                                @if($document->status === 'rejected' && ! empty($document->code) && auth()->user()->role === 'creator')
-                                    <li><a class="dropdown-item" href="{{ route('documents.edit', $document) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-edit"></i> Modifier</a></li>
-                                    <li>
-                                        <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#e5e7eb;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-paper-plane"></i> Renvoyer pour validation</button>
-                                        </form>
-                                    </li>
-                                @endif
-
-                                @if($document->status === 'ready_for_pdf' && auth()->user()->role === 'creator')
-                                    <li>
-                                        <form method="POST" action="{{ route('workflow.creator.sign_and_send', $document) }}">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#e5e7eb;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-signature"></i> Signer et envoyer</button>
-                                        </form>
-                                    </li>
-                                @endif
-
-                                @if($document->status === 'draft' && auth()->user()->role === 'creator')
-                                    <li style="border-top:1px solid rgba(255,255,255,0.1);margin:4px 0;"></li>
-                                    <li>
-                                        <form method="POST" action="{{ route('documents.requestDeletion', $document) }}" onsubmit="return confirm('Supprimer definitivement ce document ?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#f87171;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-trash"></i> Supprimer</button>
-                                        </form>
-                                    </li>
-                                @endif
-
-                                <li><a class="dropdown-item" href="{{ route('documents.download', $document) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-code"></i> Source</a></li>
-                                @if($document->status === 'finalized')
-                                    <li><a class="dropdown-item" href="{{ route('documents.export.pdf', $document) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-file-pdf"></i> PDF final</a></li>
-                                @endif
-                            </ul>
+<td>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Actions
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    @if(in_array($document->status, ['draft', 'rejected']) && auth()->user()->role === 'creator')
+                                        <li><a class="dropdown-item" href="{{ route('documents.edit', $document) }}"><i class="fas fa-edit me-2"></i>Modifier</a></li>
+                                    @endif
+                                    @if($document->status === 'draft' && empty($document->code) && auth()->user()->role === 'creator')
+                                        <li>
+                                            <form method="POST" action="{{ route('workflow.creator.send', $document) }}">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item"><i class="fas fa-paper-plane me-2"></i>Envoyer a l admin</button>
+                                            </form>
+                                        </li>
+                                    @endif
+                                    @if($document->status === 'draft' && !empty($document->code) && auth()->user()->role === 'creator')
+                                        <li>
+                                            <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item"><i class="fas fa-paper-plane me-2"></i>Envoyer pour validation</button>
+                                            </form>
+                                        </li>
+                                    @endif
+                                    @if($document->status === 'ready_for_pdf' && auth()->user()->role === 'creator')
+                                        <li><a class="dropdown-item" href="{{ route('documents.convert.pdf', $document) }}" target="_blank"><i class="fas fa-file-pdf me-2"></i>Convertir en PDF</a></li>
+                                    @endif
+                                    @if($document->status === 'finalized')
+                                        <li><a class="dropdown-item" href="{{ route('documents.export.pdf', $document) }}"><i class="fas fa-file-pdf me-2"></i>PDF final</a></li>
+                                    @endif
+                                    <li><a class="dropdown-item" href="{{ route('documents.download', $document) }}"><i class="fas fa-download me-2"></i>Telecharger</a></li>
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                 @endforeach
@@ -179,4 +167,15 @@
         <div class="pagination">{{ $documents->links() }}</div>
     @endif
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
+});
+</script>
 @endsection

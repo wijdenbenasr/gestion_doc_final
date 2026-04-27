@@ -3,6 +3,20 @@
 @section('title', 'Dashboard Admin')
 
 @section('content')
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show mx-3 mt-3" style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#22c55e;border-radius:8px;" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3" style="background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;border-radius:8px;" role="alert">
+        <i class="fas fa-times-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 <div class="cards-row" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.25rem;">
     <a href="{{ route('admin.documents.index', ['status' => 'rejected', 'range' => $range]) }}" class="stat-card" style="position: relative;">
         <i class="fas fa-times-circle" style="position: absolute; top: 0.75rem; right: 0.75rem; font-size: 1.5rem; color: #ef4444;"></i>
@@ -41,6 +55,12 @@
         <div class="stat-label">En codification</div>
         <div style="font-size: 2rem; font-weight: 700; color: #f59e0b;">{{ $pendingCodification }}</div>
         <div class="stat-meta">En attente chez l admin</div>
+    </a>
+    <a href="{{ route('admin.documents.index', ['status' => 'validation_admin', 'range' => $range]) }}" class="stat-card" style="position: relative;">
+        <i class="fas fa-user-check" style="position: absolute; top: 0.75rem; right: 0.75rem; font-size: 1.5rem; color: #8b5cf6;"></i>
+        <div class="stat-label">A approuver</div>
+        <div style="font-size: 2rem; font-weight: 700; color: #8b5cf6;">{{ $pendingAdminValidation }}</div>
+        <div class="stat-meta">En attente de validation</div>
     </a>
     <a href="{{ route('admin.documents.index', ['status' => 'in_validation', 'range' => $range]) }}" class="stat-card" style="position: relative;">
         <i class="fas fa-check-circle" style="position: absolute; top: 0.75rem; right: 0.75rem; font-size: 1.5rem; color: #38bdf8;"></i>
@@ -96,10 +116,106 @@
                     </a>
                 </div>
             </div>
+</div>
+</div>
+
+<div class="cards-row" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:#f59e0b;margin-right:.5rem;"></i>Alertes prioritaires</div>
+                <div class="card-sub">Documents a signer (signature finale).</div>
+            </div>
         </div>
+        @php $showAlertes = isset($alertes) && $alertes->count() > 0; @endphp
+        @if($showAlertes)
+            <div style="display:grid;gap:.4rem;">
+                @forelse($alertes as $doc)
+                    @php
+                        $isUrgent = $doc->deadline && $doc->deadline->isPast();
+                        $isWarning = !$isUrgent && $doc->deadline && $doc->deadline->isBefore(now()->addDays(2));
+                        $badgeClass = $isUrgent ? 'badge-danger' : ($isWarning ? 'badge-warning' : 'badge-info');
+                    @endphp
+                    <div style="padding:.6rem;border-radius:.4rem;background:rgba({{ $isUrgent ? '239,68,68' : ($isWarning ? '245,158,11' : '56,189,248') }},0.1);border-left:3px solid {{ $isUrgent ? 'var(--danger)' : ($isWarning ? 'var(--warning)' : 'var(--info)') }};">
+                        <div style="display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:.3rem;">
+                            <div>
+                                <div style="font-weight:600;font-size:.85rem;">{{ $doc->name }}</div>
+                                <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;">
+                                    {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | v{{ $doc->revision }}
+                                </div>
+                            </div>
+                            <span class="badge {{ $badgeClass }}" style="font-size:.7rem;white-space:nowrap;">
+                                @if($isUrgent)
+                                    URGENT
+                                @elseif($isWarning)
+                                    WARNING
+                                @else
+                                    PRET POUR SIGNATURE
+                                @endif
+                            </span>
+                        </div>
+                        <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
+                            <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
+                            <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openSignModal('{{ $doc->id }}')">Signer (Final)</button>
+                        </div>
+                    </div>
+                @empty
+                    <div style="color:var(--muted);padding:1rem;text-align:center;">
+                        <i class="fas fa-check-circle fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
+                        Aucune signature finale en attente.
+                    </div>
+                @endforelse
+            </div>
+        @endif
     </div>
 
     <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title"><i class="fas fa-eye" style="color:#38bdf8;margin-right:.5rem;"></i>Documents a superviser</div>
+                <div class="card-sub">Documents en cours de traitement.</div>
+            </div>
+        </div>
+        @php $showSupervision = isset($documentsSupervision) && $documentsSupervision->count() > 0; @endphp
+        @if($showSupervision)
+            <div style="display:grid;gap:.4rem;">
+                @forelse($documentsSupervision as $doc)
+                    @php
+                        $isUrgent = $doc->deadline && $doc->deadline->isPast();
+                        $isWarning = !$isUrgent && $doc->deadline && $doc->deadline->isBefore(now()->addDays(2));
+                        $badgeClass = $isUrgent ? 'badge-danger' : ($isWarning ? 'badge-warning' : 'badge-info');
+                    @endphp
+                    <div style="padding:.6rem;border-radius:.4rem;background:rgba({{ $isUrgent ? '239,68,68' : ($isWarning ? '245,158,11' : '56,189,248') }},0.1);border-left:3px solid {{ $isUrgent ? 'var(--danger)' : ($isWarning ? 'var(--warning)' : 'var(--info)') }};">
+                        <div style="display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:.3rem;">
+                            <div>
+                                <div style="font-weight:600;font-size:.85rem;">{{ $doc->name }}</div>
+                                <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;">
+                                    {{ $doc->code ?: 'Sans code' }} | {{ $doc->status }}
+                                </div>
+                            </div>
+                            <span class="badge {{ $badgeClass }}" style="font-size:.7rem;white-space:nowrap;">
+                                @if($isUrgent)
+                                    URGENT
+                                @elseif($isWarning)
+                                    WARNING
+                                @else
+                                    EN ATTENTE
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                @empty
+                    <div style="color:var(--muted);padding:1rem;text-align:center;">
+                        <i class="fas fa-check-circle fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
+                        Aucun document a superviser.
+                    </div>
+                @endforelse
+            </div>
+        @endif
+    </div>
+</div>
+
+<div class="card">
         <div class="card-header">
             <div>
                 <div class="card-title">Repartition des roles</div>
@@ -186,25 +302,38 @@
                     <td class="col-phase">{{ $doc->phase_libelle ?? '—' }}</td>
                     <td class="col-rev" style="font-family:monospace;font-size:.75rem;">v{{ $doc->revision }}</td>
                     @php
-$s = ['finalized' => 'badge-success', 'rejected' => 'badge-danger', 'pending_codification' => 'badge-warning', 'in_validation' => 'badge-info', 'draft' => 'badge-muted'];
-$st = $s[$doc->status] ?? 'badge-muted';
-$sl = ['finalized' => 'Finalise', 'rejected' => 'Rejete', 'pending_codification' => 'Codification', 'in_validation' => 'Validation', 'draft' => 'Brouillon'];
-$sl2 = $sl[$doc->status] ?? $doc->status;
+$st = ['finalized' => 'badge-success', 'rejected' => 'badge-danger', 'pending_codification' => 'badge-warning', 'in_validation' => 'badge-info', 'approbation' => 'badge-info', 'validation_admin' => 'badge-info', 'draft' => 'badge-muted'];
+$sl = ['finalized' => 'Finalise', 'rejected' => 'Rejete', 'pending_codification' => 'Codification', 'in_validation' => 'Validation', 'approbation' => 'Approbation', 'validation_admin' => 'A approuver', 'draft' => 'Brouillon'];
+$st2 = $st[$doc->status] ?? 'badge-muted';
 @endphp
-<td class="col-statut"><span class="badge {{ $st }}">{{ $sl2 }}</span></td>
+<td class="col-statut"><span class="badge {{ $st2 }}">{{ $sl[$doc->status] ?? $doc->status }}</span></td>
                     <td class="col-date">{{ $doc->created_at->format('d/m/y') }}</td>
                     <td class="col-valide" style="text-align:center;color:var(--muted);">
-                        @php $v = $doc->signatures->where('role', 'validator')->first(); @endphp
+                        @php
+                        $v = $doc->signatures->where('role', 'validator')->first();
+                        if (!$v && $doc->validated_by) {
+                            $v = ['name' => optional($doc->validatedBy)->name ?? '—', 'signed_at' => $doc->validated_at];
+                        }
+                        $vName = is_array($v) ? ($v['name'] ?? '—') : ($v->user->name ?? '—');
+                        $vDate = is_array($v) ? ($v['signed_at'] ?? null) : ($v->signed_at ?? null);
+                        @endphp
                         @if($v)
-                        <div>{{ $v->user->name ?? '—' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $v->signed_at->format('d/m/y') }}</div>
+                        <div>{{ $vName }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $vDate ? $vDate->format('d/m/y') : '—' }}</div>
                         @else
                         —
                         @endif
                     </td>
                     <td class="col-approuve" style="text-align:center;color:var(--muted);">
-                        @php $a = $doc->signatures->where('role', 'approver')->first(); @endphp
+                        @php
+                        $a = $doc->signatures->where('role', 'approver')->first();
+                        if (!$a && $doc->approved_by) {
+                            $a = ['name' => optional($doc->approvedBy)->name ?? '—', 'signed_at' => $doc->approved_at];
+                        }
+                        $aName = is_array($a) ? ($a['name'] ?? '—') : ($a->user->name ?? '—');
+                        $aDate = is_array($a) ? ($a['signed_at'] ?? null) : ($a->signed_at ?? null);
+                        @endphp
                         @if($a)
-                        <div>{{ $a->user->name ?? '—' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $a->signed_at->format('d/m/y') }}</div>
+                        <div>{{ $aName }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $aDate ? $aDate->format('d/m/y') : '—' }}</div>
                         @else
                         —
                         @endif
@@ -224,46 +353,51 @@ $sl2 = $sl[$doc->status] ?? $doc->status;
                         @endif
                     </td>
                     <td class="col-actions">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleMenu(this)">Actions ▾</button>
-                        <ul class="action-menu" style="display:none;position:fixed;background:#1a2035;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 0;z-index:9999;min-width:160px;list-style:none;margin:0;">
-                            <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-code me-2"></i>Source</a></li>
-                            <li><a class="dropdown-item" href="{{ route('admin.documents.edit', $doc) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-edit me-2"></i>Modifier</a></li>
-                            @if(!$doc->is_fully_signed)
-                                <li style="border-top:1px solid rgba(255,255,255,0.1);margin:4px 0;"></li>
-                                <li>
-                                    <form method="POST" action="{{ route('admin.documents.destroy', $doc) }}" onsubmit="return confirm('Supprimer ?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#ef4444;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-trash me-2"></i>Supprimer</button>
-                                    </form>
-                                </li>
-                            @endif
-                            @if($doc->status==='in_validation' && $doc->current_role==='admin')
-                                <li style="border-top:1px solid rgba(255,255,255,0.1);margin:4px 0;"></li>
-                                @php $h=$doc->signatures->where('role','admin')->isNotEmpty(); @endphp
-                                @if($h)
-                                    <li><button type="button" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#22c55e;text-align:left;font-size:.75rem;cursor:pointer;" onclick="openSign('{{ $doc->id }}')"><i class="fas fa-signature me-2"></i>Signer</button></li>
-                                @else
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Actions
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}"><i class="fas fa-code me-2"></i>Source</a></li>
+                                <li><a class="dropdown-item" href="{{ route('admin.documents.edit', $doc) }}"><i class="fas fa-edit me-2"></i>Modifier</a></li>
+                                @if(!$doc->is_fully_signed)
+                                    <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form method="POST" action="{{ route('admin.workflow.validate', $doc) }}">
+                                        <form method="POST" action="{{ route('admin.documents.destroy', $doc) }}" onsubmit="return confirm('Supprimer ?');">
                                             @csrf
-                                            <button type="submit" class="dropdown-item" style="display:block;width:100%;padding:6px 12px;border:none;background:none;color:#22c55e;text-align:left;font-size:.75rem;cursor:pointer;"><i class="fas fa-check me-2"></i>Valider</button>
+                                            @method('DELETE')
+                                            <button type="submit" class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i>Supprimer</button>
                                         </form>
                                     </li>
                                 @endif
-                                <li>
-                                    <a class="dropdown-item text-danger"
-                                       href="#"
-                                       data-bs-toggle="modal"
-                                       data-bs-target="#modalRejet{{ $doc->id }}">
-                                        <i class="fas fa-times me-2"></i>Rejeter
-                                    </a>
-                                </li>
-                            @endif
-                            @if($doc->is_fully_signed)
-                                <li><a class="dropdown-item" href="{{ route('admin.documents.export.pdf', $doc) }}" style="display:block;padding:6px 12px;color:#e5e7eb;text-decoration:none;font-size:.75rem;"><i class="fas fa-file-pdf me-2"></i>PDF</a></li>
-                            @endif
-                        </ul>
+                                @if($doc->status==='validation_admin' && $doc->current_role==='admin')
+                                    <li><hr class="dropdown-divider"></li>
+                                    @php $h=$doc->signatures->where('role','admin')->isNotEmpty(); @endphp
+                                    @if($h)
+                                        <li><button type="button" class="dropdown-item" style="color:#22c55e;cursor:pointer;" onclick="openSign('{{ $doc->id }}')"><i class="fas fa-signature me-2"></i>Signer</button></li>
+                                    @else
+                                        <li>
+                                            <form method="POST" action="{{ route('admin.workflow.validate', $doc) }}">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item" style="color:#22c55e;"><i class="fas fa-check me-2"></i>Valider</button>
+                                            </form>
+                                        </li>
+                                    @endif
+                                    <li>
+                                        <a class="dropdown-item text-danger"
+                                           href="#"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#modalRejet{{ $doc->id }}">
+                                            <i class="fas fa-times me-2"></i>Rejeter
+                                        </a>
+                                    </li>
+                                @endif
+                                @if($doc->is_fully_signed)
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.documents.export.pdf', $doc) }}"><i class="fas fa-file-pdf me-2"></i>PDF</a></li>
+                                @endif
+                            </ul>
+                        </div>
                     </td>
                 </tr>
             @empty<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:1.5rem;">Aucun document.</td></tr>
@@ -315,7 +449,7 @@ $sl2 = $sl[$doc->status] ?? $doc->status;
 </div>
 
 @foreach($documents as $doc)
-@if($doc->status==='in_validation' && $doc->current_role==='admin')
+@if(in_array($doc->status, ['in_validation', 'signing_admin']) && $doc->current_role==='admin')
 <div class="modal fade" id="modalRejet{{ $doc->id }}">
     <div class="modal-dialog">
         <div class="modal-content" style="background:#1a2035;color:white;">
@@ -343,22 +477,86 @@ $sl2 = $sl[$doc->status] ?? $doc->status;
         </div>
     </div>
 </div>
-<div id="sign-{{$doc->id}}" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;border-radius:8px;padding:24px;max-width:400px;width:90%;">
-        <h3 style="margin:0 0 16px 0;">Signer le document</h3>
-        <p style="color:#9ca3af;margin:0 0 16px 0;">Telechargez et verifyez le document.</p>
-        <div style="margin-bottom:16px;"><button type="button" class="btn btn-ghost btn-sm" onclick="window.open('/documents/{{$doc->id}}/download')">Telecharger</button></div>
-        <form method="POST" action="{{ route('admin.workflow.sign', $doc) }}" enctype="multipart/form-data">@csrf<input type="file" name="signed_file" accept=".pdf" required style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#1e293b;color:#e5e7eb;"><div style="display:flex;gap:8px;margin-top:16px;"><button type="submit" class="btn btn-sm" style="border-color:#22c55e;">Signer</button><button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('sign-{{$doc->id}}').style.display='none'">Annuler</button></div></form>
+<div id="signModal-{{$doc->id}}" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2035;border-radius:8px;padding:24px;max-width:500px;width:90%;border:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="margin:0;color:white;">✍️ Signer le document</h3>
+            <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('signModal-{{$doc->id}}').style.display='none'"></button>
+        </div>
+        <form method="POST" action="{{ route('admin.workflow.sign', $doc) }}" enctype="multipart/form-data">
+            @csrf
+            <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05);">
+                <small class="text-muted">Document :</small>
+                <p class="mb-0 fw-bold">{{ $doc->name }}</p>
+                <small class="text-muted">Code : {{ $doc->code }}</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                <input type="file" name="document_signe" accept=".pdf" required style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#0f172a;color:#e5e7eb;">
+                <small class="text-muted">Format accepte : PDF</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">💬 Commentaire (optionnel)</label>
+                <textarea name="commentaire" rows="3" style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#0f172a;color:#e5e7eb;" placeholder="Ajouter un commentaire..."></textarea>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('signModal-{{$doc->id}}').style.display='none'">Annuler</button>
+                <button type="submit" class="btn btn-primary">Signer et finaliser</button>
+            </div>
+        </form>
     </div>
 </div>
 @endif
+@endforeach
+
+@foreach($alertes as $doc)
+    @if(!$documents->contains('id', $doc->id))
+        <div id="signModal-{{$doc->id}}" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;">
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2035;border-radius:8px;padding:24px;max-width:500px;width:90%;border:1px solid rgba(255,255,255,0.1);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <h3 style="margin:0;color:white;">✍️ Signer le document</h3>
+                    <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('signModal-{{$doc->id}}').style.display='none'"></button>
+                </div>
+                <form method="POST" action="{{ route('admin.workflow.sign', $doc) }}" enctype="multipart/form-data">
+                    @csrf
+                    <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05);">
+                        <small class="text-muted">Document :</small>
+                        <p class="mb-0 fw-bold">{{ $doc->name }}</p>
+                        <small class="text-muted">Code : {{ $doc->code }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                        <input type="file" name="document_signe" accept=".pdf" required style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#0f172a;color:#e5e7eb;">
+                        <small class="text-muted">Format accepte : PDF</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">💬 Commentaire (optionnel)</label>
+                        <textarea name="commentaire" rows="3" style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#0f172a;color:#e5e7eb;" placeholder="Ajouter un commentaire..."></textarea>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('signModal-{{$doc->id}}').style.display='none'">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Signer et finaliser</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 @endforeach
 @endsection
 
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-function openSign(id){document.getElementById('sign-'+id).style.display='block'}
+function openSignModal(id){
+    var modal = document.getElementById('signModal-' + id);
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function openSign(id){
+    openSignModal(id);
+}
 const ctx=document.getElementById('activityChart');
 if(ctx){
     const chartData = @json($activityChart);
@@ -366,7 +564,7 @@ if(ctx){
     const created = chartData.created || [];
     const validated = chartData.validated || [];
     const rejected = chartData.rejected || [];
-    new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{label:'Cree',data:created,backgroundColor:'#38bdf8'},{label:'Valide',data:validated,backgroundColor:'#22c55e'},{label:'Rejete',data:rejected,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}});
+    new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{label:'Cree',data:created,backgroundColor:'#38bdf8'},{label:'Valide',data:validated,backgroundColor:'#22c55e'},{label:'Rejete',data:rejected,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}});
 }
 </script>
 @endsection

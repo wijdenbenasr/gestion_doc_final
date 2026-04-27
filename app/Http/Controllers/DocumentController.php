@@ -285,8 +285,9 @@ class DocumentController extends Controller
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('documents.pdf_template', compact('document'));
 
         $document->pdf_converti = true;
+        $document->status = 'pdf_converti';
         $document->save();
 
-        return $pdf->download($document->code . '_' . str_replace(' ', '_', $document->nom) . '.pdf');
+        return $pdf->download($document->code . '_' . str_replace(' ', '_', $document->name) . '.pdf');
     }
 }

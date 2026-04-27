@@ -51,7 +51,6 @@ Route::middleware('auth')->group(function () {
     // Téléchargement (tous rôles authentifiés)
     Route::get('/documents/{document}/download', DownloadController::class)->name('documents.download');
     Route::get('/documents/{document}/pdf', [ExportController::class, 'pdf'])->name('documents.export.pdf');
-    Route::get('/documents/{id}/convert-pdf', [DocumentController::class, 'convertToPdf'])->name('documents.convert.pdf');
 
     // Mes documents (tous rôles)
     Route::get('/my-documents', [DocumentController::class, 'myDocuments'])->name('documents.my');
@@ -73,6 +72,9 @@ Route::middleware('auth')->group(function () {
         // Signature
         Route::post('/workflow/{id}/sign', [DocumentWorkflowController::class, 'creatorSign'])->name('workflow.creator.sign');
 
+        // Conversion PDF
+        Route::get('/workflow/{id}/convert-pdf', [DocumentWorkflowController::class, 'convertToPdf'])->name('workflow.creator.convert_pdf');
+
         Route::prefix('workflow')->name('workflow.')->group(function () {
             // Étape 1 : envoi à l'admin pour codification
             Route::post('/creator/{document}/send', [DocumentWorkflowController::class, 'creatorSendToAdmin'])->name('creator.send');
@@ -86,13 +88,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/validator', [DocumentWorkflowController::class, 'validatorIndex'])->name('validator.index');
         Route::post('/validator/{document}/validate', [DocumentWorkflowController::class, 'validatorValidate'])->name('validator.validate');
         Route::post('/validator/{document}/reject', [DocumentWorkflowController::class, 'validatorReject'])->name('validator.reject');
+        Route::post('/validator/{document}/sign', [DocumentWorkflowController::class, 'validatorSign'])->name('validator.sign');
     });
 
     // ── Approbateur ───────────────────────────────────────────────────────────
     Route::middleware('role:approver')->prefix('workflow')->name('workflow.')->group(function () {
         Route::get('/approver', [DocumentWorkflowController::class, 'approverIndex'])->name('approver.index');
-        Route::post('/approver/{document}/validate', [DocumentWorkflowController::class, 'approverValidate'])->name('approver.validate');
+        Route::post('/approver/{document}/approve', [DocumentWorkflowController::class, 'approverApprove'])->name('approver.approve');
         Route::post('/approver/{document}/reject', [DocumentWorkflowController::class, 'approverReject'])->name('approver.reject');
+        Route::post('/approver/{document}/sign', [DocumentWorkflowController::class, 'approverSign'])->name('approver.sign');
     });
 
     // ── Administrateur ────────────────────────────────────────────────────────
@@ -126,6 +130,12 @@ Route::middleware('auth')->group(function () {
         // Vue d'ensemble des documents (avec filtres)
         Route::get('/documents', [AdminDashboardController::class, 'documents'])->name('documents.index');
         Route::post('/documents/{document}/codify', [AdminCodificationController::class, 'codify'])->name('documents.codify');
+
+        // Attribution de code (étape 2 - via controller)
+        Route::post('/workflow/{document}/assign-code', [DocumentWorkflowController::class, 'adminAssignCode'])->name('workflow.assign_code');
+
+        // Conversion PDF
+        Route::get('/workflow/{document}/convert-pdf', [DocumentWorkflowController::class, 'convertToPdf'])->name('workflow.convert_pdf');
 
         // Validation finale + signature admin (étape 9)
         Route::post('/workflow/{document}/validate', [DocumentWorkflowController::class, 'adminValidate'])->name('workflow.validate');

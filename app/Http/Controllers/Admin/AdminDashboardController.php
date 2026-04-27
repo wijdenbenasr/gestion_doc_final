@@ -23,9 +23,14 @@ class AdminDashboardController extends Controller
         $base = Document::query()->where('created_at', '>=', $from);
 
         $createdCount = (clone $base)->count();
-        $inValidationCount = (clone $base)->whereIn('status', ['draft', 'in_validation', 'rejected', 'pending_codification'])->count();
+        $inValidationCount = (clone $base)->whereIn('status', ['draft', 'in_validation', 'rejected', 'pending_codification', 'approbation', 'validation_admin'])->count();
         $finalizedCount = (clone $base)->where('status', 'finalized')->count();
         $rejectedCount = (clone $base)->where('status', 'rejected')->count();
+
+        // Compteur pour documents en attente de validation admin
+        $pendingAdminValidation = Document::where('status', 'validation_admin')
+            ->where('current_role', 'admin')
+            ->count();
 
         // Activity chart data - last 7 days
         $activityChart = $this->getActivityChartData();
@@ -43,10 +48,33 @@ class AdminDashboardController extends Controller
         $recentLogs = AuditLog::with('user')->latest()->limit(10)->get();
 
         $documents = (clone $base)
-            ->with(['creator', 'signatures.user', 'transmissions.sender'])
+            ->with(['creator', 'signatures.user', 'transmissions.sender', 'validatedBy', 'approvedBy'])
             ->latest()
             ->paginate(20)
             ->withQueryString();
+
+        // Alertes prioritaires: prets pour signature finale (signing_admin)
+        $alertes = Document::where('status', 'signing_admin')
+            ->where('current_role', 'admin')
+            ->orderByRaw('CASE
+                WHEN deadline IS NULL THEN 2
+                WHEN deadline < NOW() THEN 0
+                WHEN deadline < DATE_ADD(NOW(), INTERVAL 2 DAY) THEN 1
+                ELSE 2
+            END')
+            ->limit(5)
+            ->get();
+
+        // Documents en supervision (tous statuts en attente)
+        $documentsSupervision = Document::whereIn('status', ['draft', 'pending_codification', 'in_validation', 'approbation', 'validation_admin', 'signing_admin', 'ready_for_pdf', 'pdf_converti'])
+            ->whereNotNull('deadline')
+            ->orderByRaw('CASE
+                WHEN deadline < NOW() THEN 0
+                WHEN deadline < DATE_ADD(NOW(), INTERVAL 2 DAY) THEN 1
+                ELSE 2
+            END')
+            ->limit(10)
+            ->get();
 
         return view('admin.dashboard', compact(
             'documents',
@@ -61,7 +89,10 @@ class AdminDashboardController extends Controller
             'usersByRole',
             'recentLogs',
             'range',
-            'activityChart'
+            'activityChart',
+            'alertes',
+            'documentsSupervision',
+            'pendingAdminValidation'
         ));
     }
 
@@ -107,7 +138,7 @@ class AdminDashboardController extends Controller
                     // Tous les documents créés dans la période
                     break;
                 case 'in_validation':
-                    $query->whereIn('status', ['draft', 'in_validation', 'pending_codification']);
+                    $query->whereIn('status', ['in_validation', 'approbation', 'validation_admin', 'signing_admin', 'pending_codification']);
                     break;
                 case 'finalized':
                     $query->where('status', 'finalized');

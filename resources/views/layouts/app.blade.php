@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - QMS Doc Control</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-rETDkeu3aJr4P7NfO5MvPQpVGJv9oZ3vKPT9G3EfnmY3oA4T3R0FZ9G47S" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     @yield('styles')
     <style>
         :root {
@@ -794,7 +795,7 @@ document.addEventListener('click', function() {
 });
 
 document.addEventListener('click', function(e) {
-    if (!e.target.matches('button') && !e.target.closest('.action-menu')) {
+    if (!e.target.matches('button') && !e.target.closest('.action-menu') && !e.target.closest('.modal')) {
         document.querySelectorAll('.action-menu').forEach(m => m.style.display = 'none');
     }
 });

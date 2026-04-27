@@ -26,9 +26,10 @@ class NotificationController extends Controller
         return match($type) {
             'codification' => redirect()->route('admin.documents.codification'),
             'signature_finale', 'pret_signature', 'approved' => redirect()->route('admin.dashboard'),
-            'new_task', 'validation' => redirect()->route('workflow.validator.index'),
-            'approbation' => redirect()->route('workflow.approver.index'),
-            'rejected' => redirect()->route('documents.creator.index'),
+            'new_task', 'validation' => redirect()->route('workflow.validator.index', ['filter' => 'pending']),
+            'approbation' => redirect()->route('workflow.approver.index', ['filter' => 'pending']),
+            'validation_admin' => redirect()->route('admin.dashboard'),
+            'rejected' => redirect()->route('documents.creator.index', ['status' => 'rejected']),
             default => redirect()->route('dashboard'),
         };
     }

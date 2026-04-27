@@ -153,21 +153,8 @@
                     <td>
                         <div style="display:flex;gap:.25rem;flex-wrap:wrap;">
                             <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm">Source</a>
-                            @if($doc->status === 'in_validation' && $doc->current_role === 'admin')
-                                @php
-                                    $hasAdminSignature = \App\Models\DocumentSignature::where('document_id', $doc->id)->where('role', 'admin')->exists();
-                                @endphp
-                                @if($hasAdminSignature)
-                                    <button type="button" class="btn btn-sm" onclick="openSignModal('{{ $doc->id }}')">Signer et finaliser</button>
-                                @else
-                                    <form method="POST" action="{{ route('admin.workflow.validate', $doc) }}" style="display:inline;">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm">Valider</button>
-                                    </form>
-                                @endif
-<button type="button" class="btn btn-ghost btn-sm btn-danger" onclick="openRejectModal('{{ $doc->id }}')">Rejeter</button>
-                            </div>
-                                <a href="{{ route('admin.documents.export.pdf', $doc) }}" class="btn btn-ghost btn-sm">PDF</a>
+                            @if($doc->status === 'signing_admin' && $doc->current_role === 'admin')
+                                <button type="button" class="btn btn-sm" onclick="openSignModal('{{ $doc->id }}')">Signer et finaliser</button>
                             @endif
                         </div>
                     </td>
@@ -240,52 +227,73 @@
 
 <!-- Modals de signature admin -->
 @foreach($documents as $doc)
-@if($doc->status === 'in_validation' && $doc->current_role === 'admin')
-@php
-    $hasAdminSignature = \App\Models\DocumentSignature::where('document_id', $doc->id)->where('role', 'admin')->exists();
-@endphp
-@if($hasAdminSignature)
-<div id="signModal-{{ $doc->id }}" class="modal" style="display:none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Finaliser le document</h3>
-            <button type="button" class="modal-close" onclick="closeSignModal('{{ $doc->id }}')">&times;</button>
+@if($doc->status === 'signing_admin' && $doc->current_role === 'admin')
+<div id="signModal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
+        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h4 style="margin:0;">✍️ Signer et finaliser le document</h4>
+            <button type="button" class="btn-close btn-close-white" onclick="closeSignModal('{{ $doc->id }}')"></button>
         </div>
-        <form method="POST" action="{{ route('admin.workflow.sign', $doc) }}">
-            @csrf
-            <div class="modal-body">
-                <p>Vous allez signer et finaliser ce document : <strong>{{ $doc->name }}</strong></p>
-                <div style="margin:1rem 0;">
-                    <label for="signature-{{ $doc->id }}">Votre signature :</label>
-                    <input type="text" id="signature-{{ $doc->id }}" name="signature" required style="width:100%;padding:.5rem;margin:.5rem 0;border:1px solid var(--border);border-radius:.25rem;" placeholder="Tapez votre nom complet">
+        <div class="modal-body">
+            <form method="POST" enctype="multipart/form-data" action="{{ route('admin.workflow.sign', $doc) }}">
+                @csrf
+                <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
+                    <small class="text-muted">Document :</small>
+                    <p class="mb-0 fw-bold">{{ $doc->name }}</p>
+                    <small class="text-muted">Code : {{ $doc->code }}</small>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-ghost" onclick="closeSignModal('{{ $doc->id }}')">Annuler</button>
-                <button type="submit" class="btn btn-primary">Signer et finaliser</button>
-            </div>
-        </form>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                    <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
+                    <small class="text-muted">Format accepte : PDF</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">💬 Commentaire (optionnel)</label>
+                    <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
+                </div>
+                <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeSignModal('{{ $doc->id }}')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Signer et finaliser</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-@endif
 @endif
 @endforeach
 
 <script>
+console.log('Admin documents scripts loaded');
+
 function openSignModal(docId) {
-    document.getElementById('signModal-' + docId).style.display = 'block';
+    console.log('openSignModal called with id:', docId);
+    var modal = document.getElementById('signModal-' + docId);
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        console.log('Modal not found: signModal-' + docId);
+    }
 }
 
 function closeSignModal(docId) {
-    document.getElementById('signModal-' + docId).style.display = 'none';
+    var modal = document.getElementById('signModal-' + docId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 function openRejectModal(docId) {
-    document.getElementById('rejetModal' + docId).style.display = 'block';
+    var modal = document.getElementById('rejetModal' + docId);
+    if (modal) {
+        modal.style.display = 'block';
+    }
 }
 
 function closeRejectModal(docId) {
-    document.getElementById('rejetModal' + docId).style.display = 'none';
+    var modal = document.getElementById('rejetModal' + docId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 function downloadDocument(id) {

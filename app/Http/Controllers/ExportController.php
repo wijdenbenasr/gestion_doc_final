@@ -19,7 +19,14 @@ class ExportController extends Controller
 
         abort_if($document->status !== 'finalized', 403, 'Le PDF final est disponible apres finalisation du document.');
 
-        $document->load(['signatures.user', 'creator', 'auditLogs.user', 'versions.creator']);
+        $document->load(['signatures.user', 'creator', 'versions.creator']);
+
+        // Charger les audit logs seulement pour les admins
+        if (auth()->user()->role === 'admin') {
+            $document->load('auditLogs.user');
+        } else {
+            $document->auditLogs = [];
+        }
 
         $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data='
             .urlencode(route('documents.download', $document));
