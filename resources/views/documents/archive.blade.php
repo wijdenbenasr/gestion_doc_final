@@ -343,10 +343,10 @@
     <div class="search-section">
         <form method="GET" action="{{ route('documents.archive') }}">
             <div class="search-bar-wrapper">
-                <input 
-                    type="text" 
-                    name="search" 
-                    class="search-input" 
+                <input
+                    type="text"
+                    name="search"
+                    class="search-input"
                     placeholder="Rechercher un document..."
                     value="{{ $filters['search'] ?? '' }}"
                 >
@@ -473,10 +473,12 @@
                             <i class="fas fa-download"></i>
                             Télécharger
                         </a>
-                        <a href="{{ route('documents.export.pdf', $document) }}" class="btn-doc btn-doc-view">
-                            <i class="fas fa-eye"></i>
-                            Voir
-                        </a>
+                        @if(auth()->user()->role === 'admin')
+                            <a href="{{ route('documents.view', $document) }}" target="_blank" class="btn-doc btn-doc-view">
+                                <i class="fas fa-eye"></i>
+                                Voir
+                            </a>
+                        @endif
                     </div>
                 </div>
             @endforeach

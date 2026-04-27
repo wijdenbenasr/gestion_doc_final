@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
 
     // Téléchargement (tous rôles authentifiés)
     Route::get('/documents/{document}/download', DownloadController::class)->name('documents.download');
+    Route::get('/documents/{document}/view', [DownloadController::class, 'view'])->name('documents.view');
     Route::get('/documents/{document}/pdf', [ExportController::class, 'pdf'])->name('documents.export.pdf');
 
     // Mes documents (tous rôles)
