@@ -109,7 +109,7 @@
     <div class="card">
         <div class="card-header">
             <div>
-                <div class="card-title"><i class="fas fa-file-alt" style="color:#c084fc;margin-right:.5rem;"></i>Journaux & Traçabilité</div>
+                <div class="card-title"><i class="fas fa-file-alt" style="color:#c084fc;margin-right:.5rem;"></i>Journaux & Traabilit</div>
                 <div class="card-sub">Téléchargez les logs et le journal de traçabilité du système.</div>
             </div>
         </div>
@@ -301,10 +301,10 @@
                         @endif
                     </td>
                     <td class="col-type" style="font-size:.7rem;max-width:110px;" title="{{ $doc->type_libelle }}">{{ Str::limit($doc->type_libelle, 20) }}</td>
-                    <td class="col-createur">{{ $doc->creator->name ?? '—' }}</td>
+                    <td class="col-createur">{{ $doc->creator->name ?? '-' }}</td>
                     <td class="col-aio"><span class="badge badge-info">{{ \App\Models\Document::AIOS[$doc->aio] ?? $doc->aio }}</span></td>
-                    <td class="col-ligne">{{ $doc->ligne ?? '—' }}</td>
-                    <td class="col-phase">{{ $doc->phase_libelle ?? '—' }}</td>
+                    <td class="col-ligne">{{ $doc->ligne ?? '-' }}</td>
+                    <td class="col-phase">{{ $doc->phase_libelle ?? '-' }}</td>
                     <td class="col-rev" style="font-family:monospace;font-size:.75rem;">{{ $doc->revision }}</td>
                     @php
 $st = ['archived' => 'badge-success', 'rejected' => 'badge-danger', 'pending_codification' => 'badge-warning', 'in_validation' => 'badge-info', 'approbation' => 'badge-info', 'validation_admin' => 'badge-info', 'draft' => 'badge-muted'];
@@ -317,44 +317,44 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
                         @php
                         $v = $doc->signatures->where('role', 'validator')->first();
                         if (!$v && $doc->validated_by) {
-                            $v = ['name' => optional($doc->validatedBy)->name ?? '—', 'signed_at' => $doc->validated_at];
+                            $v = ['name' => optional($doc->validatedBy)->name ?? '-', 'signed_at' => $doc->validated_at];
                         }
-                        $vName = is_array($v) ? ($v['name'] ?? '—') : ($v->user->name ?? '—');
+                        $vName = is_array($v) ? ($v['name'] ?? '-') : ($v->user->name ?? '-');
                         $vDate = is_array($v) ? ($v['signed_at'] ?? null) : ($v->signed_at ?? null);
                         @endphp
                         @if($v)
-                        <div>{{ $vName }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $vDate ? $vDate->format('d/m/y') : '—' }}</div>
+                        <div>{{ $vName }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $vDate ? $vDate->format('d/m/y') : '-' }}</div>
                         @else
-                        —
+                        -
                         @endif
                     </td>
                     <td class="col-approuve" style="text-align:center;color:var(--muted);">
                         @php
                         $a = $doc->signatures->where('role', 'approver')->first();
                         if (!$a && $doc->approved_by) {
-                            $a = ['name' => optional($doc->approvedBy)->name ?? '—', 'signed_at' => $doc->approved_at];
+                            $a = ['name' => optional($doc->approvedBy)->name ?? '-', 'signed_at' => $doc->approved_at];
                         }
-                        $aName = is_array($a) ? ($a['name'] ?? '—') : ($a->user->name ?? '—');
+                        $aName = is_array($a) ? ($a['name'] ?? '-') : ($a->user->name ?? '-');
                         $aDate = is_array($a) ? ($a['signed_at'] ?? null) : ($a->signed_at ?? null);
                         @endphp
                         @if($a)
-                        <div>{{ $aName }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $aDate ? $aDate->format('d/m/y') : '—' }}</div>
+                        <div>{{ $aName }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $aDate ? $aDate->format('d/m/y') : '-' }}</div>
                         @else
-                        —
+                        -
                         @endif
                     </td>
                     <td class="col-rejete" style="text-align:center;color:var(--muted);">
                         @if($doc->rejected_at)
-                        <div>{{ $doc->rejected_by->name ?? '—' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $doc->rejected_at->format('d/m/y') }}</div>
+                        <div>{{ $doc->rejected_by->name ?? '-' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $doc->rejected_at->format('d/m/y') }}</div>
                         @else
-                        —
+                        -
                         @endif
                     </td>
                     <td class="col-signe" style="text-align:center;color:var(--muted);">
                         @if($doc->signed_at)
-                        <div>{{ $doc->signed_by->name ?? '—' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $doc->signed_at->format('d/m/y') }}</div>
+                        <div>{{ $doc->signed_by->name ?? '-' }}</div><div style="font-size:.67rem;color:var(--muted);">{{ $doc->signed_at->format('d/m/y') }}</div>
                         @else
-                        —
+                        -
                         @endif
                     </td>
                     <td class="col-actions">
@@ -382,30 +382,28 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
                                         </form>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item text-danger"
-                                           href="#"
-                                           data-bs-toggle="modal"
-                                           data-bs-target="#modalRejet{{ $doc->id }}">
-                                            <i class="fas fa-times me-2"></i>Rejeter
-                                        </a>
-                                    </li>
-                                @endif
-                                @if($doc->status==='signing_admin' && $doc->current_role==='admin')
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <button type="button" class="dropdown-item" style="color:#c084fc;cursor:pointer;" onclick="openSign('{{ $doc->id }}')">
-                                            <i class="fas fa-signature me-2"></i>Signer (PDF final)
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item text-danger"
-                                           href="#"
-                                           data-bs-toggle="modal"
-                                           data-bs-target="#modalRejet{{ $doc->id }}">
-                                            <i class="fas fa-times me-2"></i>Rejeter
-                                        </a>
-                                    </li>
-                                @endif
+                                         <a class="dropdown-item text-danger"
+                                            href="#"
+                                            onclick="event.preventDefault(); openRejectModal('{{ route('admin.workflow.reject', $doc) }}')">
+                                             <i class="fas fa-times me-2"></i>Rejeter
+                                         </a>
+                                     </li>
+                                 @endif
+                                 @if($doc->status==='signing_admin' && $doc->current_role==='admin')
+                                     <li><hr class="dropdown-divider"></li>
+                                     <li>
+                                         <button type="button" class="dropdown-item" style="color:#c084fc;cursor:pointer;" onclick="openSign('{{ $doc->id }}')">
+                                             <i class="fas fa-signature me-2"></i>Signer (PDF final)
+                                         </button>
+                                     </li>
+                                     <li>
+                                         <a class="dropdown-item text-danger"
+                                            href="#"
+                                            onclick="event.preventDefault(); openRejectModal('{{ route('admin.workflow.reject', $doc) }}')">
+                                             <i class="fas fa-times me-2"></i>Rejeter
+                                         </a>
+                                     </li>
+                                 @endif
                                 @if($doc->is_fully_signed)
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.documents.export.pdf', $doc) }}"><i class="fas fa-file-pdf me-2"></i>PDF</a></li>
@@ -455,107 +453,63 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
                     </td>
                     <td style="font-size:.72rem;">{{ class_basename($log->auditable_type) }} #{{ $log->auditable_id }}</td>
                 </tr>
-            @empty<tr><td colspan="4" style="text-align:center;color:var(--muted);">Aucun journal.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
+        @empty<tr><td colspan="4" style="text-align:center;color:var(--muted);">Aucun journal.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
 </div>
 
-@foreach($documents as $doc)
-@if(in_array($doc->status, ['validation_admin', 'signing_admin']) && $doc->current_role==='admin')
-<div class="modal fade" id="modalRejet{{ $doc->id }}">
-    <div class="modal-dialog">
-        <div class="modal-content" style="background:#1a2035;color:white;">
-            <div class="modal-header">
-                <h5>Rejeter : {{ $doc->name }}</h5>
-                <button data-bs-dismiss="modal" class="btn-close btn-close-white"></button>
-            </div>
-            <div class="modal-body">
-                <form method="POST" action="{{ route('admin.workflow.reject', $doc) }}">
-                    @csrf
-                    <div class="mb-3">
-                        <label>Motif du rejet *</label>
-                        <textarea name="commentaire" required rows="3" class="form-control mt-1" style="background:#0f172a;color:white;" placeholder="Raison du rejet..."></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label>Deadline de correction</label>
-                        <input type="datetime-local" name="deadline_correction" class="form-control mt-1" style="background:#0f172a;color:white;">
-                    </div>
-                    <div class="d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn btn-danger">Confirmer le rejet</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-<div id="signModal-{{$doc->id}}" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2035;border-radius:8px;padding:24px;max-width:500px;width:90%;border:1px solid rgba(255,255,255,0.1);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h3 style="margin:0;color:white;">✍️ Signer le document</h3>
-            <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('signModal-{{$doc->id}}').style.display='none'"></button>
-        </div>
-        <form method="POST" action="{{ route('admin.workflow.sign', $doc) }}" enctype="multipart/form-data">
-            @csrf
-            <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05);">
-                <small class="text-muted">Document :</small>
-                <p class="mb-0 fw-bold">{{ $doc->name }}</p>
-                <small class="text-muted">Code : {{ $doc->code }}</small>
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-bold">📎 Televerser le document signe *</label>
-                <input type="file" name="document_signe" accept=".pdf" required style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#0f172a;color:#e5e7eb;">
-                <small class="text-muted">Format accepte : PDF</small>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">💬 Commentaire (optionnel)</label>
-                <textarea name="commentaire" rows="3" style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#0f172a;color:#e5e7eb;" placeholder="Ajouter un commentaire..."></textarea>
-            </div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('signModal-{{$doc->id}}').style.display='none'">Annuler</button>
-                <button type="submit" class="btn btn-primary">Signer et finaliser</button>
-            </div>
-        </form>
-    </div>
-</div>
-@endif
-@endforeach
+<!-- Unified Reject Modal -->
+<div id="rejectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#0f172a;border:1px solid #ef4444;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:auto;box-shadow:0 25px 60px rgba(239,68,68,0.2);">
 
-@foreach($alertes as $doc)
-    @if(!$documents->contains('id', $doc->id))
-        <div id="signModal-{{$doc->id}}" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;">
-            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2035;border-radius:8px;padding:24px;max-width:500px;width:90%;border:1px solid rgba(255,255,255,0.1);">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                    <h3 style="margin:0;color:white;">✍️ Signer le document</h3>
-                    <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('signModal-{{$doc->id}}').style.display='none'"></button>
-                </div>
-                <form method="POST" action="{{ route('admin.workflow.sign', $doc) }}" enctype="multipart/form-data">
-                    @csrf
-                    <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05);">
-                        <small class="text-muted">Document :</small>
-                        <p class="mb-0 fw-bold">{{ $doc->name }}</p>
-                        <small class="text-muted">Code : {{ $doc->code }}</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">📎 Televerser le document signe *</label>
-                        <input type="file" name="document_signe" accept=".pdf" required style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#0f172a;color:#e5e7eb;">
-                        <small class="text-muted">Format accepte : PDF</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">💬 Commentaire (optionnel)</label>
-                        <textarea name="commentaire" rows="3" style="width:100%;padding:12px;border:1px solid #374151;border-radius:4px;background:#0f172a;color:#e5e7eb;" placeholder="Ajouter un commentaire..."></textarea>
-                    </div>
-                    <div style="display:flex;gap:8px;justify-content:flex-end;">
-                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('signModal-{{$doc->id}}').style.display='none'">Annuler</button>
-                        <button type="submit" class="btn btn-primary">Signer et finaliser</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    @endif
-@endforeach
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">Œ</div>
+      <div>
+        <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Rejeter le document</h5>
+        <p style="color:#64748b;margin:0;font-size:0.8rem;">Le document sera renvoyé au créateur pour correction</p>
+      </div>
+      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
+    </div>
+
+    <form id="rejectForm" method="POST">
+      @csrf
+
+      <!-- Motif -->
+      <div style="margin-bottom:1.2rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">MOTIF DU REJET <span style="color:#ef4444;">*</span></label>
+        <textarea name="motif_rejet" required rows="4"
+          placeholder="Décrivez la raison du rejet et les corrections attendues..."
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'"></textarea>
+      </div>
+
+      <!-- Deadline -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">DEADLINE DE CORRECTION</label>
+        <input type="date" name="deadline_correction"
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;color-scheme:dark;"
+          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'">
+      </div>
+
+      <!-- Buttons -->
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button type="button" onclick="closeRejectModal()"
+          style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+          onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+          Annuler
+        </button>
+        <button type="submit"
+          style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+          ✕ ✓ Confirmer le rejet
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -571,6 +525,116 @@ function openSignModal(id){
 function openSign(id){
     openSignModal(id);
 }
+
+function openRejectModal(actionUrl) {
+    document.getElementById('rejectForm').action = actionUrl;
+    document.getElementById('rejectModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var rejectModal = document.getElementById('rejectModal');
+    if (rejectModal) {
+        rejectModal.addEventListener('click', function(e) {
+            if (e.target === this) closeRejectModal();
+        });
+    }
+});
+
+const ctx=document.getElementById('activityChart');
+if(ctx){
+    const chartData = @json($activityChart);
+    const labels = chartData.labels || [];
+    const created = chartData.created || [];
+    const validated = chartData.validated || [];
+    const rejected = chartData.rejected || [];
+    new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{label:'Créé',data:created,backgroundColor:'#38bdf8'},{label:'Validé',data:validated,backgroundColor:'#22c55e'},{label:'Rejeté',data:rejected,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}});
+}
+</script>
+@endsection
+
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+function openSignModal(id){
+    var modal = document.getElementById('signModal-' + id);
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function openSign(id){
+    openSignModal(id);
+}
+
+function openRejectModal(actionUrl) {
+    document.getElementById('rejectForm').action = actionUrl;
+    document.getElementById('rejectModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var rejectModal = document.getElementById('rejectModal');
+    if (rejectModal) {
+        rejectModal.addEventListener('click', function(e) {
+            if (e.target === this) closeRejectModal();
+        });
+    }
+});
+
+const ctx=document.getElementById('activityChart');
+if(ctx){
+    const chartData = @json($activityChart);
+    const labels = chartData.labels || [];
+    const created = chartData.created || [];
+    const validated = chartData.validated || [];
+    const rejected = chartData.rejected || [];
+    new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{label:'Créé',data:created,backgroundColor:'#38bdf8'},{label:'Validé',data:validated,backgroundColor:'#22c55e'},{label:'Rejeté',data:rejected,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}});
+}
+</script>
+@endsection
+
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+function openSignModal(id){
+    var modal = document.getElementById('signModal-' + id);
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function openSign(id){
+    openSignModal(id);
+}
+
+function openRejectModal(actionUrl) {
+    document.getElementById('rejectForm').action = actionUrl;
+    document.getElementById('rejectModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var rejectModal = document.getElementById('rejectModal');
+    if (rejectModal) {
+        rejectModal.addEventListener('click', function(e) {
+            if (e.target === this) closeRejectModal();
+        });
+    }
+});
+
 const ctx=document.getElementById('activityChart');
 if(ctx){
     const chartData = @json($activityChart);
@@ -581,4 +645,59 @@ if(ctx){
     new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{label:'Cree',data:created,backgroundColor:'#38bdf8'},{label:'Valide',data:validated,backgroundColor:'#22c55e'},{label:'Rejete',data:rejected,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}});
 }
 </script>
+
+<!-- Unified Reject Modal -->
+<div id="rejectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#0f172a;border:1px solid #ef4444;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:auto;box-shadow:0 25px 60px rgba(239,68,68,0.2);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">Œ</div>
+      <div>
+        <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Rejeter le document</h5>
+        <p style="color:#64748b;margin:0;font-size:0.8rem;">Le document sera renvoyé au créateur pour correction</p>
+      </div>
+      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
+    </div>
+
+    <form id="rejectForm" method="POST">
+      @csrf
+
+      <!-- Motif -->
+      <div style="margin-bottom:1.2rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">MOTIF DU REJET <span style="color:#ef4444;">*</span></label>
+        <textarea name="motif_rejet" required rows="4"
+          placeholder="Décrivez la raison du rejet et les corrections attendues..."
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'"></textarea>
+      </div>
+
+      <!-- Deadline -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">DEADLINE DE CORRECTION</label>
+        <input type="date" name="deadline_correction"
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;color-scheme:dark;"
+          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'">
+      </div>
+
+      <!-- Buttons -->
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button type="button" onclick="closeRejectModal()"
+          style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+          onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+          Annuler
+        </button>
+        <button type="submit"
+          style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+          ✕ ✓ Confirmer le rejet
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 @endsection
+
+
+
+

@@ -14,7 +14,7 @@
 </head>
 <body>
   <div class="header">
-    <h2>GESTION DOCUMENTAIRE QUALITÉ</h2>
+    <h2>GESTION DOCUMENTAIRE QUALIT</h2>
     <h3>{{ $document->nom }}</h3>
   </div>
   
@@ -41,15 +41,15 @@
         <td>{{ $document->phase }}</td>
       </tr>
       <tr>
-        <td>Révision</td>
+        <td>Rvision</td>
         <td>{{ $document->revision }}</td>
       </tr>
       <tr>
-        <td>Créateur</td>
+        <td>Crateur</td>
         <td>{{ $document->creator->name }}</td>
       </tr>
       <tr>
-        <td>Date création</td>
+        <td>Date cration</td>
         <td>{{ $document->created_at->format('d/m/Y') }}</td>
       </tr>
       <tr>
@@ -64,3 +64,6 @@
   </div>
 </body>
 </html>
+
+
+

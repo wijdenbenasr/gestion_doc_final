@@ -46,7 +46,7 @@
                 <td>{{ $doc->name }}</td>
                 <td>{{ $doc->code ?? '-' }}</td>
                 <td>{{ Document::TYPES[$doc->type] ?? $doc->type }}</td>
-                <td>{{ Document::AIOS[$doc->aio] ?? strtoupper($doc->aio) }}</td>
+                <td>{{ Document::AIOS[$doc->aio]  strtoupper($doc->aio) }}</td>
                 <td>{{ $doc->ligne }}</td>
                 <td>{{ $doc->phase === 'projet' ? 'Projet' : 'Serie' }}</td>
                 <td>{{ $doc->revision }}</td>
@@ -65,3 +65,6 @@
 
 </body>
 </html>
+
+
+

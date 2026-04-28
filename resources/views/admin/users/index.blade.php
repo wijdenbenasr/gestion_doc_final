@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Gestion des utilisateurs')
 
@@ -95,7 +95,7 @@
                     id="quick-create-icon"
                     aria-hidden="true"
                     style="display:inline-block;transition:transform .2s ease;transform:rotate({{ $open_quick_create ? '180deg' : '0deg' }});"
-                >▾</span>
+                >?</span>
             </button>
             <a href="{{ route('admin.users.pending') }}" class="btn btn-ghost btn-sm">Comptes en attente</a>
             <a href="{{ route('admin.dashboard') }}" class="btn btn-ghost btn-sm">Dashboard</a>
@@ -152,7 +152,7 @@
             </label>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Creer l utilisateur</button>
+                <button type="submit" class="btn btn-primary">Créer l utilisateur</button>
             </div>
         </form>
     </div>
@@ -327,3 +327,7 @@ function toggleQuickCreatePanel() {
 </div>
 
 @endsection
+
+
+
+

@@ -65,7 +65,7 @@
         <div style="text-align:center;padding:2rem;color:var(--muted);">
             <div>Aucun document pour le moment.</div>
             @if(auth()->user()->role === 'creator')
-                <a href="{{ route('documents.create') }}" class="btn" style="margin-top:.75rem;">Creer mon premier document</a>
+                <a href="{{ route('documents.create') }}" class="btn" style="margin-top:.75rem;">Créer mon premier document</a>
             @endif
         </div>
     @else
@@ -111,59 +111,64 @@
                             @endif
                         </td>
                         <td>
-                @php
-                                 $statusConfig = [
-                                     'draft' => ['badge-muted', 'Brouillon'],
-                                     'EN_MODIFICATION' => ['badge-warning', 'En modification'],
-                                     'pending_codification' => ['badge-warning', 'Codification'],
-                                     'in_validation' => ['badge-info', 'En validation'],
-                                     'ready_for_pdf' => ['badge-success', 'Pret pour PDF'],
-                                     'pdf_converted' => ['badge-success', 'PDF converti'],
-                                     'rejected' => ['badge-danger', 'Rejete'],
-                                     'archived' => ['badge-success', 'Finalise'],
-                                 ];
-                                 $status = $statusConfig[strtolower($document->status)] ?? ['badge-muted', $document->status];
-                            @endphp
-                            <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
+                 @php
+                                  $statusConfig = [
+                                      'draft' => ['badge-muted', 'Brouillon'],
+                                      'EN_MODIFICATION' => ['badge-danger', 'REFUS -  modifier'],
+                                      'pending_codification' => ['badge-warning', 'Codification'],
+                                      'in_validation' => ['badge-info', 'En validation'],
+                                      'ready_for_pdf' => ['badge-success', 'Pret pour PDF'],
+                                      'pdf_converted' => ['badge-success', 'PDF converti'],
+                                      'rejected' => ['badge-danger', 'Rejete'],
+                                      'archived' => ['badge-success', 'Finalise'],
+                                  ];
+                                  $status = $statusConfig[strtolower($document->status)]  ['badge-muted', $document->status];
+                             @endphp
+                             <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
+                             @if($document->status === 'EN_MODIFICATION' && $document->commentaire_rejet)
+                                 <div style="font-size:0.7rem; color:#ef4444; margin-top:4px;" title="{{ $document->commentaire_rejet }}">
+                                     <i class="fas fa-exclamation-circle me-1"></i>{{ \Illuminate\Support\Str::limit($document->commentaire_rejet, 50) }}
+                                 </div>
+                             @endif
                         </td>
 <td>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Actions
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    @if(in_array($document->status, ['draft', 'rejected', 'EN_MODIFICATION']) && auth()->user()->role === 'creator')
-                                        <li><a class="dropdown-item" href="{{ route('documents.edit', $document) }}"><i class="fas fa-edit me-2"></i>Modifier</a></li>
-                                    @endif
-                                    @if($document->status === 'draft' && empty($document->code) && auth()->user()->role === 'creator')
-                                        <li>
-                                            <form method="POST" action="{{ route('workflow.creator.send', $document) }}">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item"><i class="fas fa-paper-plane me-2"></i>Envoyer a l admin</button>
-                                            </form>
-                                        </li>
-                                    @endif
-                                    @if(in_array($document->status, ['draft', 'EN_MODIFICATION']) && !empty($document->code) && auth()->user()->role === 'creator')
-                                        <li>
-                                            <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item"><i class="fas fa-paper-plane me-2"></i>Envoyer pour validation</button>
-                                            </form>
-                                        </li>
-                                    @endif
-                                    @if($document->status === 'ready_for_pdf' && auth()->user()->role === 'creator')
-                                        <li><a class="dropdown-item" href="{{ route('documents.convert.pdf', $document) }}" target="_blank"><i class="fas fa-file-pdf me-2"></i>Convertir en PDF</a></li>
-                                    @endif
-                                    @if(strtolower($document->status) === 'pdf_converted' && auth()->user()->role === 'creator')
-                                        <li><a class="dropdown-item" href="{{ route('documents.sign.form', $document->id) }}"><i class="fas fa-signature me-2"></i>Signer</a></li>
-                                    @endif
-                                    @if($document->status === 'archived')
-                                        <li><a class="dropdown-item" href="{{ route('documents.export.pdf', $document) }}"><i class="fas fa-file-pdf me-2"></i>PDF final</a></li>
-                                    @endif
-                                    <li><a class="dropdown-item" href="{{ route('documents.download', $document) }}"><i class="fas fa-download me-2"></i>Telecharger</a></li>
-                                </ul>
-                            </div>
-                        </td>
+                             <div class="dropdown">
+                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                     Actions
+                                 </button>
+                                 <ul class="dropdown-menu dropdown-menu-end">
+                                     <li><a class="dropdown-item" href="{{ route('documents.download', $document) }}"><i class="fas fa-download me-2"></i>Télécharger</a></li>
+                                     @if(in_array($document->status, ['draft', 'rejected', 'EN_MODIFICATION']) && auth()->user()->role === 'creator')
+                                         <li><a class="dropdown-item" href="{{ route('documents.edit', $document) }}"><i class="fas fa-edit me-2"></i>Modifier</a></li>
+                                     @endif
+                                     @if($document->status === 'draft' && empty($document->code) && auth()->user()->role === 'creator')
+                                         <li>
+                                             <form method="POST" action="{{ route('workflow.creator.send', $document) }}">
+                                                 @csrf
+                                                 <button type="submit" class="dropdown-item"><i class="fas fa-paper-plane me-2"></i>Envoyer a l admin</button>
+                                             </form>
+                                         </li>
+                                     @endif
+                                     @if(in_array($document->status, ['draft', 'EN_MODIFICATION']) && !empty($document->code) && auth()->user()->role === 'creator')
+                                         <li>
+                                             <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
+                                                 @csrf
+                                                 <button type="submit" class="dropdown-item"><i class="fas fa-paper-plane me-2"></i>Envoyer au validateur</button>
+                                             </form>
+                                         </li>
+                                     @endif
+                                     @if($document->status === 'ready_for_pdf' && auth()->user()->role === 'creator')
+                                         <li><a class="dropdown-item" href="#" onclick="document.getElementById('modalConvertPdf{{ $document->id }}').style.display='block'"><i class="fas fa-file-pdf me-2"></i>Convertir en PDF</a></li>
+                                     @endif
+                                     @if(strtolower($document->status) === 'pdf_converted' && auth()->user()->role === 'creator')
+                                         <li><a class="dropdown-item" href="{{ route('documents.sign.form', $document->id) }}"><i class="fas fa-signature me-2"></i>Signer</a></li>
+                                     @endif
+                                     @if($document->status === 'archived')
+                                         <li><a class="dropdown-item" href="{{ route('documents.export.pdf', $document) }}"><i class="fas fa-file-pdf me-2"></i>PDF final</a></li>
+                                     @endif
+                                 </ul>
+                             </div>
+                         </td>
                     </tr>
                 @endforeach
                 </tbody>
@@ -171,6 +176,38 @@
         </div>
         <div class="pagination">{{ $documents->links() }}</div>
     @endif
+
+    @foreach($documents as $document)
+    @if($document->status === 'ready_for_pdf' && auth()->user()->role === 'creator')
+    <div class="modal" id="modalConvertPdf{{ $document->id }}" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
+      <div class="modal-dialog" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
+          <div class="modal-header">
+            <h5 class="modal-title"> Convertir en PDF</h5>
+            <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('modalConvertPdf{{ $document->id }}').style.display='none'"></button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.creator.convert_pdf', $document->id) }}">
+              @csrf
+              <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
+                <small class="text-muted">Document :</small>
+                <p class="mb-0 fw-bold">{{ $document->name }}</p>
+                <small class="text-muted">Code : {{ $document->code }}</small>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold"> Televerser le PDF converti *</label>
+                <input type="file" name="pdf_file" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
+                <small class="text-muted">Formats acceptes : PDF</small>
+              </div>
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalConvertPdf{{ $document->id }}').style.display='none'">Annuler</button>
+                <button type="submit" class="btn btn-primary">Convertir</button>
+              </div>
+            </form>
+          </div>
+      </div>
+    </div>
+    @endif
+    @endforeach
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -184,3 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+
+
+
+

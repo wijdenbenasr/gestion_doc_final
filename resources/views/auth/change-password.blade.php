@@ -16,14 +16,14 @@
         <div class="card-header">
             <div>
                 <div class="card-title">Changer le mot de passe</div>
-                <div class="card-sub">Mettez a jour votre mot de passe sans attendre un email de reinitialisation.</div>
+                <div class="card-sub">Mettez à jour votre mot de passe sans attendre un email de réinitialisation.</div>
             </div>
             <a href="{{ route('account.profile.show') }}" class="btn btn-ghost btn-sm">Mon profil</a>
         </div>
 
         @if(session('success'))
             <div style="text-align:center;padding:2rem;">
-                <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+                <div style="font-size:3rem;margin-bottom:1rem;">✓“</div>
                 <h5 style="color:white;font-weight:bold;">{{ session('success') }}</h5>
                 <p style="color:#94a3b8;">Votre mot de passe a été mis à jour avec succès.</p>
                 <a href="{{ route('account.profile.show') }}"
@@ -75,7 +75,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" style="width:100%;">Mettre a jour</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Mettre à jour</button>
                 </div>
             </form>
         @endif
@@ -111,3 +111,4 @@ function checkPasswordStrength(pwd){
 }
 </script>
 @endsection
+

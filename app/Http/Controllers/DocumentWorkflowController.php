@@ -114,16 +114,18 @@ class DocumentWorkflowController extends Controller
     {
         $document = Document::findOrFail($id);
 
-        if (Auth::user()->role !== 'creator' || $document->created_by !== Auth::id()) {
+        if (Auth::user()->role !== 'creator' || ($document->created_by !== Auth::id() && $document->current_owner_id !== Auth::id())) {
             abort(403);
         }
 
-        if (!in_array($document->status, ['draft', 'rejected']) || empty($document->code)) {
+        if (!in_array($document->status, ['draft', 'rejected', 'EN_MODIFICATION']) || empty($document->code)) {
             return redirect()->back()->with('error', 'Le document doit être codifié avant d\'être soumis au validateur.');
         }
 
+        $isAfterRejection = $document->status === 'EN_MODIFICATION';
         $document->status = 'in_validation';
         $document->current_role = 'validator';
+        $document->commentaire_rejet = null; // Clear rejection reason when resubmitting
         $document->save();
 
         // Create version record for file sent to validator
@@ -134,27 +136,31 @@ class DocumentWorkflowController extends Controller
             'hash' => $document->hash ?? '',
             'created_by' => Auth::id(),
             'type' => 'sent_to_validator',
-            'comment' => 'Envoyé au validateur',
+            'comment' => $isAfterRejection ? 'Renvoyé au validateur après modification' : 'Envoyé au validateur',
         ]);
 
         LogTransmission($document, Auth::user(), 'creator', 'validator', 'submit_to_validator');
 
+        $notificationMessage = $isAfterRejection
+            ? 'Le créateur a modifié et renvoyé le document après refus. Veuillez le valider.'
+            : 'Un document codifié attend votre validation.';
+
         User::where('role', 'validator')
             ->where('is_admin_approved', true)
-            ->each(function($validator) use ($document) {
+            ->each(function($validator) use ($document, $notificationMessage) {
                 $validator->notify(new DocumentTaskNotification(
                     $document,
-                    'Un document codifié attend votre validation.',
+                    $notificationMessage,
                     'in_validation'
                 ));
             });
 
         AuditLog::create([
             'user_id' => Auth::id(),
-            'action' => 'creator_sent_to_validator',
+            'action' => $isAfterRejection ? 'creator_resent_to_validator_after_rejection' : 'creator_sent_to_validator',
             'auditable_type' => Document::class,
             'auditable_id' => $document->id,
-            'payload' => [],
+            'payload' => ['after_rejection' => $isAfterRejection],
         ]);
 
         if ($request->expectsJson()) {
@@ -240,7 +246,8 @@ DocumentSignature::updateOrCreate(
     public function validatorReject(Request $request, $id): RedirectResponse|JsonResponse
     {
         $request->validate([
-            'rejection_reason' => 'required|string|max:1000',
+            'motif_rejet' => 'required|string|max:1000',
+            'deadline_correction' => 'nullable|date',
         ]);
 
         $document = Document::findOrFail($id);
@@ -253,18 +260,19 @@ DocumentSignature::updateOrCreate(
             return redirect()->back()->with('error', 'Ce document n\'est pas en phase de validation.');
         }
 
-        $document->status = 'rejected';
+        $document->status = 'EN_MODIFICATION';
         $document->current_role = 'creator';
-        $document->commentaire_rejet = $request->rejection_reason;
+        $document->commentaire_rejet = $request->motif_rejet;
+        $document->deadline_correction = $request->deadline_correction;
         $document->save();
 
-        LogTransmission($document, Auth::user(), 'validator', 'creator', 'reject', $request->rejection_reason);
+        LogTransmission($document, Auth::user(), 'validator', 'creator', 'reject', $request->motif_rejet);
 
         if ($document->creator) {
             $document->creator->notify(new DocumentTaskNotification(
                 $document,
-                'Votre document a été rejeté par le validateur : ' . $request->rejection_reason,
-                'rejected'
+                'Votre document a été refusé par le validateur. Veuillez le modifier et le renvoyer au validateur.',
+                'EN_MODIFICATION'
             ));
         }
 
@@ -273,14 +281,14 @@ DocumentSignature::updateOrCreate(
             'action' => 'validator_rejected',
             'auditable_type' => Document::class,
             'auditable_id' => $document->id,
-            'payload' => ['commentaire' => $request->rejection_reason],
+            'payload' => ['commentaire' => $request->motif_rejet, 'deadline' => $request->deadline_correction],
         ]);
 
         if ($request->expectsJson()) {
-            return response()->json(['message' => 'Document rejeté. Créateur notifié.', 'data' => $document->refresh()]);
+            return response()->json(['message' => 'Document refusé. Créateur notifié.', 'data' => $document->refresh()]);
         }
 
-        return redirect()->back()->with('success', 'Document rejeté. Le créateur a été notifié.');
+        return redirect()->back()->with('success', 'Document refusé. Le créateur a été notifié.');
     }
 
     public function approverApprove(Request $request, $id): RedirectResponse|JsonResponse
@@ -351,8 +359,8 @@ DocumentSignature::updateOrCreate(
     public function approverReject(Request $request, $id): RedirectResponse|JsonResponse
     {
         $request->validate([
-            'message' => 'required|string',
-            'deadline' => 'nullable|date',
+            'motif_rejet' => 'required|string',
+            'deadline_correction' => 'nullable|date',
         ]);
 
         $document = Document::findOrFail($id);
@@ -365,19 +373,19 @@ DocumentSignature::updateOrCreate(
             return redirect()->back()->with('error', 'Action non autorisée.');
         }
 
-        $document->status = 'rejected';
+        $document->status = 'EN_MODIFICATION';
         $document->current_role = 'creator';
-        $document->commentaire_rejet = $request->message;
-        $document->deadline_correction = $request->deadline;
+        $document->commentaire_rejet = $request->motif_rejet;
+        $document->deadline_correction = $request->deadline_correction;
         $document->save();
 
-        LogTransmission($document, Auth::user(), 'approver', 'creator', 'reject', $request->commentaire);
+        LogTransmission($document, Auth::user(), 'approver', 'creator', 'reject', $request->motif_rejet);
 
         if ($document->creator) {
             $document->creator->notify(new DocumentTaskNotification(
                 $document,
-                'Votre document a été rejeté par l\'approbateur : ' . $request->commentaire,
-                'rejected'
+                'Votre document a été refusé par l\'approbateur. Veuillez le modifier et le renvoyer au validateur.',
+                'EN_MODIFICATION'
             ));
         }
 
@@ -386,17 +394,17 @@ DocumentSignature::updateOrCreate(
             'action' => 'approver_rejected',
             'auditable_type' => Document::class,
             'auditable_id' => $document->id,
-            'payload' => ['commentaire' => $request->commentaire, 'deadline' => $request->deadline_correction],
+            'payload' => ['commentaire' => $request->motif_rejet, 'deadline' => $request->deadline_correction],
         ]);
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Document rejeté et créateur notifié.',
+                'message' => 'Document refusé et créateur notifié.',
                 'data' => $document->refresh(),
             ]);
         }
 
-        return redirect()->back()->with('success', 'Document rejeté et créateur notifié.');
+        return redirect()->back()->with('success', 'Document refusé et créateur notifié.');
     }
 
     public function adminValidate(Request $request, $id): RedirectResponse|JsonResponse
@@ -467,11 +475,11 @@ DocumentSignature::updateOrCreate(
         return redirect()->back()->with('success', 'Document validé. Créateur notifié pour conversion PDF.');
     }
 
-    public function convertToPdf($id)
+    public function convertToPdf(Request $request, $id)
     {
         $document = Document::findOrFail($id);
 
-        if (Auth::user()->role !== 'creator' || $document->created_by !== Auth::id()) {
+        if (Auth::user()->role !== 'creator' || ($document->created_by !== Auth::id() && $document->current_owner_id !== Auth::id())) {
             abort(403);
         }
 
@@ -479,13 +487,19 @@ DocumentSignature::updateOrCreate(
             return redirect()->back()->with('error', 'Le document doit être prêt pour PDF.');
         }
 
-        $pdf = Pdf::loadView('documents.pdf_template', compact('document'));
+        $request->validate([
+            'pdf_file' => 'required|file|mimes:pdf|max:10240',
+        ]);
 
-        // Store the converted PDF
-        $pdfPath = 'converted_pdfs/' . $document->code . '_' . str_replace(' ', '_', $document->name) . '.pdf';
-        Storage::disk('public')->put($pdfPath, $pdf->output());
+        $pdfFile = $request->file('pdf_file');
+        $pdfPath = 'converted_pdfs/' . $document->code . '_' . str_replace(' ', '_', $document->name) . '_' . time() . '.pdf';
+        Storage::disk('public')->put($pdfPath, $pdfFile->get());
 
-        // Save to document_versions
+        $document->pdf_path = $pdfPath;
+        $document->pdf_converti = true;
+        $document->status = 'pdf_converted';
+        $document->save();
+
         DocumentVersion::create([
             'document_id' => $document->id,
             'revision' => $document->revision,
@@ -496,10 +510,6 @@ DocumentSignature::updateOrCreate(
             'comment' => 'PDF converti',
         ]);
 
-        $document->pdf_converti = true;
-        $document->status = 'pdf_converted';
-        $document->save();
-
         AuditLog::create([
             'user_id' => Auth::id(),
             'action' => 'document_converted_to_pdf',
@@ -508,14 +518,14 @@ DocumentSignature::updateOrCreate(
             'payload' => [],
         ]);
 
-        return $pdf->download($document->code . '_' . str_replace(' ', '_', $document->name) . '.pdf');
+        return redirect()->back()->with('success', 'PDF converti avec succès.');
     }
 
     public function showSignForm($id): View
     {
         $document = Document::findOrFail($id);
 
-        if (Auth::user()->role !== 'creator' || $document->created_by !== Auth::id()) {
+        if (Auth::user()->role !== 'creator' || ($document->created_by !== Auth::id() && $document->current_owner_id !== Auth::id())) {
             abort(403);
         }
 
@@ -534,7 +544,7 @@ DocumentSignature::updateOrCreate(
 
         $document = Document::findOrFail($id);
 
-        if (Auth::user()->role !== 'creator' || $document->created_by !== Auth::id()) {
+        if (Auth::user()->role !== 'creator' || ($document->created_by !== Auth::id() && $document->current_owner_id !== Auth::id())) {
             abort(403);
         }
 
@@ -615,7 +625,7 @@ DocumentSignature::updateOrCreate(
 
         $document = Document::findOrFail($id);
 
-        if (Auth::user()->role !== 'creator' || $document->created_by !== Auth::id()) {
+        if (Auth::user()->role !== 'creator' || ($document->created_by !== Auth::id() && $document->current_owner_id !== Auth::id())) {
             abort(403);
         }
 
@@ -869,7 +879,7 @@ $validators = User::where('role', 'validator')
     public function adminReject(Request $request, $id): RedirectResponse|JsonResponse
     {
         $request->validate([
-            'commentaire' => 'required|string',
+            'motif_rejet' => 'required|string',
             'deadline_correction' => 'nullable|date',
         ]);
 
@@ -883,19 +893,19 @@ $validators = User::where('role', 'validator')
             return redirect()->back()->with('error', 'Action non autorisée.');
         }
 
-        $document->status = 'rejected';
+        $document->status = 'EN_MODIFICATION';
         $document->current_role = 'creator';
-        $document->commentaire_rejet = $request->commentaire;
+        $document->commentaire_rejet = $request->motif_rejet;
         $document->deadline_correction = $request->deadline_correction;
         $document->save();
 
-        LogTransmission($document, Auth::user(), 'admin', 'creator', 'reject', $request->commentaire);
+        LogTransmission($document, Auth::user(), 'admin', 'creator', 'reject', $request->motif_rejet);
 
         if ($document->creator) {
             $document->creator->notify(new DocumentTaskNotification(
                 $document,
-                'Votre document a été rejeté par l\'admin : ' . $request->commentaire,
-                'rejected'
+                'Votre document a été refusé par l\'administrateur. Veuillez le modifier et le renvoyer au validateur.',
+                'EN_MODIFICATION'
             ));
         }
 
@@ -904,17 +914,17 @@ $validators = User::where('role', 'validator')
             'action' => 'admin_rejected',
             'auditable_type' => Document::class,
             'auditable_id' => $document->id,
-            'payload' => ['commentaire' => $request->commentaire, 'deadline' => $request->deadline_correction],
+            'payload' => ['commentaire' => $request->motif_rejet, 'deadline' => $request->deadline_correction],
         ]);
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Document rejeté et créateur notifié.',
+                'message' => 'Document refusé et créateur notifié.',
                 'data' => $document->refresh(),
             ]);
         }
 
-        return redirect()->back()->with('success', 'Document rejeté et créateur notifié.');
+        return redirect()->back()->with('success', 'Document refusé et créateur notifié.');
     }
 
     private function reviewerDashboard(string $role, string $view, ?string $filter = null): View

@@ -12,6 +12,7 @@ class SecurityHeaders
     {
         $response = $next($request);
 
+        $response->headers->set('Content-Type', 'text/html; charset=UTF-8');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('X-XSS-Protection', '1; mode=block');

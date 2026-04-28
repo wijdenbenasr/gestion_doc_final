@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Codification des documents')
 
@@ -99,3 +99,7 @@
 }
 </style>
 @endsection
+
+
+
+

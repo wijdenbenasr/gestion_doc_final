@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - QMS Doc Control</title>
@@ -424,17 +425,17 @@
         }
         .badge-success { background: rgba(34,197,94,0.13); color: #86efac; }
         @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-.badge-pulse { animation: pulse 2s infinite; }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .badge-pulse { animation: pulse 2s infinite; }
         .badge-attente { animation: pulse 2s infinite; }
         .badge-warning { background: rgba(234,179,8,0.13); color: #fde68a; }
-.badge-pending { background: rgba(245,158,11,0.2); color: #f59e0b; }
-.badge-validation { background: rgba(56,189,248,0.13); color: #38bdf8; }
-.badge-approved { background: rgba(34,197,94,0.13); color: #86efac; }
-.badge-rejected { background: rgba(239,68,68,0.13); color: #fca5a5; }
-.badge-signed { background: rgba(168,85,247,0.13); color: #c084fc; }
+        .badge-pending { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .badge-validation { background: rgba(56,189,248,0.13); color: #38bdf8; }
+        .badge-approved { background: rgba(34,197,94,0.13); color: #86efac; }
+        .badge-rejected { background: rgba(239,68,68,0.13); color: #fca5a5; }
+        .badge-signed { background: rgba(168,85,247,0.13); color: #c084fc; }
         .badge-danger { background: rgba(239,68,68,0.13); color: #fca5a5; }
         .badge-muted { background: rgba(148,163,184,0.12); color: #d1d5db; }
         .badge-info { background: rgba(14,165,233,0.13); color: #7dd3fc; }
@@ -542,8 +543,8 @@
         <a href="{{ route('dashboard') }}" class="brand">
             <div class="brand-logo"></div>
             <div>
-                <div class="brand-title">Gestion documentaire qualité </div>
-                <div class="brand-sub">Plateforme sécurisée de gestion documentaire </div>
+                <div class="brand-title">Gestion documentaire qualité</div>
+                <div class="brand-sub">Plateforme sécurisée de gestion documentaire</div>
             </div>
         </a>
 
@@ -557,7 +558,7 @@
 
                 @if($role === 'creator')
                     <a href="{{ route('documents.create') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus"></i> Creer
+                        <i class="fas fa-plus"></i> Créer
                     </a>
                     <a href="{{ route('documents.creator.index') }}" class="nav-link {{ request()->routeIs('documents.creator.*', 'documents.create', 'documents.edit') ? 'active' : '' }}">Mes documents</a>
                 @endif
@@ -583,7 +584,7 @@
 
                 <div class="dropdown" style="position: relative;">
                     <button type="button" class="notification-bell" onclick="toggleNotifDropdown(event, this)" style="background:transparent;border:1px solid var(--border);border-radius:.5rem;padding:.35rem .5rem;cursor:pointer;">
-                        🔔
+                        <i class="fas fa-bell"></i>
                         @if(auth()->user()->unreadNotifications->count() > 0)
                             <span class="notification-badge">
                                 {{ auth()->user()->unreadNotifications->count() }}
@@ -592,7 +593,7 @@
                     </button>
                     <div class="notif-dropdown">
                         <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.1);color:white;font-weight:600;display:flex;justify-content:space-between;">
-                            <span>🔔 Notifications</span>
+                            <span><i class="fas fa-bell"></i> Notifications</span>
                             <span class="badge bg-danger">{{ auth()->user()->unreadNotifications->count() }}</span>
                         </div>
                         @forelse(auth()->user()->unreadNotifications->take(5) as $notif)
@@ -604,12 +605,12 @@
                             </a>
                         @empty
                             <div style="text-align:center; padding: 24px 16px;">
-                                <span style="font-size:2rem;">🔕</span>
+                                <i class="fas fa-bell-slash" style="font-size:2rem;"></i>
                                 <p style="color:rgba(255,255,255,0.5); margin-top:8px;">Aucune notification</p>
                             </div>
                         @endforelse
                         <div style="border-top:1px solid rgba(255,255,255,0.1)">
-                            <a href="{{ route('notifications.index') }}" style="display:block;text-align:center;padding:10px;color:#3b82f6;font-weight:600;border-top:1px solid rgba(255,255,255,0.1);text-decoration:none;">Voir tout →</a>
+                            <a href="{{ route('notifications.index') }}" style="display:block;text-align:center;padding:10px;color:#3b82f6;font-weight:600;border-top:1px solid rgba(255,255,255,0.1);text-decoration:none;">Voir tout †’</a>
                         </div>
                     </div>
                 </div>
@@ -656,7 +657,7 @@
                                 <strong>{{ $user->name ?: '-' }}</strong>
                             </div>
                             <div class="profile-detail-item">
-                                <span>Prenom</span>
+                                <span>Prénom</span>
                                 <strong>{{ $user->prenom ?: '-' }}</strong>
                             </div>
                             <div class="profile-detail-item">
@@ -680,13 +681,13 @@
 
                 <form method="POST" action="{{ route('logout') }}" style="margin:0;">
                     @csrf
-                    <button type="submit" class="btn btn-ghost btn-sm">Deconnexion</button>
+                    <button type="submit" class="btn btn-ghost btn-sm">Déconnexion</button>
                 </form>
             @endauth
 
             @guest
                 <a href="{{ route('login') }}" class="nav-link {{ request()->routeIs('login') ? 'active' : '' }}">Connexion</a>
-                <a href="{{ route('register') }}" class="btn btn-sm">Creer un compte</a>
+                <a href="{{ route('register') }}" class="btn btn-sm">Créer un compte</a>
             @endguest
         </nav>
     </div>
@@ -697,7 +698,7 @@
         @if(session('success') || session('status'))
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i>
-                {{ session('success') ?? session('status') }}
+                {{ session('success')  session('status') }}
             </div>
         @endif
         @if(session('error'))
@@ -722,7 +723,7 @@
 
 <footer>
     <div class="footer-inner">
-        <span> {{ date('Y') }} Gestion documentaire qualité  </span>
+        <span> {{ date('Y') }} Gestion documentaire qualité</span>
     </div>
 </footer>
 
@@ -832,3 +833,5 @@ document.addEventListener('click', function(event) {
 @yield('scripts')
 </body>
 </html>
+
+

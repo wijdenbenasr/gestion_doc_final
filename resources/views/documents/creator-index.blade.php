@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Mes documents')
 
@@ -73,7 +73,7 @@
                 @endif
             </div>
             <a href="{{ route('documents.create') }}" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:.5rem;">
-                <i class="fas fa-plus"></i> Creer mon premier document
+                <i class="fas fa-plus"></i> Créer mon premier document
             </a>
         </div>
     @else
@@ -119,23 +119,28 @@
                             @endif
                         </td>
                         <td>
-                            @php
-                                $statusConfig = [
-                                    'draft' => ['badge-muted', 'Brouillon'],
-                                    'EN_MODIFICATION' => ['badge-warning', 'En modification'],
-                                    'pending_codification' => ['badge-warning', 'Codification'],
-                                    'in_validation' => ['badge-info', 'En validation'],
-                                    'rejected' => ['badge-danger', 'Rejete'],
-                                    'archived' => ['badge-success', 'Finalise'],
-                                ];
-                                $status = $statusConfig[$document->status] ?? ['badge-muted', $document->status];
-                            @endphp
-                            <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
-                        </td>
+                             @php
+                                 $statusConfig = [
+                                     'draft' => ['badge-muted', 'Brouillon'],
+                                     'EN_MODIFICATION' => ['badge-danger', 'REFUS -  modifier'],
+                                     'pending_codification' => ['badge-warning', 'Codification'],
+                                     'in_validation' => ['badge-info', 'En validation'],
+                                     'rejected' => ['badge-danger', 'Rejete'],
+                                     'archived' => ['badge-success', 'Finalise'],
+                                 ];
+                                 $status = $statusConfig[$document->status]  ['badge-muted', $document->status];
+                             @endphp
+                             <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
+                             @if($document->status === 'EN_MODIFICATION' && $document->commentaire_rejet)
+                                 <div style="font-size:0.7rem; color:#ef4444; margin-top:4px;" title="{{ $document->commentaire_rejet }}">
+                                     <i class="fas fa-exclamation-circle me-1"></i>{{ \Illuminate\Support\Str::limit($document->commentaire_rejet, 50) }}
+                                 </div>
+                             @endif
+                         </td>
 <td>
                             <div class="dropdown" style="position:relative;">
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleDropdown(event, {{ $document->id }})">
-                                    Actions ▾
+                                    Actions ▼
                                 </button>
                                 <ul id="dropdown-{{ $document->id }}" class="dropdown-menu dropdown-menu-end" style="display:none;position:absolute;right:0;z-index:1000;background:#1a2035;border:1px solid rgba(255,255,255,0.1);min-width:180px;">
                                      
@@ -157,7 +162,7 @@
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <button type="button"
-                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom ?? $document->name ?? '' }}', 'Supprimer le document')"
+                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom  $document->name ?? '' }}', 'Supprimer le document')"
                                                         class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i> Supprimer</button>
                                             </li>
                                         @endif
@@ -173,7 +178,7 @@
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <button type="button"
-                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom ?? $document->name ?? '' }}', 'Supprimer le document')"
+                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom  $document->name ?? '' }}', 'Supprimer le document')"
                                                         class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i> Supprimer</button>
                                             </li>
                                         @endif
@@ -181,7 +186,7 @@
                                         {{-- CONVERTIR EN PDF / SIGNER --}}
                                         @if(in_array(strtolower($document->status), ['ready_for_pdf', 'pdf_converted']))
                                             @if(strtolower($document->status) === 'ready_for_pdf')
-                                                <li><a class="dropdown-item" href="{{ route('workflow.creator.convert_pdf', ['id' => $document->id]) }}" target="_blank" style="color:#fbbf24;"><i class="fas fa-file-pdf me-2"></i> Convertir en PDF</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="showConvertPdfModal({{ $document->id }})" style="color:#fbbf24;"><i class="fas fa-file-pdf me-2"></i> Convertir en PDF</a></li>
                                                 <li><a class="dropdown-item" href="#" onclick="showSignerModal({{ $document->id }})" style="color:#22c55e;"><i class="fas fa-signature me-2"></i> Signer et envoyer</a></li>
                                             @endif
                                             @if(strtolower($document->status) === 'pdf_converted')
@@ -211,7 +216,7 @@
 <div class="modal" id="modalSigner{{ $document->id }}" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
   <div class="modal-dialog" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
       <div class="modal-header">
-        <h5 class="modal-title">✍️ Signer et envoyer le document</h5>
+        <h5 class="modal-title"> Signer et envoyer le document</h5>
         <button type="button" class="btn-close btn-close-white" onclick="closeSignerModal({{ $document->id }})"></button>
       </div>
       <div class="modal-body">
@@ -223,17 +228,49 @@
             <small class="text-muted">Code : {{ $document->code }}</small>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+            <label class="form-label fw-bold"> Televerser le document signe *</label>
             <input type="file" name="document_signe" accept=".pdf,.docx" required class="form-control" style="background:#0f172a; color:white;">
             <small class="text-muted">Formats acceptes : PDF, DOCX</small>
           </div>
           <div class="mb-3">
-            <label class="form-label">💬 Commentaire (optionnel)</label>
+            <label class="form-label"> Commentaire (optionnel)</label>
             <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
           </div>
           <div class="d-flex justify-content-end gap-2">
             <button type="button" class="btn btn-secondary" onclick="closeSignerModal({{ $document->id }})">Annuler</button>
             <button type="submit" class="btn btn-primary">Signer et envoyer</button>
+          </div>
+        </form>
+      </div>
+  </div>
+</div>
+@endif
+@endforeach
+
+@foreach($documents as $document)
+@if(strtolower($document->status) === 'ready_for_pdf')
+<div class="modal" id="modalConvertPdf{{ $document->id }}" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
+  <div class="modal-dialog" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
+      <div class="modal-header">
+        <h5 class="modal-title"> Convertir en PDF</h5>
+        <button type="button" class="btn-close btn-close-white" onclick="closeConvertPdfModal({{ $document->id }})"></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.creator.convert_pdf', $document->id) }}">
+          @csrf
+          <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
+            <small class="text-muted">Document :</small>
+            <p class="mb-0 fw-bold">{{ $document->name }}</p>
+            <small class="text-muted">Code : {{ $document->code }}</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold"> Televerser le PDF converti *</label>
+            <input type="file" name="pdf_file" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
+            <small class="text-muted">Formats acceptes : PDF</small>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" onclick="closeConvertPdfModal({{ $document->id }})">Annuler</button>
+            <button type="submit" class="btn btn-primary">Convertir</button>
           </div>
         </form>
       </div>
@@ -257,8 +294,16 @@ function showSignerModal(id) {
     document.getElementById('modalSigner' + id).style.display = 'block';
 }
 
+function showConvertPdfModal(id) {
+    document.getElementById('modalConvertPdf' + id).style.display = 'block';
+}
+
 function closeSignerModal(id) {
     document.getElementById('modalSigner' + id).style.display = 'none';
+}
+
+function closeConvertPdfModal(id) {
+    document.getElementById('modalConvertPdf' + id).style.display = 'none';
 }
 
 document.addEventListener('click', function(e) {
@@ -271,3 +316,7 @@ document.addEventListener('click', function(e) {
 </script>
 
 @endsection
+
+
+
+

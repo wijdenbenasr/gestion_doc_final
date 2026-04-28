@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8">
-    <title>{{ $document->code ?? 'QMS' }} — {{ $document->name }}</title>
+    <title>{{ $document->code ?? 'QMS' }} - {{ $document->name }}</title>
     <style>
         body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11px; color: #1a1a2e; margin: 0; }
         .watermark {
@@ -53,7 +53,7 @@
 <body>
 
 @if($document->status === 'rejected')
-    <div class="watermark">REJETÉ</div>
+    <div class="watermark">REJET</div>
 @elseif($document->status !== 'archived')
     <div class="watermark">BROUILLON</div>
 @endif
@@ -63,8 +63,8 @@
     <div class="header-info">
         <div class="header-title">{{ $document->name }}</div>
         <div class="header-sub">
-            Code : <strong>{{ $document->code ?? 'Non codifié' }}</strong> &nbsp;|&nbsp;
-            Révision : <strong>{{ $document->revision }}</strong> &nbsp;|&nbsp;
+            Code : <strong>{{ $document->code ?? 'Non codifi' }}</strong> &nbsp;|&nbsp;
+            Rvision : <strong>{{ $document->revision }}</strong> &nbsp;|&nbsp;
             Statut : <strong>{{ \App\Models\Document::STATUSES[$document->status] ?? $document->status }}</strong>
         </div>
     </div>
@@ -73,9 +73,9 @@
     @endif
 </div>
 
-{{-- Informations générales --}}
+{{-- Informations gnrales --}}
 <div class="section">
-    <div class="section-title">Informations générales</div>
+    <div class="section-title">Informations gnrales</div>
     <table>
         <tr>
             <th>Code document</th>
@@ -85,7 +85,7 @@
         </tr>
         <tr>
             <th>AIO</th>
-            <td>{{ \App\Models\Document::AIOS[$document->aio] ?? strtoupper($document->aio) }}</td>
+            <td>{{ \App\Models\Document::AIOS[$document->aio]  strtoupper($document->aio) }}</td>
             <th>Ligne de production</th>
             <td>{{ $document->ligne }}</td>
         </tr>
@@ -93,17 +93,17 @@
             <th>Phase</th>
             <td>{{ $document->phase === 'projet' ? 'Projet' : 'Série' }}</td>
             <th>{{ $document->phase === 'projet' ? 'Nom de la phase' : 'Numéro de série' }}</th>
-            <td>{{ $document->phase === 'projet' ? ($document->nom_phase ?? '—') : ($document->nom_serie ?? '—') }}</td>
+            <td>{{ $document->phase === 'projet' ? ($document->nom_phase ?? '-') : ($document->nom_serie ?? '-') }}</td>
         </tr>
         <tr>
-            <th>Créé par</th>
-            <td>{{ $document->creator->name ?? '—' }} {{ $document->creator->prenom ?? '' }}</td>
-            <th>Date création</th>
+            <th>Cr par</th>
+            <td>{{ $document->creator->name ?? '-' }} {{ $document->creator->prenom ?? '' }}</td>
+            <th>Date cration</th>
             <td>{{ $document->created_at->format('d/m/Y H:i') }}</td>
         </tr>
         <tr>
             <th>Deadline</th>
-            <td>{{ $document->deadline ? $document->deadline->format('d/m/Y H:i') : '—' }}</td>
+            <td>{{ $document->deadline ? $document->deadline->format('d/m/Y H:i') : '-' }}</td>
             <th>Fichier original</th>
             <td>{{ $document->file_original_name }}</td>
         </tr>
@@ -115,17 +115,17 @@
     <div class="section-title">Workflow de validation & signatures</div>
     <table class="sig-table">
         <tr>
-            @foreach(['creator' => 'Créateur', 'validator' => 'Validateur', 'approver' => 'Approbateur', 'admin' => 'Administrateur'] as $role => $label)
+            @foreach(['creator' => 'Crateur', 'validator' => 'Validateur', 'approver' => 'Approbateur', 'admin' => 'Administrateur'] as $role => $label)
                 @php $sig = $document->signatures->where('role', $role)->first(); @endphp
                 <td style="width:25%;">
                     <div class="sig-role">{{ $label }}</div>
                     @if($sig && $sig->signed_at)
-                        <div class="sig-name">{{ $sig->user->name ?? '—' }}</div>
+                        <div class="sig-name">{{ $sig->user->name ?? '-' }}</div>
                         <div class="sig-date">{{ $sig->signed_at->format('d/m/Y H:i') }}</div>
-                        <div><span class="badge-ok">✓ Signé</span></div>
+                        <div><span class="badge-ok">? Sign</span></div>
                         <div class="sig-hash">{{ substr($sig->hash ?? '', 0, 24) }}...</div>
                     @else
-                        <div class="sig-pending">— En attente —</div>
+                        <div class="sig-pending">- En attente -</div>
                     @endif
                 </td>
             @endforeach
@@ -151,7 +151,7 @@
             <tr>
                 <td>{{ $v->revision }}</td>
                 <td>{{ $v->created_at->format('d/m/Y H:i') }}</td>
-                <td>{{ $v->creator->name ?? '—' }}</td>
+                <td>{{ $v->creator->name ?? '-' }}</td>
                 <td class="hash-block">{{ substr($v->hash, 0, 20) }}...</td>
             </tr>
         @endforeach
@@ -163,7 +163,7 @@
 {{-- Audit trail (admin only) --}}
 @if(auth()->user()->role === 'admin' && $document->auditLogs->count())
 <div class="section">
-    <div class="section-title">Journal d'audit (10 dernières actions)</div>
+    <div class="section-title">Journal d'audit (10 dernires actions)</div>
     <table>
         <thead>
         <tr><th style="width:35%;">Action</th><th style="width:30%;">Utilisateur</th><th>Date</th></tr>
@@ -182,10 +182,14 @@
 @endif
 
 <div class="footer">
-    Généré le {{ $generatedAt->format('d/m/Y à H:i:s') }} — Gestion documentaire qualité — Conformité ISO 9001
+    Gnr le {{ $generatedAt->format('d/m/Y  H:i:s') }} - Gestion documentaire qualit - Conformit ISO 9001
     <br>
-    <span class="hash-block">Intégrité fichier (SHA-256) : {{ $document->hash ?? 'Non calculé' }}</span>
+    <span class="hash-block">Intgrit fichier (SHA-256) : {{ $document->hash ?? 'Non calcul' }}</span>
 </div>
 
 </body>
 </html>
+
+
+
+

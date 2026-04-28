@@ -70,8 +70,9 @@ class DocumentService
 
         // Create transmission record: admin -> createur
         $document->transmissions()->create([
-            'sender_id' => $admin->id,
-            'receiver_id' => $createurId,
+            'sent_by' => $admin->id,
+            'to_role' => 'creator',
+            'action' => 'submit',
             'status' => 'pending',
         ]);
 
@@ -97,8 +98,8 @@ class DocumentService
             $payload['file_original_name'] = $file->getClientOriginalName();
             $payload['hash'] = $hash;
 
-            // Increment revision_minor when file is updated during modification phase
-            if (in_array($document->status, ['draft', 'rejected']) && $document->current_role === 'creator') {
+            // Increment revision_minor when file is updated during modification phase (draft, rejected, or EN_MODIFICATION)
+            if (in_array($document->status, ['draft', 'rejected', 'EN_MODIFICATION']) && $document->current_role === 'creator') {
                 $payload['revision_minor'] = ($document->revision_minor ?? 0) + 1;
                 $major = $document->revision_major ?? 1;
                 $minor = $payload['revision_minor'];

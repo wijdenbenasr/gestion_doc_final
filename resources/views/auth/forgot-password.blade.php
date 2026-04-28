@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Mot de passe oublié - Gestion documentaire qualité</title>
@@ -15,7 +16,7 @@
             --border: #1f2937;
         }
         *, *::before, *::after { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; height: 100%; }
+        html, body { margin:0; padding:0; height: 100%; }
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background: radial-gradient(circle at top, #1e293b 0%, #020617 50%, #000 100%);
@@ -31,7 +32,7 @@
         }
 
         .login-visual {
-            flex: 0 0 50%;
+            flex:0 0 50%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -65,7 +66,7 @@
         }
 
         .login-form-section {
-            flex: 0 0 50%;
+            flex:0 0 50%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -252,9 +253,11 @@
                     <button type="submit" class="btn-full">Envoyer le lien</button>
                 </form>
 
-                <a href="{{ route('login') }}" class="back-link">← Retour à la connexion</a>
+                <a href="{{ route('login') }}" class="back-link">† Retour à la Connexion</a>
             </div>
         </div>
     </div>
 </body>
 </html>
+
+

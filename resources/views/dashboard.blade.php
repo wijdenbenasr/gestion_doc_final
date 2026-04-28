@@ -14,8 +14,9 @@
         </div>
         {{--<p style="font-size:.85rem;color:var(--muted);">
               Les tables métier (Créateur / Vérificateur / Approbateur / Admin) et le workflow
-            strict seront branchés sur ce tableau.
-        </p>--}}
+             strict seront branchés sur ce tableau.
+         </p>--}}
     </div>
 @endsection
+
 

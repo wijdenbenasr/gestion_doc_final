@@ -24,12 +24,12 @@
         <div class="stat-meta">Documents a traiter maintenant</div>
     </a>
     <a href="{{ route('workflow.validator.index', ['filter' => 'processed']) }}" class="stat-card {{ $filter === 'processed' ? 'active' : '' }}">
-        <div class="stat-label">Validés</div>
+        <div class="stat-label">Valids</div>
         <div class="stat-value" style="color:#4ade80;">{{ $stats['processed'] }}</div>
         <div class="stat-meta">Historique personnel</div>
     </a>
     <a href="{{ route('workflow.validator.index', ['filter' => 'rejected']) }}" class="stat-card {{ $filter === 'rejected' ? 'active' : '' }}">
-        <div class="stat-label">Rejetés</div>
+        <div class="stat-label">Rejets</div>
         <div class="stat-value" style="color:#f87171;">{{ $stats['rejected'] }}</div>
         <div class="stat-meta">Documents retournes au createur</div>
     </a>
@@ -63,7 +63,7 @@
                     <div id="validate-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
                         <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
                             <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                                <h4 style="margin:0;">✍️ Signer et envoyer le document</h4>
+                                <h4 style="margin:0;"> Signer et envoyer le document</h4>
                                 <button type="button" class="btn-close btn-close-white" onclick="closeValidateModal('{{ $doc->id }}')"></button>
                             </div>
                             <div class="modal-body">
@@ -75,12 +75,12 @@
                                         <small class="text-muted">Code : {{ $doc->code }}</small>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                                        <label class="form-label fw-bold"> Televerser le document signe *</label>
                                         <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
                                         <small class="text-muted">Format accepte : PDF</small>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">💬 Commentaire (optionnel)</label>
+                                        <label class="form-label"> Commentaire (optionnel)</label>
                                         <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
                                     </div>
                                     <div style="display:flex;gap:.5rem;justify-content:flex-end;">
@@ -116,8 +116,7 @@
                     </div>
                 @empty
                     <div style="color:var(--muted);padding:1rem;text-align:center;">
-                        <i class="fas fa-check-circle fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
-                        Aucun document pret pour signature.
+                        Aucun document en attente de validation.
                     </div>
                 @endforelse
             </div>
@@ -164,22 +163,6 @@
                             </div>
                         </div>
                     </div>
-                    <div id="reject-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
-                        <div class="modal-content" style="background:#1f2937;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:400px;">
-                            <h4 style="margin-bottom:1rem;">Rejeter le document</h4>
-                            <form action="{{ route('workflow.validator.reject', $doc) }}" method="POST">
-                                @csrf
-                                <div style="margin-bottom:1rem;">
-                                    <label style="display:block;margin-bottom:.5rem;color:#9ca3af;">Motif du rejet</label>
-                                    <textarea name="rejection_reason" required class="form-control" style="background:#374151;border:1px solid #4b5563;color:white;width:100%;padding:.5rem;border-radius:4px;" rows="3"></textarea>
-                                </div>
-                                <div style="display:flex;gap:.5rem;justify-content:flex-end;">
-                                    <button type="button" class="btn btn-ghost" onclick="closeRejectModal('{{ $doc->id }}')">Annuler</button>
-                                    <button type="submit" class="btn btn-sm btn-danger">Rejeter</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
                     <div style="padding:.6rem;border-radius:.4rem;background:rgba({{ $isUrgent ? '239,68,68' : ($isWarning ? '245,158,11' : '56,189,248') }},0.1);border-left:3px solid {{ $isUrgent ? 'var(--danger)' : ($isWarning ? 'var(--warning)' : 'var(--info)') }};">
                         <div style="display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:.3rem;">
                             <div>
@@ -199,10 +182,10 @@
                             </span>
                         </div>
                         <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
-                            @if($doc->current_role === 'validator' && $doc->status === 'in_validation')
+                    @if($doc->current_role === 'validator' && $doc->status === 'in_validation')
                                 <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
                                 <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openConfirmModal('{{ $doc->id }}')">Valider</button>
-                                <button type="button" class="btn btn-sm btn-danger" style="font-size:.72rem;" onclick="openRejectModal('{{ $doc->id }}')">Rejeter</button>
+                                <button type="button" class="btn btn-sm btn-danger" style="font-size:.72rem;" onclick="openRejectModal('{{ route('workflow.validator.reject', $doc) }}')">Rejeter</button>
                             @endif
                         </div>
                     </div>
@@ -281,6 +264,57 @@
 
 
 
+<!-- Unified Reject Modal -->
+<div id="rejectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#0f172a;border:1px solid #ef4444;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:auto;box-shadow:0 25px 60px rgba(239,68,68,0.2);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">Œ</div>
+      <div>
+        <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Rejeter le document</h5>
+        <p style="color:#64748b;margin:0;font-size:0.8rem;">Le document sera renvoyé au créateur pour correction</p>
+      </div>
+      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
+    </div>
+
+    <form id="rejectForm" method="POST">
+      @csrf
+
+      <!-- Motif -->
+      <div style="margin-bottom:1.2rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">MOTIF DU REJET <span style="color:#ef4444;">*</span></label>
+        <textarea name="motif_rejet" required rows="4"
+          placeholder="Décrivez la raison du rejet et les corrections attendues..."
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'"></textarea>
+      </div>
+
+      <!-- Deadline -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">DEADLINE DE CORRECTION</label>
+        <input type="date" name="deadline_correction"
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;color-scheme:dark;"
+          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'">
+      </div>
+
+      <!-- Buttons -->
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button type="button" onclick="closeRejectModal()"
+          style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+          onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+          Annuler
+        </button>
+        <button type="submit"
+          style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+          ✕ ✓ Confirmer le rejet
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 function toggleReject(id) {
     var el = document.getElementById(id);
@@ -303,13 +337,19 @@ function closeValidateModal(id) {
     document.getElementById('validate-modal-' + id).style.display = 'none';
 }
 
-function openRejectModal(id) {
-    document.getElementById('reject-modal-' + id).style.display = 'block';
+function openRejectModal(actionUrl) {
+    document.getElementById('rejectForm').action = actionUrl;
+    document.getElementById('rejectModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 }
 
-function closeRejectModal(id) {
-    document.getElementById('reject-modal-' + id).style.display = 'none';
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+    document.body.style.overflow = '';
 }
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+});
 
 function downloadDocument(id) {
     window.open('/documents/' + id + '/download', '_blank');
@@ -326,3 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+
+
+

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Journaux et Traçabilité QMS</title>
+    <title>Journaux et Traabilit QMS</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -106,9 +106,9 @@
 </head>
 <body>
     <div class="header">
-        <h1>Journaux et Traçabilité QMS</h1>
-        <div class="meta">Système de Gestion Documentaire Qualité</div>
-        <div class="meta">Généré le {{ $generatedAt->format('d/m/Y à H:i:s') }}</div>
+        <h1>Journaux et Traabilit QMS</h1>
+        <div class="meta">Systme de Gestion Documentaire Qualit</div>
+        <div class="meta">Gnr le {{ $generatedAt->format('d/m/Y  H:i:s') }}</div>
     </div>
 
     <!-- Section des Logs d'Audit -->
@@ -122,7 +122,7 @@
                         <th>Utilisateur</th>
                         <th>Document</th>
                         <th>Action</th>
-                        <th>Détails</th>
+                        <th>Dtails</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -134,15 +134,15 @@
                                 @if($log->auditable && $log->auditable_type === 'App\Models\Document')
                                     {{ $log->auditable->code ?? $log->auditable->name ?? 'DOC-' . $log->auditable->id }}
                                 @else
-                                    —
+                                    -
                                 @endif
                             </td>
-                            <td>{{ $actionLabels[strtolower($log->action)] ?? ucfirst(str_replace('_', ' ', $log->action)) }}</td>
+                            <td>{{ $actionLabels[strtolower($log->action)]  ucfirst(str_replace('_', ' ', $log->action)) }}</td>
                             <td>
                                 @if($log->payload && count($log->payload) > 0)
                                     {{ Illuminate\Support\Str::limit(json_encode($log->payload, JSON_UNESCAPED_UNICODE), 50) }}
                                 @else
-                                    —
+                                    -
                                 @endif
                             </td>
                         </tr>
@@ -156,16 +156,16 @@
         @endif
     </div>
 
-    <!-- Section des Transmissions (Traçabilité) -->
+    <!-- Section des Transmissions (Traabilit) -->
     <div class="section">
-        <div class="section-title">Traçabilité des Transmissions</div>
+        <div class="section-title">Traabilit des Transmissions</div>
         @if($transmissions->count() > 0)
             <table>
                 <thead>
                     <tr>
                         <th>Date/Heure</th>
                         <th>Document</th>
-                        <th>De (Rôle)</th>
+                        <th>De (Rle)</th>
                         <th>Utilisateur</th>
                         <th>Vers</th>
                         <th>Statut</th>
@@ -176,12 +176,12 @@
                         <tr>
                             <td>{{ $trans->created_at->format('d/m/Y H:i:s') }}</td>
                             <td>
-                                {{ $trans->document->code ?? 'DOC-' . $trans->document->id }}
+                                {{ $trans->document?->code ?? ($trans->document?->id ? 'DOC-' . $trans->document->id : 'Document supprimé') }}
                             </td>
                             <td>
                                 <span class="badge badge-info">
                                     @switch($trans->from_role)
-                                        @case('creator') Créateur @break
+                                        @case('creator') Crateur @break
                                         @case('validator') Validateur @break
                                         @case('approver') Approbateur @break
                                         @case('admin') Admin @break
@@ -193,7 +193,7 @@
                             <td>
                                 <span class="badge badge-success">
                                     @switch($trans->to_role)
-                                        @case('creator') Créateur @break
+                                        @case('creator') Crateur @break
                                         @case('validator') Validateur @break
                                         @case('approver') Approbateur @break
                                         @case('admin') Admin @break
@@ -220,12 +220,12 @@
             </table>
         @else
             <div style="text-align: center; color: #9ca3af; padding: 20px;">
-                Aucune transmission enregistrée.
+                Aucune transmission enregistre.
             </div>
         @endif
     </div>
 
-    <!-- Statistiques Récapitulatives -->
+    <!-- Statistiques Rcapitulatives -->
     <div class="section">
         <div class="section-title">Statistiques</div>
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
@@ -238,7 +238,7 @@
                 <div class="entry-detail">{{ $transmissions->count() }} enregistrements</div>
             </div>
             <div class="entry">
-                <div class="entry-header">Période Couverte</div>
+                <div class="entry-header">Priode Couverte</div>
                 <div class="entry-detail">
                     @php
                         $allDates = collect()
@@ -250,12 +250,12 @@
                     @if($minDate && $maxDate)
                         Du {{ $minDate->format('d/m/Y') }} au {{ $maxDate->format('d/m/Y') }}
                     @else
-                        Aucune donnée
+                        Aucune donne
                     @endif
                 </div>
             </div>
             <div class="entry">
-                <div class="entry-header">Nombre d'Utilisateurs Impliqués</div>
+                <div class="entry-header">Nombre d'Utilisateurs Impliqus</div>
                 <div class="entry-detail">
                     @php
                         $users = collect()
@@ -272,7 +272,11 @@
 
     <div class="footer">
         <p>Ce document contient les journaux d'audit et la traçabilité des transmissions du système QMS Doc Control.</p>
-        <p>Document confidentiel - Réservé à l'usage interne</p>
+        <p>Document confidentiel - Rserv  l'usage interne</p>
     </div>
 </body>
 </html>
+
+
+
+

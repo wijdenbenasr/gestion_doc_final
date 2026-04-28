@@ -6,7 +6,7 @@
 <div class="card" style="max-width: 600px; margin: 2rem auto;">
     <div class="card-header">
         <div class="card-title">Signer le document</div>
-        <div class="card-sub">Téléchargez le PDF signé pour envoi au validateur</div>
+        <div class="card-sub">Téléchargez le PDF sign pour envoi au validateur</div>
     </div>
 
     @if(session('success'))
@@ -36,12 +36,12 @@
 
             <div style="margin-bottom: 1.5rem;">
                 <label for="signed_pdf" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
-                    <i class="fas fa-file-pdf me-2"></i>PDF signé
+                    <i class="fas fa-file-pdf me-2"></i>PDF sign
                 </label>
                 <input type="file" name="signed_pdf" id="signed_pdf" accept=".pdf" required
                        style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text);">
                 <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">
-                    <i class="fas fa-info-circle me-1"></i>Format accepté : PDF uniquement (max 10 Mo)
+                    <i class="fas fa-info-circle me-1"></i>Format accept : PDF uniquement (max 10 Mo)
                 </div>
                 @error('signed_pdf')
                     <div style="color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem;">{{ $message }}</div>
@@ -60,3 +60,7 @@
     </div>
 </div>
 @endsection
+
+
+
+

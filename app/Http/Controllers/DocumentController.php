@@ -148,7 +148,7 @@ class DocumentController extends Controller
         $isAdmin = $user->role === 'admin';
         $canEditLigne = true;
         $backRoute = $isAdmin ? route('admin.dashboard') : route('documents.creator.index');
-        $createurs = $isAdmin ? User::where('role', 'createur')->where('statut', 'approuve')->get() : collect();
+        $createurs = $isAdmin ? User::where('role', 'creator')->where('is_admin_approved', true)->get() : collect();
 
         return view('documents.create', [
             'types' => Document::TYPES,
@@ -247,9 +247,11 @@ class DocumentController extends Controller
     {
         $this->authorize('update', $document);
 
-        $isAdmin = auth()->user()->role === 'admin';
+        $user = auth()->user();
+        $isAdmin = $user->role === 'admin';
         $canEditLigne = $isAdmin;
         $backRoute = $isAdmin ? route('admin.dashboard') : route('documents.creator.index');
+        $createurs = $isAdmin ? User::where('role', 'creator')->where('is_admin_approved', true)->get() : collect();
 
         return view('documents.create', [
             'types' => Document::TYPES,
@@ -258,6 +260,7 @@ class DocumentController extends Controller
             'canEditLigne' => $canEditLigne,
             'backRoute' => $backRoute,
             'isAdmin' => $isAdmin,
+            'createurs' => $createurs,
         ]);
     }
 

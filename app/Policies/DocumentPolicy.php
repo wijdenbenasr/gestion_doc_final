@@ -55,8 +55,8 @@ class DocumentPolicy
             return true;
         }
 
-        return $user->id === $document->created_by
-            && in_array($document->status, ['draft', 'rejected'], true);
+        return ($user->id === $document->created_by || $user->id === $document->current_owner_id)
+            && in_array($document->status, ['draft', 'rejected', 'EN_MODIFICATION'], true);
     }
 
     public function requestDeletion(User $user, Document $document): bool

@@ -49,7 +49,7 @@
                                     'default' => 'General',
                                 ];
                             @endphp
-                            {{ $typeLabels[$type] ?? 'General' }}
+                            {{ $typeLabels[$type]  'General' }}
                         </td>
                         <td style="font-size:.72rem;color:var(--muted);">
                             {{ $notification->created_at->format('d/m/Y H:i') }}
@@ -69,3 +69,6 @@
     @endif
 </div>
 @endsection
+
+
+

@@ -48,6 +48,7 @@ class Document extends Model
         'signing_admin' => 'Signature admin finale',
         'archived' => 'Archivé',
         'rejected' => 'Rejeté',
+        'EN_MODIFICATION' => 'En modification',
     ];
 
     protected $fillable = [
@@ -57,7 +58,7 @@ class Document extends Model
         'created_by', 'current_owner_id',
         'version', 'revision', 'status', 'current_role',
         'deadline', 'is_pdf', 'is_fully_signed', 'lock_version',
-        'fichier_signe_path', 'pdf_converti',
+        'fichier_signe_path', 'pdf_converti', 'pdf_path',
         'validated_by', 'validated_at',
         'approved_by', 'approved_at',
         'admin_validated_by', 'admin_validated_at',

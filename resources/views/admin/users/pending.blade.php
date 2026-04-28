@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Validation des comptes')
 
@@ -87,3 +87,7 @@
     @endif
 </div>
 @endsection
+
+
+
+

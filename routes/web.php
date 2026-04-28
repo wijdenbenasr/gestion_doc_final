@@ -83,7 +83,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/documents/{id}/sign', [DocumentWorkflowController::class, 'uploadSignedPdf'])->name('documents.sign.upload');
 
         // Conversion PDF
-        Route::get('/workflow/{id}/convert-pdf', [DocumentWorkflowController::class, 'convertToPdf'])->name('workflow.creator.convert_pdf');
+        Route::post('/workflow/{id}/convert-pdf', [DocumentWorkflowController::class, 'convertToPdf'])->name('workflow.creator.convert_pdf');
 
         Route::prefix('workflow')->name('workflow.')->group(function () {
             // Étape 1 : envoi à l'admin pour codification

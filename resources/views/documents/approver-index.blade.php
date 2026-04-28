@@ -62,7 +62,7 @@
                 <div id="sign-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
                     <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
                         <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                            <h4 style="margin:0;">✍️ Signer et envoyer le document</h4>
+                            <h4 style="margin:0;"> Signer et envoyer le document</h4>
                             <button type="button" class="btn-close btn-close-white" onclick="closeSignModal('{{ $doc->id }}')"></button>
                         </div>
                         <div class="modal-body">
@@ -74,12 +74,12 @@
                                     <small class="text-muted">Code : {{ $doc->code }}</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                                    <label class="form-label fw-bold"> Televerser le document signe *</label>
                                     <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
                                     <small class="text-muted">Format accepte : PDF</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">💬 Commentaire (optionnel)</label>
+                                    <label class="form-label"> Commentaire (optionnel)</label>
                                     <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
                                 </div>
                                 <div style="display:flex;gap:.5rem;justify-content:flex-end;">
@@ -90,31 +90,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="rejet-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
-                    <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;border:1px solid rgba(255,255,255,0.1);">
-                        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                            <h4 style="margin:0;color:white;">Rejeter le document</h4>
-                            <button type="button" class="btn-close btn-close-white" onclick="closeRejectModal('{{ $doc->id }}')"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form method="POST" action="{{ route('workflow.approver.reject', $doc) }}">
-                                @csrf
-                                <div class="mb-3">
-                                    <label class="form-label" style="color:#9ca3af;">Motif du rejet *</label>
-                                    <textarea name="message" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;" rows="4" placeholder="Expliquez la raison du rejet..." required></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label" style="color:#9ca3af;">Deadline de correction</label>
-                                    <input type="date" name="deadline" class="form-control" style="background:#0f172a;color:white;border:1px solid rgba(255,255,255,0.1);border-radius:.5rem;">
-                                </div>
-                                <div class="d-flex justify-content-end gap-2">
-                                    <button type="button" class="btn btn-secondary" onclick="closeRejectModal('{{ $doc->id }}')">Annuler</button>
-                                    <button type="submit" class="btn btn-danger">Confirmer le rejet</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+
                 <div style="padding:.6rem;border-radius:.4rem;background:rgba({{ $isUrgent ? '239,68,68' : ($isWarning ? '245,158,11' : '56,189,248') }},0.1);border-left:3px solid {{ $isUrgent ? 'var(--danger)' : ($isWarning ? 'var(--warning)' : 'var(--info)') }};">
                     <div style="display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:.3rem;">
                         <div>
@@ -134,7 +110,7 @@
                         </span>
                     </div>
                     <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
-                        <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
+                         <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Télécharger</a>
                         <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openSignModal('{{ $doc->id }}')">Signer</button>
                     </div>
                 </div>
@@ -225,14 +201,14 @@
                         <td>{{ $doc->ligne }}</td>
                         <td style="font-size:.72rem;">{{ $doc->phase_libelle }}</td>
                         <td style="font-family:monospace;font-size:.75rem;">{{ $doc->revision }}</td>
-                        <td>{{ $doc->creator->name ?? '—' }} {{ $doc->creator->prenom ?? '' }}</td>
+                         <td>{{ $doc->creator->name ?? '-' }} {{ $doc->creator->prenom ?? '' }}</td>
                         <td style="font-size:.72rem;">
                             @if($doc->deadline)
                                 <span style="{{ $doc->deadline->isPast() ? 'color:var(--danger)' : '' }}">
                                     {{ $doc->deadline->format('d/m/Y') }}
                                 </span>
                             @else
-                                —
+                                 -
                             @endif
                         </td>
                         <td>
@@ -250,11 +226,11 @@
                                         </button>
                                     </li>
                                     <li>
-                                        <button type="button" class="dropdown-item" style="color:#f87171;cursor:pointer;"
-                                                onclick="openRejectModal('{{ $doc->id }}')">
-                                            <i class="fas fa-times me-2"></i>Rejeter
-                                        </button>
-                                    </li>
+                                         <button type="button" class="dropdown-item" style="color:#f87171;cursor:pointer;"
+                                                 onclick="openRejectModal('{{ route('workflow.approver.reject', $doc) }}')">
+                                             <i class="fas fa-times me-2"></i>Rejeter
+                                         </button>
+                                     </li>
                                     @endif
                                     @if(in_array($doc->status, ['signing_approver']) && $doc->current_role === 'approver')
                                     <li>
@@ -283,7 +259,7 @@
 <div id="sign-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
     <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
         <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h4 style="margin:0;">✍️ Signer et envoyer le document</h4>
+            <h4 style="margin:0;">oï¸ Signer et envoyer le document</h4>
             <button type="button" class="btn-close btn-close-white" onclick="closeSignModal('{{ $doc->id }}')"></button>
         </div>
         <div class="modal-body">
@@ -295,12 +271,12 @@
                     <small class="text-muted">Code : {{ $doc->code }}</small>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                    <label class="form-label fw-bold">Y"Z Televerser le document signe *</label>
                     <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
                     <small class="text-muted">Format accepte : PDF</small>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">💬 Commentaire (optionnel)</label>
+                    <label class="form-label">Y' Commentaire (optionnel)</label>
                     <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
                 </div>
                 <div style="display:flex;gap:.5rem;justify-content:flex-end;">
@@ -320,7 +296,7 @@
 <div id="approve-modal-{{ $doc->id }}" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
     <div style="background:#1f2937;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:400px;border:1px solid rgba(255,255,255,0.1);">
         <h4 style="margin-bottom:1rem;color:white;">Approuver le document</h4>
-        <p style="margin-bottom:1.5rem;color:#9ca3af;">Approuver <strong style="color:white;">{{ $doc->name }}</strong> et l'envoyer à l'admin ?</p>
+         <p style="margin-bottom:1.5rem;color:#9ca3af;">Approuver <strong style="color:white;">{{ $doc->name }}</strong> et l'envoyer à l'admin ?</p>
         <form action="{{ route('workflow.approver.approve', $doc) }}" method="POST">
             @csrf
             <div style="display:flex;gap:.5rem;justify-content:flex-end;">
@@ -330,14 +306,15 @@
         </form>
     </div>
 </div>
-@endif
-@endforeach
+
+                @endif
+                @endforeach
 
 @foreach($documents as $doc)
 <div id="table-sign-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
     <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
         <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h4 style="margin:0;">✍️ Signer et envoyer le document</h4>
+            <h4 style="margin:0;">oï¸ Signer et envoyer le document</h4>
             <button type="button" class="btn-close btn-close-white" onclick="closeTableSignModal('{{ $doc->id }}')"></button>
         </div>
         <div class="modal-body">
@@ -349,12 +326,12 @@
                     <small class="text-muted">Code : {{ $doc->code }}</small>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">📎 Televerser le document signe *</label>
+                    <label class="form-label fw-bold">Y"Z Televerser le document signe *</label>
                     <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
                     <small class="text-muted">Format accepte : PDF</small>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">💬 Commentaire (optionnel)</label>
+                    <label class="form-label">Y' Commentaire (optionnel)</label>
                     <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
                 </div>
                 <div style="display:flex;gap:.5rem;justify-content:flex-end;">
@@ -409,6 +386,57 @@
     </div>
 </div>
 
+<!-- Unified Reject Modal -->
+<div id="rejectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#0f172a;border:1px solid #ef4444;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:auto;box-shadow:0 25px 60px rgba(239,68,68,0.2);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">Œ</div>
+      <div>
+        <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Rejeter le document</h5>
+        <p style="color:#64748b;margin:0;font-size:0.8rem;">Le document sera renvoyé au créateur pour correction</p>
+      </div>
+      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
+    </div>
+
+    <form id="rejectForm" method="POST">
+      @csrf
+
+      <!-- Motif -->
+      <div style="margin-bottom:1.2rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">MOTIF DU REJET <span style="color:#ef4444;">*</span></label>
+        <textarea name="motif_rejet" required rows="4"
+          placeholder="Décrivez la raison du rejet et les corrections attendues..."
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'"></textarea>
+      </div>
+
+      <!-- Deadline -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">DEADLINE DE CORRECTION</label>
+        <input type="date" name="deadline_correction"
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;color-scheme:dark;"
+          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'">
+      </div>
+
+      <!-- Buttons -->
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button type="button" onclick="closeRejectModal()"
+          style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+          onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+          Annuler
+        </button>
+        <button type="submit"
+          style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+          ✕ ✓ Confirmer le rejet
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 function openSignModal(id) {
     document.getElementById('sign-modal-' + id).style.display = 'block';
@@ -416,6 +444,18 @@ function openSignModal(id) {
 function closeSignModal(id) {
     document.getElementById('sign-modal-' + id).style.display = 'none';
 }
+function openRejectModal(actionUrl) {
+    document.getElementById('rejectForm').action = actionUrl;
+    document.getElementById('rejectModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+});
 function openTableSignModal(id) {
     document.getElementById('table-sign-modal-' + id).style.display = 'block';
 }
@@ -439,3 +479,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+
+
+
+

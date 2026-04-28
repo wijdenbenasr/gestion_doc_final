@@ -10,6 +10,7 @@ class Transmission extends Model
     protected $fillable = [
         'document_id', 'from_role', 'to_role',
         'action', 'status', 'comment', 'sent_by',
+        'sender_id', 'receiver_id',
     ];
 
     public function document(): BelongsTo

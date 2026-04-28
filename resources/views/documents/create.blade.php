@@ -7,13 +7,13 @@
     <div class="card-header">
         <div>
             <div class="card-title">
-                {{ isset($document) ? 'Modifier : ' . $document->name : 'Créer un nouveau document' }}
+                {{ isset($document) ? 'Modifier : ' . $document->name : 'Crer un nouveau document' }}
             </div>
             <div class="card-sub">
-                Remplissez tous les champs obligatoires (*). Le fichier sera chiffré et un hash SHA-256 calculé.
+                Remplissez tous les champs obligatoires (*). Le fichier sera chiffr et un hash SHA-256 calcul.
             </div>
         </div>
-        <a href="{{ $backRoute ?? route('documents.creator.index') }}" class="btn btn-ghost">← Retour</a>
+        <a href="{{ $backRoute  route('documents.creator.index') }}" class="btn btn-ghost">? Retour</a>
     </div>
 
     <form method="POST"
@@ -22,7 +22,7 @@
         @csrf
         @if(isset($document)) @method('PUT') @endif
 
-        {{-- ── Section 1 : Identification ──────────────────────────────────── --}}
+        {{--  Section 1 : Identification  --}}
         <div class="form-section">
             <div class="form-section-title">Identification du document</div>
             <div class="form-grid">
@@ -90,8 +90,8 @@
             </div>
         </div>
 
-        {{-- ── Section Admin : Code & Créateur (admin only) ─────────────────── --}}
-        @if($isAdmin ?? false)
+        {{--  Section Admin : Code & Crateur (admin only) ? --}}
+        @if($isAdmin  false)
         <div class="form-section">
             <div class="form-section-title">Codification & Attribution</div>
             <div class="form-grid">
@@ -121,60 +121,7 @@
         </div>
         @endif
 
-                {{-- Type de document --}}
-                <div class="field">
-                    <label for="type">Type de document <span class="required">*</span></label>
-                    <select id="type" name="type" required>
-                        <option value="">-- Sélectionner un type --</option>
-                        @foreach($types as $value => $label)
-                            <option value="{{ $value }}"
-                                @selected(old('type', $document->type ?? '') === $value)>
-                                {{ $label }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('type')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
-
-                {{-- AIO --}}
-                <div class="field">
-                    <label for="aio">AIO <span class="required">*</span></label>
-                    <select id="aio" name="aio" required>
-                        <option value="">-- Sélectionner un AIO --</option>
-                        @foreach($aios as $value => $label)
-                            <option value="{{ $value }}"
-                                @selected(old('aio', $document->aio ?? '') === $value)>
-                                {{ $label }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('aio')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
-
-                {{-- Ligne de production --}}
-                <div class="field">
-                    <label for="ligne">
-                        Ligne de production
-                        <span class="required">*</span>
-                        @if(!isset($document) && !$canEditLigne)
-                            <span class="field-badge field-badge-optional"><i class="fas fa-lock"></i> Modifiable par l'admin apres codification</span>
-                        @elseif(isset($document) && !$canEditLigne)
-                            <span class="field-badge field-badge-optional"><i class="fas fa-lock"></i> Modifiable par l'admin uniquement</span>
-                        @endif
-                    </label>
-                    <input id="ligne" type="text" name="ligne"
-                           value="{{ old('ligne', $document->ligne ?? '') }}"
-                           placeholder="Ex : Ligne A, Ligne 3, L12..."
-                           required
-                           @if(!$canEditLigne) readonly @endif
-                           style="{{ !$canEditLigne ? 'background:rgba(148,163,184,0.08);color:var(--muted);' : '' }}">
-                    @error('ligne')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
-
-            </div>
-        </div>
-
-        {{-- ── Section 2 : Phase / Série ───────────────────────────────────── --}}
+        {{--  Section 2 : Phase / Série ? --}}
         <div class="form-section">
             <div class="form-section-title">Phase / Série</div>
             <div class="form-grid">
@@ -183,7 +130,7 @@
                 <div class="field">
                     <label for="phase">Phase <span class="required">*</span></label>
                     <select id="phase" name="phase" required onchange="handlePhaseChange()">
-                        <option value="">-- Sélectionner --</option>
+                        <option value="">-- Slectionner --</option>
                         <option value="serie"  @selected(old('phase', $document->phase ?? '') === 'serie')>Série</option>
                         <option value="projet" @selected(old('phase', $document->phase ?? '') === 'projet')>Projet</option>
                     </select>
@@ -198,8 +145,8 @@
                     </label>
                     <input id="nom_phase" type="text" name="nom_phase"
                            value="{{ old('nom_phase', $document->nom_phase ?? '') }}"
-                           placeholder="Ex : Phase Développement, Phase Pilote, P1...">
-                    <div class="field-hint">Obligatoire quand le type est « Projet ».</div>
+                           placeholder="Ex : Phase Dveloppement, Phase Pilote, P1...">
+                    <div class="field-hint">Obligatoire quand le type est  Projet .</div>
                     @error('nom_phase')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
 
@@ -218,7 +165,7 @@
             </div>
         </div>
 
-        {{-- ── Section 3 : Fichier & Deadline ──────────────────────────────── --}}
+        {{--  Section 3 : Fichier & Deadline  --}}
         <div class="form-section">
             <div class="form-section-title">Fichier & Planning</div>
             <div class="form-grid">
@@ -266,9 +213,9 @@
         </div>
 
         <div class="form-actions">
-            <a href="{{ $backRoute ?? route('documents.creator.index') }}" class="btn btn-ghost">Annuler</a>
+            <a href="{{ $backRoute  route('documents.creator.index') }}" class="btn btn-ghost">Annuler</a>
             <button type="submit" class="btn btn-primary">
-                {{ isset($document) ? '💾 Enregistrer les modifications' : '+ Créer le document' }}
+                {{ isset($document) ? ' Enregistrer les modifications' : '+ Crer le document' }}
             </button>
         </div>
     </form>
@@ -365,3 +312,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endsection
+
+
+
+

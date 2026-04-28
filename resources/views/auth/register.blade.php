@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Créer un compte - Gestion documentaire qualité</title>
@@ -278,14 +279,14 @@
             <div class="login-card">
                 <div class="card-header">
                     <div class="card-title">Créer un compte</div>
-                    <div class="card-sub"> Rejoignez la plateforme documentaire</div>
+                    <div class="card-sub">Rejoignez la plateforme documentaire</div>
                 </div>
 
                 <form method="POST" action="{{ route('register.submit') }}">
                     @csrf
                     @if(session('success') || session('status'))
                         <div class="form-success" style="margin-bottom:1rem;padding:1rem;border-radius:.75rem;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.4);color:#bbf7d0;">
-                            {{ session('success') ?? session('status') }}
+                            {{ session('success')  session('status') }}
                         </div>
                     @endif
                     @if($errors->any())
@@ -377,3 +378,5 @@
     </script>
 </body>
 </html>
+
+

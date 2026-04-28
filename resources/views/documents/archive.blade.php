@@ -397,7 +397,7 @@
                         <input type="date" name="date_from" class="filter-input" value="{{ $filters['date_from'] ?? '' }}">
                     </div>
                     <div class="filter-field">
-                        <label class="filter-label">Date à</label>
+                        <label class="filter-label">Date </label>
                         <input type="date" name="date_to" class="filter-input" value="{{ $filters['date_to'] ?? '' }}">
                     </div>
                 </div>
@@ -408,7 +408,7 @@
                     </button>
                     <a href="{{ route('documents.archive') }}" class="btn-filter-toggle">
                         <i class="fas fa-times"></i>
-                        Réinitialiser
+                        Rinitialiser
                     </a>
                 </div>
             </div>
@@ -420,13 +420,13 @@
             <div class="empty-icon">
                 <i class="fas fa-folder-open"></i>
             </div>
-            <h3 class="empty-title">Aucun document trouvé</h3>
-            <p class="empty-message">Aucun document finalisé ne correspond à vos critères de recherche.</p>
+            <h3 class="empty-title">Aucun document trouv</h3>
+            <p class="empty-message">Aucun document finalis ne correspond  vos critres de recherche.</p>
         </div>
     @else
         <div class="results-header">
             <div class="results-count">
-                <strong>{{ $documents->total() }}</strong> document(s) trouvé(s)
+                <strong>{{ $documents->total() }}</strong> document(s) trouv(s)
             </div>
         </div>
 
@@ -457,14 +457,14 @@
                     <div class="doc-details">
                         <div class="doc-detail">
                             <span class="doc-detail-label">Phase</span>
-                            <span class="doc-detail-value">{{ $document->phase_libelle ?? '—' }}</span>
+                            <span class="doc-detail-value">{{ $document->phase_libelle ?? '-' }}</span>
                         </div>
                         <div class="doc-detail">
                             <span class="doc-detail-label">Ligne</span>
-                            <span class="doc-detail-value">{{ $document->ligne ?? '—' }}</span>
+                            <span class="doc-detail-value">{{ $document->ligne ?? '-' }}</span>
                         </div>
                         <div class="doc-detail">
-                            <span class="doc-detail-label">Finalisé le</span>
+                            <span class="doc-detail-label">Finalis le</span>
                             <span class="doc-detail-value">{{ $document->updated_at->format('d/m/Y') }}</span>
                         </div>
                     </div>
@@ -511,3 +511,7 @@ if (hasActiveFilters) {
 }
 </script>
 @endsection
+
+
+
+
