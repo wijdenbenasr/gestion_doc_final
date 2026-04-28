@@ -17,7 +17,7 @@ class ExportController extends Controller
     {
         $this->authorize('view', $document);
 
-        abort_if($document->status !== 'finalized', 403, 'Le PDF final est disponible apres finalisation du document.');
+        abort_if($document->status !== 'archived', 403, 'Le PDF final est disponible apres finalisation du document.');
 
         $document->load(['signatures.user', 'creator', 'versions.creator']);
 
@@ -119,6 +119,87 @@ class ExportController extends Controller
         $headers = [
             'Content-Type' => 'application/vnd.ms-word; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="qms_suivi_documents_'.now()->format('Y-m-d').'.doc"',
+        ];
+
+        return response($html, 200, $headers);
+    }
+
+    public function logsDownloadPdf()
+    {
+        $auditLogs = \App\Models\AuditLog::with(['user', 'auditable'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $transmissions = \App\Models\Transmission::with(['user', 'document'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $actionLabels = [
+            'login' => 'Connexion',
+            'logout' => 'Déconnexion',
+            'creator signed' => 'Créateur a signé',
+            'approver signed' => 'Approbateur a signé',
+            'admin signed final' => 'Admin a signé (final)',
+            'approver approved' => 'Approbateur a approuvé',
+            'validator validated' => 'Validateur a validé',
+            'creator sent to validator' => 'Créateur a envoyé au validateur',
+            'creator sent to admin' => 'Créateur a envoyé à l\'admin',
+            'admin validated' => 'Admin a validé',
+            'admin codified' => 'Admin a codifié',
+            'document codified' => 'Document codifié',
+            'document converted to pdf' => 'Document converti en PDF',
+            'user created' => 'Utilisateur créé',
+        ];
+
+        $pdf = Pdf::loadView('documents.export.logs', [
+            'auditLogs' => $auditLogs,
+            'transmissions' => $transmissions,
+            'generatedAt' => now(),
+            'actionLabels' => $actionLabels,
+        ])->setPaper('A4', 'portrait');
+
+        return $pdf->download('qms_journaux_traceabilite_'.now()->format('Y-m-d').'.pdf');
+    }
+
+    public function logsDownloadWord()
+    {
+        $auditLogs = \App\Models\AuditLog::with(['user', 'auditable'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $transmissions = \App\Models\Transmission::with(['user', 'document'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $actionLabels = [
+            'login' => 'Connexion',
+            'logout' => 'Déconnexion',
+            'creator signed' => 'Créateur a signé',
+            'approver signed' => 'Approbateur a signé',
+            'admin signed final' => 'Admin a signé (final)',
+            'approver approved' => 'Approbateur a approuvé',
+            'validator validated' => 'Validateur a validé',
+            'creator sent to validator' => 'Créateur a envoyé au validateur',
+            'creator sent to admin' => 'Créateur a envoyé à l\'admin',
+            'admin validated' => 'Admin a validé',
+            'admin codified' => 'Admin a codifié',
+            'document codified' => 'Document codifié',
+            'document converted to pdf' => 'Document converti en PDF',
+            'user created' => 'Utilisateur créé',
+        ];
+
+        $html = view('documents.export.logs', [
+            'auditLogs' => $auditLogs,
+            'transmissions' => $transmissions,
+            'generatedAt' => now(),
+            'actionLabels' => $actionLabels,
+        ])->render();
+
+        $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body>'.$html.'</body></html>';
+
+        $headers = [
+            'Content-Type' => 'application/vnd.ms-word; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="qms_journaux_traceabilite_'.now()->format('Y-m-d').'.doc"',
         ];
 
         return response($html, 200, $headers);

@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - QMS Doc Control</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     @yield('styles')
     <style>
@@ -341,6 +342,7 @@
         .btn-danger { background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(15,23,42,0.95)); border-color: rgba(239,68,68,0.4); }
         .btn-sm { padding: .25rem .55rem; font-size: .72rem; }
         .btn-primary { background: linear-gradient(135deg, rgba(14,165,233,0.28), rgba(15,23,42,0.95)); border-color: rgba(14,165,233,0.6); font-weight: 600; }
+        .btn-admin-create { border-radius: 999px; padding: .55rem 1.25rem; font-size: .85rem; font-weight: 700; margin-left: auto; }
         main { padding: 1.5rem 2rem; }
         .main-inner { max-width: 1280px; margin: 0 auto 4rem; }
         .alert {
@@ -569,18 +571,18 @@
                 @endif
 
                 @if($role === 'admin')
-                    <a href="{{ route('admin.documents.create') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus"></i> Creer
-                    </a>
                     <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
                     <a href="{{ route('admin.documents.codification') }}" class="nav-link {{ request()->routeIs('admin.documents.codification') ? 'active' : '' }}">Codification</a>
                     <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">Utilisateurs</a>
+                    <a href="{{ route('admin.documents.create') }}" class="btn btn-primary btn-admin-create">
+                        <i class="fas fa-plus"></i> Créer
+                    </a>
                 @endif
 
                 <a href="{{ route('documents.archive') }}" class="nav-link {{ request()->routeIs('documents.archive') ? 'active' : '' }}">Archive</a>
 
                 <div class="dropdown" style="position: relative;">
-                    <button type="button" class="notification-bell" onclick="toggleNotifDropdown(this)" style="background:transparent;border:1px solid var(--border);border-radius:.5rem;padding:.35rem .5rem;cursor:pointer;">
+                    <button type="button" class="notification-bell" onclick="toggleNotifDropdown(event, this)" style="background:transparent;border:1px solid var(--border);border-radius:.5rem;padding:.35rem .5rem;cursor:pointer;">
                         🔔
                         @if(auth()->user()->unreadNotifications->count() > 0)
                             <span class="notification-badge">
@@ -614,13 +616,14 @@
 
                 <div class="profile-menu-container">
                     <button type="button" class="profile-trigger {{ $accountMenuActive ? 'active' : '' }}" onclick="toggleProfileMenu(event)" aria-label="Ouvrir le menu profil">
-                        <span class="profile-avatar profile-avatar-sm">
-                            @if($user->profile_image_url)
-                                <img src="{{ $user->profile_image_url }}" alt="Photo de profil de {{ $user->full_name }}">
-                            @else
-                                {{ $user->initials }}
-                            @endif
-                        </span>
+                        @if($user->profile_photo)
+                            <img src="{{ \Illuminate\Support\Facades\Storage::url($user->profile_photo) }}"
+                                 style="width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:center;border:2px solid #3b82f6;">
+                        @else
+                            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:bold;color:white;">
+                                {{ strtoupper(substr($user->prenom,0,1)) }}{{ strtoupper(substr($user->name,0,1)) }}
+                            </div>
+                        @endif
                         <span class="profile-trigger-copy">
                             <span class="profile-trigger-name">{{ $user->full_name }}</span>
                             <span class="profile-trigger-role">{{ $user->role_label }}</span>
@@ -632,13 +635,14 @@
 
                     <div class="profile-dropdown" id="profileDropdown">
                         <div class="profile-summary">
-                            <span class="profile-avatar profile-avatar-lg">
-                                @if($user->profile_image_url)
-                                    <img src="{{ $user->profile_image_url }}" alt="Photo de profil de {{ $user->full_name }}">
-                                @else
-                                    {{ $user->initials }}
-                                @endif
-                            </span>
+                            @if($user->profile_photo)
+                                <img src="{{ \Illuminate\Support\Facades\Storage::url($user->profile_photo) }}"
+                                     style="width:110px;height:110px;border-radius:50%;object-fit:cover;object-position:center;border:3px solid #3b82f6;">
+                            @else
+                                <div style="width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:bold;color:white;">
+                                    {{ strtoupper(substr($user->prenom,0,1)) }}{{ strtoupper(substr($user->name,0,1)) }}
+                                </div>
+                            @endif
                             <div>
                                 <div class="profile-summary-name"><i class="fa fa-user"></i> {{ $user->full_name }}</div>
                                 <div class="profile-summary-role">{{ $user->role_label }}</div>
@@ -690,14 +694,26 @@
 
 <main>
     <div class="main-inner">
-        @if(session('status'))
-            <div class="alert alert-success"><i class="fas fa-check-circle"></i> {{ session('status') }}</div>
+        @if(session('success') || session('status'))
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                {{ session('success') ?? session('status') }}
+            </div>
         @endif
         @if(session('error'))
-            <div class="alert alert-error">{{ session('error') }}</div>
+            <div class="alert alert-error">
+                <i class="fas fa-times-circle"></i> {{ session('error') }}
+            </div>
+        @endif
+        @if(session('warning'))
+            <div class="alert alert-error" style="background:rgba(234,179,8,0.08);border-color:rgba(234,179,8,0.4);color:#fde68a;">
+                <i class="fas fa-exclamation-triangle"></i> {{ session('warning') }}
+            </div>
         @endif
         @if($errors->any())
-            <div class="alert alert-error">{{ $errors->first() }}</div>
+            <div class="alert alert-error">
+                <i class="fas fa-times-circle"></i> {{ $errors->first() }}
+            </div>
         @endif
 
         @yield('content')
@@ -753,34 +769,19 @@ function closeProfileMenu() {
     dropdown.classList.remove('active');
 }
 
-document.querySelectorAll('.dropdown-toggle').forEach(function(btn) {
-    btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const dropdown = this.nextElementSibling;
-        document.querySelectorAll('.dropdown-menu.show').forEach(function(d) {
-            if (d !== dropdown) d.classList.remove('show');
-        });
-        if (dropdown) dropdown.classList.toggle('show');
-    });
-});
-
-document.addEventListener('click', function() {
-    document.querySelectorAll('.dropdown-menu.show').forEach(function(d) {
-        d.classList.remove('show');
-    });
-});
-
 function toggleMenu(btn) {
     const menu = btn.nextElementSibling;
     const rect = btn.getBoundingClientRect();
     menu.style.top = (rect.bottom + 5) + 'px';
     menu.style.left = (rect.left - 100) + 'px';
     menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-    event.stopPropagation();
+    const evt = window.event;
+    if (evt) evt.stopPropagation();
 }
 
-function toggleNotifDropdown(btn) {
-    event.stopPropagation();
+function toggleNotifDropdown(event, btn) {
+    const evt = (event && event.target) ? event : window.event;
+    if (evt) evt.stopPropagation();
     const dropdown = btn.nextElementSibling;
     document.querySelectorAll('.notif-dropdown').forEach(function(d) {
         if (d !== dropdown) d.style.display = 'none';
@@ -800,12 +801,14 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function toggleRowActions(btn) {
+function toggleRowActions(event, btn) {
+    const evt = (event && event.target) ? event : window.event;
+    if (!btn) btn = event;
     var menu = btn.nextElementSibling;
     var isOpen = menu.style.display === 'block';
     document.querySelectorAll('.row-actions-menu').forEach(function(m) { m.style.display = 'none'; });
     if (!isOpen) { menu.style.display = 'block'; }
-    event.stopPropagation();
+    if (evt) evt.stopPropagation();
 }
 
 document.addEventListener('click', function(event) {
@@ -824,6 +827,8 @@ document.addEventListener('click', function(event) {
     }
 });
 </script>
+@include('components.delete-modal')
+@yield('modals')
 @yield('scripts')
 </body>
 </html>

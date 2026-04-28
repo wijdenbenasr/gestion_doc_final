@@ -54,7 +54,7 @@ class WorkflowService
                 $this->documentNotificationService->notifyUser(
                     $document->creator,
                     $document,
-                    'Votre document a ete codifie. Vous pouvez maintenant le signer et l envoyer au validateur.',
+                    'Votre document à été codifié. Vous pouvez maintenant le modifier et l\'envoyer au validateur.',
                     'coded'
                 );
             }

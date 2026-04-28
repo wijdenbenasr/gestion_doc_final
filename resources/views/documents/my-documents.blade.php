@@ -43,7 +43,7 @@
         <div class="stat-value" style="color:#f87171;">{{ (int) ($stats->rejected ?? 0) }}</div>
         <div class="stat-meta">A corriger et renvoyer</div>
     </a>
-    <a href="{{ route('documents.my', ['status' => 'finalized']) }}" class="stat-card {{ $status === 'finalized' ? 'active' : '' }}">
+    <a href="{{ route('documents.my', ['status' => 'archived']) }}" class="stat-card {{ $status === 'archived' ? 'active' : '' }}">
         <div class="stat-label">Archives</div>
         <div class="stat-value" style="color:#4ade80;">{{ (int) ($stats->finalized ?? 0) }}</div>
         <div class="stat-meta">Documents finalises</div>
@@ -102,7 +102,7 @@
                         <td><span class="badge badge-info">{{ \App\Models\Document::AIOS[$document->aio] ?? $document->aio }}</span></td>
                         <td>{{ $document->ligne }}</td>
                         <td style="font-size:.72rem;">{{ $document->phase_libelle }}</td>
-                        <td style="font-family:monospace;font-size:.75rem;">v{{ $document->revision }}</td>
+                        <td style="font-family:monospace;font-size:.75rem;">{{ $document->revision }}</td>
                         <td style="font-size:.72rem;">
                             @if($document->deadline)
                                 <span style="{{ $document->deadline->isPast() ? 'color:var(--danger);' : '' }}">{{ $document->deadline->format('d/m/Y') }}</span>
@@ -111,16 +111,18 @@
                             @endif
                         </td>
                         <td>
-                            @php
-                                $statusConfig = [
-                                    'draft' => ['badge-muted', 'Brouillon'],
-                                    'pending_codification' => ['badge-warning', 'Codification'],
-                                    'in_validation' => ['badge-info', 'En validation'],
-                                    'ready_for_pdf' => ['badge-success', 'Prêt pour PDF'],
-                                    'rejected' => ['badge-danger', 'Rejeté'],
-                                    'finalized' => ['badge-success', 'Finalisé'],
-                                ];
-                                $status = $statusConfig[$document->status] ?? ['badge-muted', $document->status];
+                @php
+                                 $statusConfig = [
+                                     'draft' => ['badge-muted', 'Brouillon'],
+                                     'EN_MODIFICATION' => ['badge-warning', 'En modification'],
+                                     'pending_codification' => ['badge-warning', 'Codification'],
+                                     'in_validation' => ['badge-info', 'En validation'],
+                                     'ready_for_pdf' => ['badge-success', 'Pret pour PDF'],
+                                     'pdf_converted' => ['badge-success', 'PDF converti'],
+                                     'rejected' => ['badge-danger', 'Rejete'],
+                                     'archived' => ['badge-success', 'Finalise'],
+                                 ];
+                                 $status = $statusConfig[strtolower($document->status)] ?? ['badge-muted', $document->status];
                             @endphp
                             <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
                         </td>
@@ -130,7 +132,7 @@
                                     Actions
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    @if(in_array($document->status, ['draft', 'rejected']) && auth()->user()->role === 'creator')
+                                    @if(in_array($document->status, ['draft', 'rejected', 'EN_MODIFICATION']) && auth()->user()->role === 'creator')
                                         <li><a class="dropdown-item" href="{{ route('documents.edit', $document) }}"><i class="fas fa-edit me-2"></i>Modifier</a></li>
                                     @endif
                                     @if($document->status === 'draft' && empty($document->code) && auth()->user()->role === 'creator')
@@ -141,7 +143,7 @@
                                             </form>
                                         </li>
                                     @endif
-                                    @if($document->status === 'draft' && !empty($document->code) && auth()->user()->role === 'creator')
+                                    @if(in_array($document->status, ['draft', 'EN_MODIFICATION']) && !empty($document->code) && auth()->user()->role === 'creator')
                                         <li>
                                             <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
                                                 @csrf
@@ -152,7 +154,10 @@
                                     @if($document->status === 'ready_for_pdf' && auth()->user()->role === 'creator')
                                         <li><a class="dropdown-item" href="{{ route('documents.convert.pdf', $document) }}" target="_blank"><i class="fas fa-file-pdf me-2"></i>Convertir en PDF</a></li>
                                     @endif
-                                    @if($document->status === 'finalized')
+                                    @if(strtolower($document->status) === 'pdf_converted' && auth()->user()->role === 'creator')
+                                        <li><a class="dropdown-item" href="{{ route('documents.sign.form', $document->id) }}"><i class="fas fa-signature me-2"></i>Signer</a></li>
+                                    @endif
+                                    @if($document->status === 'archived')
                                         <li><a class="dropdown-item" href="{{ route('documents.export.pdf', $document) }}"><i class="fas fa-file-pdf me-2"></i>PDF final</a></li>
                                     @endif
                                     <li><a class="dropdown-item" href="{{ route('documents.download', $document) }}"><i class="fas fa-download me-2"></i>Telecharger</a></li>

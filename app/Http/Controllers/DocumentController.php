@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\DTOs\DocumentData;
 use App\Models\Document;
+use App\Models\User;
 use App\Repositories\Interfaces\DocumentRepositoryInterface;
 use App\Services\DocumentService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -37,17 +38,29 @@ class DocumentController extends Controller
     public function indexCreator(Request $request): View
     {
         $status = $request->query('status');
-        $documents = $this->documentRepository->getByRolePaginated('creator', Auth::id(), $status);
+        $userId = Auth::id();
+        $documents = Document::with(['creator'])
+            ->where(function ($q) use ($userId) {
+                $q->where('created_by', $userId)
+                  ->orWhere('current_owner_id', $userId);
+            })
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->latest()
+            ->paginate(20);
 
         $stats = Document::query()
-            ->where('created_by', Auth::id())
+            ->where(function ($q) use ($userId) {
+                $q->where('created_by', $userId)
+                  ->orWhere('current_owner_id', $userId);
+            })
             ->selectRaw("
                 SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as drafts,
+                SUM(CASE WHEN status = 'EN_MODIFICATION' THEN 1 ELSE 0 END) as en_modification,
                 SUM(CASE WHEN status = 'pending_codification' THEN 1 ELSE 0 END) as pending_codification,
                 SUM(CASE WHEN status = 'in_validation' THEN 1 ELSE 0 END) as in_validation,
                 SUM(CASE WHEN status = 'ready_for_pdf' THEN 1 ELSE 0 END) as ready_for_pdf,
                 SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
-                SUM(CASE WHEN status = 'finalized' THEN 1 ELSE 0 END) as finalized
+                SUM(CASE WHEN status = 'archived' THEN 1 ELSE 0 END) as finalized
             ")
             ->first();
 
@@ -56,7 +69,11 @@ class DocumentController extends Controller
     public function myDocuments(Request $request): View
     {
         $status = $request->query('status');
-        $query = Document::with(['creator'])->where('created_by', Auth::id())->latest();
+        $userId = Auth::id();
+        $query = Document::with(['creator'])->where(function ($q) use ($userId) {
+            $q->where('created_by', $userId)
+              ->orWhere('current_owner_id', $userId);
+        })->latest();
 
         if ($status) {
             $query->where('status', $status);
@@ -65,14 +82,18 @@ class DocumentController extends Controller
         $documents = $query->paginate(20);
 
         $stats = Document::query()
-            ->where('created_by', Auth::id())
+            ->where(function ($q) use ($userId) {
+                $q->where('created_by', $userId)
+                  ->orWhere('current_owner_id', $userId);
+            })
             ->selectRaw("
                 SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as drafts,
+                SUM(CASE WHEN status = 'EN_MODIFICATION' THEN 1 ELSE 0 END) as en_modification,
                 SUM(CASE WHEN status = 'pending_codification' THEN 1 ELSE 0 END) as pending_codification,
                 SUM(CASE WHEN status = 'in_validation' THEN 1 ELSE 0 END) as in_validation,
                 SUM(CASE WHEN status = 'ready_for_pdf' THEN 1 ELSE 0 END) as ready_for_pdf,
                 SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
-                SUM(CASE WHEN status = 'finalized' THEN 1 ELSE 0 END) as finalized
+                SUM(CASE WHEN status = 'archived' THEN 1 ELSE 0 END) as finalized
             ")
             ->first();
 
@@ -81,7 +102,7 @@ class DocumentController extends Controller
     public function archive(Request $request): View
     {
         $query = Document::with(['creator'])
-            ->where('status', 'finalized')
+            ->where('status', 'archived')
             ->latest();
 
         if ($request->filled('search')) {
@@ -123,9 +144,11 @@ class DocumentController extends Controller
 
     public function create(): View
     {
-        $isAdmin = auth()->user()->role === 'admin';
+        $user = auth()->user();
+        $isAdmin = $user->role === 'admin';
         $canEditLigne = true;
         $backRoute = $isAdmin ? route('admin.dashboard') : route('documents.creator.index');
+        $createurs = $isAdmin ? User::where('role', 'createur')->where('statut', 'approuve')->get() : collect();
 
         return view('documents.create', [
             'types' => Document::TYPES,
@@ -133,14 +156,17 @@ class DocumentController extends Controller
             'document' => null,
             'canEditLigne' => $canEditLigne,
             'backRoute' => $backRoute,
+            'isAdmin' => $isAdmin,
+            'createurs' => $createurs,
         ]);
     }
 
     public function store(Request $request): RedirectResponse|JsonResponse
     {
-        $isAdmin = $request->user()->role === 'admin';
+        $user = $request->user();
+        $isAdmin = $user->role === 'admin';
 
-        $data = $request->validate([
+        $validationRules = [
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:'.implode(',', array_keys(Document::TYPES))],
             'aio' => ['required', 'in:'.implode(',', array_keys(Document::AIOS))],
@@ -150,38 +176,71 @@ class DocumentController extends Controller
             'nom_serie' => ['nullable', 'string', 'max:255'],
             'deadline' => ['nullable', 'date', 'after:today'],
             'file' => ['required', 'file', 'mimes:docx,xlsx,pdf', 'max:20480'],
-        ], [
+        ];
+
+        $validationMessages = [
             'nom_phase.required_if' => 'Le nom de la phase est obligatoire lorsque le type est "Projet".',
             'type.in' => 'Type de document invalide.',
             'aio.in' => 'AIO invalide.',
             'file.mimes' => 'Format accepte : .docx, .xlsx, .pdf (max 20 Mo).',
-        ]);
+        ];
+
+        if ($isAdmin) {
+            $validationRules['code'] = ['required', 'string', 'max:255', 'unique:documents,code'];
+            $validationRules['createur_id'] = ['required', 'exists:users,id'];
+            $validationMessages['code.unique'] = 'Ce code existe deja.';
+            $validationMessages['createur_id.exists'] = 'Le createur selectionne est invalide.';
+        }
+
+        $data = $request->validate($validationRules, $validationMessages);
 
         $ligne = $isAdmin ? $data['ligne'] : ($data['ligne'] ?: 'Ligne 1');
 
-        $document = $this->documentService->createDocument(
-            new DocumentData(
-                name: $data['name'],
-                type: $data['type'],
-                aio: $data['aio'],
-                ligne: $ligne,
-                phase: $data['phase'],
-                nom_phase: $data['nom_phase'] ?? null,
-                nom_serie: $data['nom_serie'] ?? null,
-                deadline: $data['deadline'] ?? null,
-            ),
-            $request->file('file'),
-            $request->user()
-        );
+        if ($isAdmin) {
+            $document = $this->documentService->createDocumentWithCode(
+                new DocumentData(
+                    name: $data['name'],
+                    type: $data['type'],
+                    aio: $data['aio'],
+                    ligne: $ligne,
+                    phase: $data['phase'],
+                    nom_phase: $data['nom_phase'] ?? null,
+                    nom_serie: $data['nom_serie'] ?? null,
+                    deadline: $data['deadline'] ?? null,
+                ),
+                $request->file('file'),
+                $user,
+                $data['code'],
+                $data['createur_id']
+            );
+
+            $redirectRoute = 'admin.dashboard';
+            $message = 'Document "'.$document->name.'" cree et assigne au createur avec succes.';
+        } else {
+            $document = $this->documentService->createDocument(
+                new DocumentData(
+                    name: $data['name'],
+                    type: $data['type'],
+                    aio: $data['aio'],
+                    ligne: $ligne,
+                    phase: $data['phase'],
+                    nom_phase: $data['nom_phase'] ?? null,
+                    nom_serie: $data['nom_serie'] ?? null,
+                    deadline: $data['deadline'] ?? null,
+                ),
+                $request->file('file'),
+                $user
+            );
+
+            $redirectRoute = 'documents.creator.index';
+            $message = 'Document "'.$document->name.'" cree avec succes.';
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['message' => 'Document cree.', 'data' => $document], 201);
         }
 
-        $redirectRoute = $isAdmin ? 'admin.dashboard' : 'documents.creator.index';
-
-        return redirect()->route($redirectRoute)
-            ->with('status', 'Document "'.$document->name.'" cree avec succes.');
+        return redirect()->route($redirectRoute)->with('status', $message);
     }
 
     public function edit(Document $document): View
@@ -198,6 +257,7 @@ class DocumentController extends Controller
             'document' => $document,
             'canEditLigne' => $canEditLigne,
             'backRoute' => $backRoute,
+            'isAdmin' => $isAdmin,
         ]);
     }
 
@@ -285,7 +345,7 @@ class DocumentController extends Controller
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('documents.pdf_template', compact('document'));
 
         $document->pdf_converti = true;
-        $document->status = 'pdf_converti';
+        $document->status = 'pdf_converted';
         $document->save();
 
         return $pdf->download($document->code . '_' . str_replace(' ', '_', $document->name) . '.pdf');

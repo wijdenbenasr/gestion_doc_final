@@ -46,7 +46,7 @@ class Document extends Model
         'signing_validator' => 'Signature validateur',
         'signing_approver' => 'Signature approbateur',
         'signing_admin' => 'Signature admin finale',
-        'finalized' => 'Archivé',
+        'archived' => 'Archivé',
         'rejected' => 'Rejeté',
     ];
 
@@ -145,6 +145,13 @@ class Document extends Model
     public function getStatusLibelleAttribute(): string
     {
         return self::STATUSES[$this->status] ?? $this->status;
+    }
+
+    public function getRevisionAttribute(): string
+    {
+        $major = $this->revision_major ?? 1;
+        $minor = $this->revision_minor ?? 0;
+        return "v{$major}.{$minor}";
     }
 
     public function getPhaseLibelleAttribute(): string

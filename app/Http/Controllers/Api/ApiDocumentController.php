@@ -45,7 +45,7 @@ class ApiDocumentController extends BaseApiController
             'pending_codification' => (clone $baseQuery)->where('status', 'pending_codification')->count(),
             'in_validation' => (clone $baseQuery)->where('status', 'in_validation')->count(),
             'rejected' => (clone $baseQuery)->where('status', 'rejected')->count(),
-            'finalized' => (clone $baseQuery)->where('status', 'finalized')->count(),
+            'archived' => (clone $baseQuery)->where('status', 'archived')->count(),
         ]);
     }
 

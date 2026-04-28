@@ -3,11 +3,16 @@
 @section('title', 'Mes documents')
 
 @section('content')
-<div class="cards-row" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1rem;">
+<div class="cards-row" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1rem;">
     <a href="{{ route('documents.creator.index', ['status' => 'draft']) }}" class="stat-card {{ $status === 'draft' ? 'active' : '' }}">
         <div class="stat-label">Brouillons</div>
         <div class="stat-value">{{ (int) ($stats->drafts ?? 0) }}</div>
         <div class="stat-meta">Documents encore modifiables</div>
+    </a>
+    <a href="{{ route('documents.creator.index', ['status' => 'EN_MODIFICATION']) }}" class="stat-card {{ $status === 'EN_MODIFICATION' ? 'active' : '' }}">
+        <div class="stat-label">En modification</div>
+        <div class="stat-value" style="color:#f59e0b;">{{ (int) ($stats->en_modification ?? 0) }}</div>
+        <div class="stat-meta">Assignes par l admin</div>
     </a>
     <a href="{{ route('documents.creator.index', ['status' => 'pending_codification']) }}" class="stat-card {{ $status === 'pending_codification' ? 'active' : '' }}">
         <div class="stat-label">Codification</div>
@@ -31,7 +36,7 @@
         <div class="stat-value" style="color:#f87171;">{{ (int) ($stats->rejected ?? 0) }}</div>
         <div class="stat-meta">A corriger et renvoyer</div>
     </a>
-    <a href="{{ route('documents.creator.index', ['status' => 'finalized']) }}" class="stat-card {{ $status === 'finalized' ? 'active' : '' }}">
+    <a href="{{ route('documents.creator.index', ['status' => 'archived']) }}" class="stat-card {{ $status === 'archived' ? 'active' : '' }}">
         <div class="stat-label">Archives</div>
         <div class="stat-value" style="color:#4ade80;">{{ (int) ($stats->finalized ?? 0) }}</div>
         <div class="stat-meta">Documents finalises</div>
@@ -61,7 +66,7 @@
                     Aucun document pret pour PDF.
                 @elseif($status === 'rejected')
                     Aucun document rejecte.
-                @elseif($status === 'finalized')
+                @elseif($status === 'archived')
                     Aucun document finalise.
                 @else
                     Aucun document pour le moment.
@@ -105,7 +110,7 @@
                         <td><span class="badge badge-info">{{ \App\Models\Document::AIOS[$document->aio] ?? $document->aio }}</span></td>
                         <td>{{ $document->ligne }}</td>
                         <td style="font-size:.72rem;">{{ $document->phase_libelle }}</td>
-                        <td style="font-family:monospace;font-size:.75rem;">v{{ $document->revision }}</td>
+                        <td style="font-family:monospace;font-size:.75rem;">{{ $document->revision }}</td>
                         <td style="font-size:.72rem;">
                             @if($document->deadline)
                                 <span style="{{ $document->deadline->isPast() ? 'color:var(--danger);' : '' }}">{{ $document->deadline->format('d/m/Y') }}</span>
@@ -117,10 +122,11 @@
                             @php
                                 $statusConfig = [
                                     'draft' => ['badge-muted', 'Brouillon'],
+                                    'EN_MODIFICATION' => ['badge-warning', 'En modification'],
                                     'pending_codification' => ['badge-warning', 'Codification'],
                                     'in_validation' => ['badge-info', 'En validation'],
                                     'rejected' => ['badge-danger', 'Rejete'],
-                                    'finalized' => ['badge-success', 'Finalise'],
+                                    'archived' => ['badge-success', 'Finalise'],
                                 ];
                                 $status = $statusConfig[$document->status] ?? ['badge-muted', $document->status];
                             @endphp
@@ -132,64 +138,63 @@
                                     Actions ▾
                                 </button>
                                 <ul id="dropdown-{{ $document->id }}" class="dropdown-menu dropdown-menu-end" style="display:none;position:absolute;right:0;z-index:1000;background:#1a2035;border:1px solid rgba(255,255,255,0.1);min-width:180px;">
-                                    
-                                    <li><a class="dropdown-item" href="{{ route('documents.download', $document) }}" style="color:#e5e7eb;"><i class="fas fa-link me-2"></i> Source</a></li>
+                                     
+                                        <li><a class="dropdown-item" href="{{ route('documents.download', $document) }}" style="color:#e5e7eb;"><i class="fas fa-link me-2"></i> Télécharger</a></li>
 
-                                    {{-- MODIFIER : draft/brouillon/rejected --}}
-                                    @if(in_array($document->status, ['draft', 'brouillon', 'rejected']))
-                                        <li><a class="dropdown-item" href="{{ route('documents.edit', $document) }}" style="color:#e5e7eb;"><i class="fas fa-edit me-2"></i> Modifier</a></li>
-                                    @endif
-
-                                    {{-- ENVOYER A L'ADMIN : draft sans code --}}
-                                    @if(in_array($document->status, ['draft', 'brouillon']) && empty($document->code))
-                                        <li>
-                                            <form method="POST" action="{{ route('workflow.creator.send', $document) }}">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item" style="color:#3b82f6;"><i class="fas fa-paper-plane me-2"></i> Envoyer a l admin</button>
-                                            </form>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <form method="POST" action="{{ route('documents.requestDeletion', $document) }}" onsubmit="return confirm('Supprimer ce document ?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i> Supprimer</button>
-                                            </form>
-                                        </li>
-                                    @endif
-
-                                    {{-- ENVOYER AU VALIDATEUR : draft AVEC code (document codifie) --}}
-                                    @if(in_array($document->status, ['draft', 'brouillon']) && !empty($document->code))
-                                        <li>
-                                            <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item" style="color:#3b82f6;"><i class="fas fa-paper-plane me-2"></i> Envoyer au validateur</button>
-                                            </form>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <form method="POST" action="{{ route('documents.requestDeletion', $document) }}" onsubmit="return confirm('Supprimer ce document ?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i> Supprimer</button>
-                                            </form>
-                                        </li>
-                                    @endif
-
-                                    {{-- CONVERTIR EN PDF / SIGNER --}}
-                                    @if(in_array($document->status, ['ready_for_pdf', 'pdf_converti']))
-                                        @if($document->status === 'ready_for_pdf')
-                                            <li><a class="dropdown-item" href="{{ route('workflow.creator.convert_pdf', ['id' => $document->id]) }}" target="_blank" style="color:#fbbf24;"><i class="fas fa-file-pdf me-2"></i> Convertir en PDF</a></li>
+                                        {{-- MODIFIER : draft/brouillon/rejected/EN_MODIFICATION --}}
+                                        @if(in_array($document->status, ['draft', 'brouillon', 'rejected', 'EN_MODIFICATION']))
+                                            <li><a class="dropdown-item" href="{{ route('documents.edit', $document) }}" style="color:#e5e7eb;"><i class="fas fa-edit me-2"></i> Modifier</a></li>
                                         @endif
-                                        <li><a class="dropdown-item" href="#" onclick="showSignerModal({{ $document->id }})" style="color:#22c55e;"><i class="fas fa-signature me-2"></i> Signer et envoyer</a></li>
-                                    @endif
 
-                                    {{-- PDF FINAL --}}
-                                    @if($document->status === 'archived')
-                                        <li><a class="dropdown-item" href="{{ route('documents.export.pdf', $document) }}" style="color:#22c55e;"><i class="fas fa-file-pdf me-2"></i> PDF final</a></li>
-                                    @endif
+                                        {{-- ENVOYER A L'ADMIN : draft sans code --}}
+                                        @if(in_array($document->status, ['draft', 'brouillon']) && empty($document->code))
+                                            <li>
+                                                <form method="POST" action="{{ route('workflow.creator.send', $document) }}">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item" style="color:#3b82f6;"><i class="fas fa-paper-plane me-2"></i> Envoyer a l admin</button>
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button"
+                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom ?? $document->name ?? '' }}', 'Supprimer le document')"
+                                                        class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i> Supprimer</button>
+                                            </li>
+                                        @endif
 
-                                </ul>
+                                        {{-- ENVOYER AU VALIDATEUR : draft/EN_MODIFICATION AVEC code --}}
+                                        @if(in_array($document->status, ['draft', 'brouillon', 'EN_MODIFICATION']) && !empty($document->code))
+                                            <li>
+                                                <form method="POST" action="{{ route('workflow.creator.send_to_validator', $document) }}">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item" style="color:#3b82f6;"><i class="fas fa-paper-plane me-2"></i> Envoyer au validateur</button>
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button"
+                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom ?? $document->name ?? '' }}', 'Supprimer le document')"
+                                                        class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i> Supprimer</button>
+                                            </li>
+                                        @endif
+
+                                        {{-- CONVERTIR EN PDF / SIGNER --}}
+                                        @if(in_array(strtolower($document->status), ['ready_for_pdf', 'pdf_converted']))
+                                            @if(strtolower($document->status) === 'ready_for_pdf')
+                                                <li><a class="dropdown-item" href="{{ route('workflow.creator.convert_pdf', ['id' => $document->id]) }}" target="_blank" style="color:#fbbf24;"><i class="fas fa-file-pdf me-2"></i> Convertir en PDF</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="showSignerModal({{ $document->id }})" style="color:#22c55e;"><i class="fas fa-signature me-2"></i> Signer et envoyer</a></li>
+                                            @endif
+                                            @if(strtolower($document->status) === 'pdf_converted')
+                                                <li><a class="dropdown-item" href="{{ route('documents.sign.form', $document->id) }}" style="color:#22c55e;"><i class="fas fa-signature me-2"></i> Signer</a></li>
+                                            @endif
+                                        @endif
+
+                                        {{-- PDF FINAL --}}
+                                        @if($document->status === 'archived')
+                                            <li><a class="dropdown-item" href="{{ route('documents.export.pdf', $document) }}" style="color:#22c55e;"><i class="fas fa-file-pdf me-2"></i> PDF final</a></li>
+                                        @endif
+
+                                    </ul>
                             </div>
                         </td>
                     </tr>
@@ -202,7 +207,7 @@
 </div>
 
 @foreach($documents as $document)
-@if(in_array($document->status, ['ready_for_pdf', 'pdf_converti']))
+@if(in_array(strtolower($document->status), ['ready_for_pdf', 'pdf_converted']))
 <div class="modal" id="modalSigner{{ $document->id }}" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
   <div class="modal-dialog" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
       <div class="modal-header">
@@ -241,18 +246,24 @@
 function toggleDropdown(event, id) {
     event.stopPropagation();
     var el = document.getElementById('dropdown-' + id);
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    var isOpen = el.style.display === 'block';
+    document.querySelectorAll('[id^="dropdown-"]').forEach(function(d) {
+        d.style.display = 'none';
+    });
+    el.style.display = isOpen ? 'none' : 'block';
 }
+
 function showSignerModal(id) {
     document.getElementById('modalSigner' + id).style.display = 'block';
 }
+
 function closeSignerModal(id) {
     document.getElementById('modalSigner' + id).style.display = 'none';
 }
+
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.dropdown')) {
-        var dropdowns = document.querySelectorAll('[id^="dropdown-"]');
-        dropdowns.forEach(function(el) {
+    if (!e.target.closest('[id^="dropdown-"]') && !e.target.matches('[onclick*="toggleDropdown"]')) {
+        document.querySelectorAll('[id^="dropdown-"]').forEach(function(el) {
             el.style.display = 'none';
         });
     }

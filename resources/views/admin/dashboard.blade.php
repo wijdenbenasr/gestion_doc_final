@@ -68,7 +68,7 @@
         <div style="font-size: 2rem; font-weight: 700; color: #38bdf8;">{{ $inValidationCount }}</div>
         <div class="stat-meta">Workflow en cours</div>
     </a>
-    <a href="{{ route('admin.documents.index', ['status' => 'finalized', 'range' => $range]) }}" class="stat-card" style="position: relative;">
+    <a href="{{ route('admin.documents.index', ['status' => 'archived', 'range' => $range]) }}" class="stat-card" style="position: relative;">
         <i class="fas fa-file-signature" style="position: absolute; top: 0.75rem; right: 0.75rem; font-size: 1.5rem; color: #22c55e;"></i>
         <div class="stat-label">Finalises</div>
         <div style="font-size: 2rem; font-weight: 700; color: #22c55e;">{{ $finalizedCount }}</div>
@@ -88,7 +88,7 @@
     </div>
 </div>
 
-<div class="cards-row">
+<div class="cards-row" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
     <div class="card">
         <div class="card-header">
             <div>
@@ -103,20 +103,25 @@
             <a href="{{ route('admin.users.pending') }}" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 6px; background: transparent; color: #f59e0b; border: 1px solid #f59e0b; text-decoration: none;">
                 <i class="fas fa-user-clock"></i> Traiter les comptes en attente
             </a>
-            <div style="display: flex; gap: 8px;">
-                <a href="{{ route('admin.documents.codification') }}" style="width: 50%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 6px; background: transparent; color: #9ca3af; border: 1px solid #6b7280; text-decoration: none;">
-                    <i class="fas fa-code"></i> Codification
-                </a>
-                <div style="width: 50%; display: flex; gap: 8px;">
-                    <a href="{{ route('admin.documents.export.follow-up-pdf') }}" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 6px; background: transparent; color: #ef4444; border: 1px solid #ef4444; text-decoration: none;">
-                        <i class="fas fa-file-pdf"></i> PDF
-                    </a>
-                    <a href="{{ route('admin.documents.export.follow-up-word') }}" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 6px; background: transparent; color: #38bdf8; border: 1px solid #38bdf8; text-decoration: none;">
-                        <i class="fas fa-file-word"></i> Word
-                    </a>
-                </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title"><i class="fas fa-file-alt" style="color:#c084fc;margin-right:.5rem;"></i>Journaux & Traçabilité</div>
+                <div class="card-sub">Téléchargez les logs et le journal de traçabilité du système.</div>
             </div>
-</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <a href="{{ route('admin.logs.download.pdf') }}" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 6px; background: transparent; color: #ef4444; border: 1px solid #ef4444; text-decoration: none; font-weight: 500;">
+                <i class="fas fa-file-pdf"></i> Télécharger en PDF
+            </a>
+            <a href="{{ route('admin.logs.download.word') }}" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 6px; background: transparent; color: #0ea5e9; border: 1px solid #0ea5e9; text-decoration: none; font-weight: 500;">
+                <i class="fas fa-file-word"></i> Télécharger en Word
+            </a>
+        </div>
+    </div>
 </div>
 
 <div class="cards-row" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
@@ -141,7 +146,7 @@
                             <div>
                                 <div style="font-weight:600;font-size:.85rem;">{{ $doc->name }}</div>
                                 <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;">
-                                    {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | v{{ $doc->revision }}
+                                    {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | {{ $doc->revision }}
                                 </div>
                             </div>
                             <span class="badge {{ $badgeClass }}" style="font-size:.7rem;white-space:nowrap;">
@@ -300,10 +305,10 @@
                     <td class="col-aio"><span class="badge badge-info">{{ \App\Models\Document::AIOS[$doc->aio] ?? $doc->aio }}</span></td>
                     <td class="col-ligne">{{ $doc->ligne ?? '—' }}</td>
                     <td class="col-phase">{{ $doc->phase_libelle ?? '—' }}</td>
-                    <td class="col-rev" style="font-family:monospace;font-size:.75rem;">v{{ $doc->revision }}</td>
+                    <td class="col-rev" style="font-family:monospace;font-size:.75rem;">{{ $doc->revision }}</td>
                     @php
-$st = ['finalized' => 'badge-success', 'rejected' => 'badge-danger', 'pending_codification' => 'badge-warning', 'in_validation' => 'badge-info', 'approbation' => 'badge-info', 'validation_admin' => 'badge-info', 'draft' => 'badge-muted'];
-$sl = ['finalized' => 'Finalise', 'rejected' => 'Rejete', 'pending_codification' => 'Codification', 'in_validation' => 'Validation', 'approbation' => 'Approbation', 'validation_admin' => 'A approuver', 'draft' => 'Brouillon'];
+$st = ['archived' => 'badge-success', 'rejected' => 'badge-danger', 'pending_codification' => 'badge-warning', 'in_validation' => 'badge-info', 'approbation' => 'badge-info', 'validation_admin' => 'badge-info', 'draft' => 'badge-muted'];
+$sl = ['archived' => 'Finalise', 'rejected' => 'Rejete', 'pending_codification' => 'Codification', 'in_validation' => 'Validation', 'approbation' => 'Approbation', 'validation_admin' => 'A approuver', 'draft' => 'Brouillon'];
 $st2 = $st[$doc->status] ?? 'badge-muted';
 @endphp
 <td class="col-statut"><span class="badge {{ $st2 }}">{{ $sl[$doc->status] ?? $doc->status }}</span></td>
@@ -358,31 +363,40 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
                                 Actions
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}"><i class="fas fa-code me-2"></i>Source</a></li>
+                                <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}"><i class="fas fa-code me-2"></i>Télécharger</a></li>
                                 <li><a class="dropdown-item" href="{{ route('admin.documents.edit', $doc) }}"><i class="fas fa-edit me-2"></i>Modifier</a></li>
                                 @if(!$doc->is_fully_signed)
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form method="POST" action="{{ route('admin.documents.destroy', $doc) }}" onsubmit="return confirm('Supprimer ?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i>Supprimer</button>
-                                        </form>
+                                        <button type="button"
+                                                onclick="openGlobalDeleteModal('{{ route('admin.documents.destroy', $doc) }}', '{{ $doc->nom ?? $doc->name ?? '' }}', 'Supprimer le document')"
+                                                class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i>Supprimer</button>
                                     </li>
                                 @endif
                                 @if($doc->status==='validation_admin' && $doc->current_role==='admin')
                                     <li><hr class="dropdown-divider"></li>
-                                    @php $h=$doc->signatures->where('role','admin')->isNotEmpty(); @endphp
-                                    @if($h)
-                                        <li><button type="button" class="dropdown-item" style="color:#22c55e;cursor:pointer;" onclick="openSign('{{ $doc->id }}')"><i class="fas fa-signature me-2"></i>Signer</button></li>
-                                    @else
-                                        <li>
-                                            <form method="POST" action="{{ route('admin.workflow.validate', $doc) }}">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item" style="color:#22c55e;"><i class="fas fa-check me-2"></i>Valider</button>
-                                            </form>
-                                        </li>
-                                    @endif
+                                    <li>
+                                        <form method="POST" action="{{ route('admin.workflow.validate', $doc) }}">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item" style="color:#22c55e;"><i class="fas fa-check me-2"></i>Valider</button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger"
+                                           href="#"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#modalRejet{{ $doc->id }}">
+                                            <i class="fas fa-times me-2"></i>Rejeter
+                                        </a>
+                                    </li>
+                                @endif
+                                @if($doc->status==='signing_admin' && $doc->current_role==='admin')
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <button type="button" class="dropdown-item" style="color:#c084fc;cursor:pointer;" onclick="openSign('{{ $doc->id }}')">
+                                            <i class="fas fa-signature me-2"></i>Signer (PDF final)
+                                        </button>
+                                    </li>
                                     <li>
                                         <a class="dropdown-item text-danger"
                                            href="#"
@@ -449,7 +463,7 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
 </div>
 
 @foreach($documents as $doc)
-@if(in_array($doc->status, ['in_validation', 'signing_admin']) && $doc->current_role==='admin')
+@if(in_array($doc->status, ['validation_admin', 'signing_admin']) && $doc->current_role==='admin')
 <div class="modal fade" id="modalRejet{{ $doc->id }}">
     <div class="modal-dialog">
         <div class="modal-content" style="background:#1a2035;color:white;">
@@ -462,11 +476,11 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
                     @csrf
                     <div class="mb-3">
                         <label>Motif du rejet *</label>
-                        <textarea name="message" required rows="3" class="form-control mt-1" style="background:#0f172a;color:white;" placeholder="Raison du rejet..."></textarea>
+                        <textarea name="commentaire" required rows="3" class="form-control mt-1" style="background:#0f172a;color:white;" placeholder="Raison du rejet..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label>Deadline de correction *</label>
-                        <input type="datetime-local" name="deadline" required class="form-control mt-1" style="background:#0f172a;color:white;">
+                        <label>Deadline de correction</label>
+                        <input type="datetime-local" name="deadline_correction" class="form-control mt-1" style="background:#0f172a;color:white;">
                     </div>
                     <div class="d-flex justify-content-end gap-2">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>

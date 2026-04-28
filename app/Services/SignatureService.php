@@ -208,7 +208,7 @@ class SignatureService
     private function finalize(Document $document, User $user): void
     {
         $document->is_fully_signed = true;
-        $document->status = 'finalized';
+        $document->status = 'archived';
         $document->current_role = null;
         $document->current_owner_id = null;
 

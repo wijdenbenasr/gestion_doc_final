@@ -21,4 +21,9 @@ class Transmission extends Model
     {
         return $this->belongsTo(User::class, 'sent_by');
     }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sent_by');
+    }
 }

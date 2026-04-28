@@ -30,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'cin',
         'matricule',
         'profile_image_path',
+        'profile_photo',
         'email',
         'password',
         'role',
@@ -97,7 +98,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getInitialsAttribute(): string
     {
-        $initials = collect([$this->name, $this->prenom])
+        $initials = collect([$this->prenom, $this->name])
             ->filter()
             ->map(function (?string $value): string {
                 return Str::upper(Str::substr(trim((string) $value), 0, 1));
@@ -107,12 +108,24 @@ class User extends Authenticatable implements MustVerifyEmail
         return $initials !== '' ? $initials : 'U';
     }
 
-    public function getProfileImageUrlAttribute(): ?string
+    public function getHasProfilePhotoAttribute(): bool
     {
-        if (! $this->profile_image_path) {
+        return (bool) ($this->profile_photo ?: $this->profile_image_path);
+    }
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        $path = $this->profile_photo ?: $this->profile_image_path;
+
+        if (! $path) {
             return null;
         }
 
-        return Storage::disk('public')->url($this->profile_image_path);
+        return Storage::disk('public')->url($path);
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        return $this->profile_photo_url;
     }
 }

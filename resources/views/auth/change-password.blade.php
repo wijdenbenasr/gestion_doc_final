@@ -21,52 +21,64 @@
             <a href="{{ route('account.profile.show') }}" class="btn btn-ghost btn-sm">Mon profil</a>
         </div>
 
-        <form method="POST" action="{{ route('account.password.update') }}">
-            @csrf
-            @method('PUT')
-
-            <div class="form-grid" style="grid-template-columns:1fr;">
-                <div class="field">
-                    <label for="current_password">Mot de passe actuel</label>
-                    <div style="position:relative;">
-                        <input id="current_password" type="password" name="current_password" required style="padding-right:2.5rem;">
-                        <button type="button" class="password-toggle" onclick="togglePassword('current_password')" tabindex="-1">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                    </div>
-                    @error('current_password')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="field">
-                    <label for="password">Nouveau mot de passe</label>
-                    <div style="position:relative;">
-                        <input id="password" type="password" name="password" required style="padding-right:2.5rem;" oninput="checkPasswordStrength(this.value)">
-                        <button type="button" class="password-toggle" onclick="togglePassword('password')" tabindex="-1">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                    </div>
-                    <div id="password-strength" style="margin-top:.5rem;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;display:flex;">
-                        <div id="strength-bar" style="height:100%;width:0;transition:all .3s;"></div>
-                    </div>
-                    <div id="strength-text" style="font-size:.75rem;margin-top:.25rem;"></div>
-                    @error('password')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="field">
-                    <label for="password_confirmation">Confirmation</label>
-                    <div style="position:relative;">
-                        <input id="password_confirmation" type="password" name="password_confirmation" required style="padding-right:2.5rem;">
-                        <button type="button" class="password-toggle" onclick="togglePassword('password_confirmation')" tabindex="-1">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
+        @if(session('success'))
+            <div style="text-align:center;padding:2rem;">
+                <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+                <h5 style="color:white;font-weight:bold;">{{ session('success') }}</h5>
+                <p style="color:#94a3b8;">Votre mot de passe a été mis à jour avec succès.</p>
+                <a href="{{ route('account.profile.show') }}"
+                   style="display:inline-block;margin-top:1rem;padding:10px 24px;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;">
+                    Retour au profil
+                </a>
             </div>
+        @else
+            <form method="POST" action="{{ route('account.password.update') }}">
+                @csrf
+                @method('PUT')
 
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary" style="width:100%;">Mettre a jour</button>
-            </div>
-        </form>
+                <div class="form-grid" style="grid-template-columns:1fr;">
+                    <div class="field">
+                        <label for="current_password">Mot de passe actuel</label>
+                        <div style="position:relative;">
+                            <input id="current_password" type="password" name="current_password" required style="padding-right:2.5rem;">
+                            <button type="button" class="password-toggle" onclick="togglePassword('current_password')" tabindex="-1">
+                                <i class="fa fa-eye"></i>
+                            </button>
+                        </div>
+                        @error('current_password')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="field">
+                        <label for="password">Nouveau mot de passe</label>
+                        <div style="position:relative;">
+                            <input id="password" type="password" name="password" required style="padding-right:2.5rem;" oninput="checkPasswordStrength(this.value)">
+                            <button type="button" class="password-toggle" onclick="togglePassword('password')" tabindex="-1">
+                                <i class="fa fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="password-strength" style="margin-top:.5rem;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;display:flex;">
+                            <div id="strength-bar" style="height:100%;width:0;transition:all .3s;"></div>
+                        </div>
+                        <div id="strength-text" style="font-size:.75rem;margin-top:.25rem;"></div>
+                        @error('password')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="field">
+                        <label for="password_confirmation">Confirmation du nouveau mot de passe</label>
+                        <div style="position:relative;">
+                            <input id="password_confirmation" type="password" name="password_confirmation" required style="padding-right:2.5rem;">
+                            <button type="button" class="password-toggle" onclick="togglePassword('password_confirmation')" tabindex="-1">
+                                <i class="fa fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Mettre a jour</button>
+                </div>
+            </form>
+        @endif
     </div>
 </div>
 <script>

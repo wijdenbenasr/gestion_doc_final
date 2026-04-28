@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentWorkflowController;
 use App\Http\Controllers\DownloadController;
@@ -37,6 +38,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/account/profile', [AccountController::class, 'show'])->name('account.profile.show');
     Route::post('/account/profile/image', [AccountController::class, 'updateProfileImage'])->name('account.profile.image.update');
     Route::delete('/account/profile/image', [AccountController::class, 'destroyProfileImage'])->name('account.profile.image.destroy');
+
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+    Route::delete('/profile/photo', [ProfileController::class, 'deletePhoto'])->name('profile.photo.delete');
+
     Route::get('/account/password', [AuthController::class, 'showChangePassword'])->name('account.password.edit');
     Route::put('/account/password', [AuthController::class, 'changePassword'])->name('account.password.update');
 
@@ -72,6 +77,10 @@ Route::middleware('auth')->group(function () {
 
         // Signature
         Route::post('/workflow/{id}/sign', [DocumentWorkflowController::class, 'creatorSign'])->name('workflow.creator.sign');
+
+        // Signer form and upload
+        Route::get('/documents/{id}/sign', [DocumentWorkflowController::class, 'showSignForm'])->name('documents.sign.form');
+        Route::post('/documents/{id}/sign', [DocumentWorkflowController::class, 'uploadSignedPdf'])->name('documents.sign.upload');
 
         // Conversion PDF
         Route::get('/workflow/{id}/convert-pdf', [DocumentWorkflowController::class, 'convertToPdf'])->name('workflow.creator.convert_pdf');
@@ -145,5 +154,9 @@ Route::middleware('auth')->group(function () {
 
         // Export PDF pour un document specifique
         Route::get('/documents/{document}/pdf', [ExportController::class, 'pdf'])->name('documents.export.pdf');
+
+        // Téléchargement des journaux et traçabilité
+        Route::get('/logs/download/pdf', [ExportController::class, 'logsDownloadPdf'])->name('logs.download.pdf');
+        Route::get('/logs/download/word', [ExportController::class, 'logsDownloadWord'])->name('logs.download.word');
     });
 });

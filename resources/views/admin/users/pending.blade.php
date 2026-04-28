@@ -57,11 +57,11 @@
                         </td>
                         <td>
                             <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
-                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Supprimer cet utilisateur ?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
-                                </form>
+                                <button type="button"
+                                        onclick="openGlobalDeleteModal('{{ route('admin.users.destroy', $user) }}', '{{ $user->prenom }} {{ $user->nom }}', 'Supprimer l\'utilisateur')"
+                                        class="btn btn-danger btn-sm">
+                                    Supprimer
+                                </button>
 
                                 <form method="POST" action="{{ route('admin.users.approve', $user) }}" style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
                                     @csrf

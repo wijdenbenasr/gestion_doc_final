@@ -221,6 +221,6 @@ class AuthController extends Controller
 
         $auditService->log($request->user()->id, 'password_changed', $request->user(), [], $request);
 
-        return back()->with('status', 'Mot de passe mis a jour avec succes.');
+        return redirect()->back()->with('success', 'Mot de passe mis à jour avec succès.');
     }
 }

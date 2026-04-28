@@ -24,7 +24,7 @@ class AdminDashboardController extends Controller
 
         $createdCount = (clone $base)->count();
         $inValidationCount = (clone $base)->whereIn('status', ['draft', 'in_validation', 'rejected', 'pending_codification', 'approbation', 'validation_admin'])->count();
-        $finalizedCount = (clone $base)->where('status', 'finalized')->count();
+        $finalizedCount = (clone $base)->where('status', 'archived')->count();
         $rejectedCount = (clone $base)->where('status', 'rejected')->count();
 
         // Compteur pour documents en attente de validation admin
@@ -66,7 +66,7 @@ class AdminDashboardController extends Controller
             ->get();
 
         // Documents en supervision (tous statuts en attente)
-        $documentsSupervision = Document::whereIn('status', ['draft', 'pending_codification', 'in_validation', 'approbation', 'validation_admin', 'signing_admin', 'ready_for_pdf', 'pdf_converti'])
+        $documentsSupervision = Document::whereIn('status', ['draft', 'pending_codification', 'in_validation', 'approbation', 'validation_admin', 'signing_admin', 'ready_for_pdf', 'pdf_converted'])
             ->whereNotNull('deadline')
             ->orderByRaw('CASE
                 WHEN deadline < NOW() THEN 0
@@ -107,7 +107,7 @@ class AdminDashboardController extends Controller
             $date = now()->subDays($i);
             $labels[] = $date->format('d/m');
             $created[] = Document::whereDate('created_at', $date)->count();
-            $validated[] = Document::whereDate('created_at', $date)->where('status', 'finalized')->count();
+            $validated[] = Document::whereDate('created_at', $date)->where('status', 'archived')->count();
             $rejected[] = Document::whereDate('created_at', $date)->where('status', 'rejected')->count();
         }
 
@@ -140,8 +140,8 @@ class AdminDashboardController extends Controller
                 case 'in_validation':
                     $query->whereIn('status', ['in_validation', 'approbation', 'validation_admin', 'signing_admin', 'pending_codification']);
                     break;
-                case 'finalized':
-                    $query->where('status', 'finalized');
+                case 'archived':
+                    $query->where('status', 'archived');
                     break;
                 case 'rejected':
                     $query->where('status', 'rejected');

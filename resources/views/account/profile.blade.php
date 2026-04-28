@@ -4,20 +4,6 @@
 
 @section('content')
 <style>
-.file-upload-btn {
-    display:inline-flex;
-    align-items:center;
-    gap:.5rem;
-    padding:.625rem 1rem;
-    background:#374151;
-    color:#fff;
-    border-radius:.375rem;
-    cursor:pointer;
-    font-size:.875rem;
-    font-weight:500;
-    transition:background .15s;
-}
-.file-upload-btn:hover { background:#4b5563; }
 input[type="file"] { display:none; }
 </style>
 <div style="display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:1rem;align-items:start;">
@@ -30,47 +16,44 @@ input[type="file"] { display:none; }
         </div>
 
         <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
-            <span class="profile-avatar" style="width:120px;height:120px;font-size:2rem;">
-                @if($user->profile_image_url)
-                    <img src="{{ $user->profile_image_url }}" alt="Photo de profil de {{ $user->full_name }}">
+            <form id="profilePhotoForm" method="POST" action="{{ route('profile.photo.update') }}" enctype="multipart/form-data" style="margin:0;">
+                @csrf
+                <input id="profilePhotoInput" type="file" name="profile_photo" accept="image/jpeg,image/png,image/jpg,image/gif">
+            </form>
+
+            <span id="profilePhotoAvatar" role="button" tabindex="0" aria-label="Changer la photo de profil" title="Cliquer pour changer la photo" style="display:inline-block;cursor:pointer;user-select:none;">
+                @if($user->profile_photo)
+                    <img id="profilePhotoImg" src="{{ \Illuminate\Support\Facades\Storage::url($user->profile_photo) }}"
+                         style="width:110px;height:110px;border-radius:50%;object-fit:cover;object-position:center;border:3px solid #3b82f6;"
+                         alt="Photo de profil de {{ $user->full_name }}">
+                    <span id="profilePhotoInitials" style="display:none;"></span>
                 @else
-                    {{ $user->initials }}
+                    <div id="profilePhotoInitials" style="width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:bold;color:white;">
+                        {{ strtoupper(substr($user->prenom,0,1)) }}{{ strtoupper(substr($user->name,0,1)) }}
+                    </div>
+                    <img id="profilePhotoImg" src="" style="display:none;" alt="">
                 @endif
             </span>
+
+            <div style="display:grid;gap:.5rem;width:100%;">
+                <button type="button" id="profilePhotoPickBtn" class="btn btn-primary" style="width:100%;">
+                    {{ $user->has_profile_photo ? 'Remplacer la photo' : 'Ajouter une photo' }}
+                </button>
+
+                @if($user->has_profile_photo)
+                    <button type="button"
+                            onclick="openGlobalDeleteModal('{{ route('profile.photo.delete') }}', '{{ $user->full_name }}', 'Supprimer la photo de profil')"
+                            class="btn btn-ghost" style="width:100%;border-color:rgba(248,113,113,0.45);color:#fecaca;">
+                        Supprimer la photo
+                    </button>
+                @endif
+            </div>
 
             <div style="text-align:center;">
                 <div style="font-size:1rem;font-weight:700;">{{ $user->full_name }}</div>
                 <div class="card-sub">{{ $user->email }}</div>
                 <div class="card-sub" style="margin-top:.35rem;">{{ $user->role_label }}</div>
             </div>
-
-            <form method="POST" action="{{ route('account.profile.image.update') }}" enctype="multipart/form-data" style="width:100%;">
-                @csrf
-
-                <div class="field">
-                    <label for="profile_image" class="file-upload-btn">
-                        <i class="fa fa-folder-open"></i> Choisir une image
-                    </label>
-                    <input id="profile_image" type="file" name="profile_image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
-                    <div class="card-sub">Formats acceptes : JPG, PNG, WEBP. Taille max : 2 Mo.</div>
-                    @error('profile_image')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="form-actions" style="justify-content:stretch;flex-direction:column;">
-                    <button type="submit" class="btn btn-primary" style="width:100%;">
-                        {{ $user->profile_image_path ? 'Remplacer l image' : 'Enregistrer l image' }}
-                    </button>
-                </div>
-            </form>
-
-            @if($user->profile_image_path)
-                <form method="POST" action="{{ route('account.profile.image.destroy') }}" style="width:100%;">
-                    @csrf
-                    @method('DELETE')
-
-                    <button type="submit" class="btn btn-danger" style="width:100%;">Supprimer l image</button>
-                </form>
-            @endif
 
             <a href="{{ route('account.password.edit') }}" class="btn btn-ghost" style="width:100%;">Changer le mot de passe</a>
         </div>
@@ -116,9 +99,58 @@ input[type="file"] { display:none; }
             </div>
         </div>
 
-        <div class="form-actions" style="margin-top:1rem;">
-            <button type="button" class="btn btn-primary" style="width:100%;">Enregistrer les informations</button>
         </div>
-    </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+(function () {
+    const form = document.getElementById('profilePhotoForm');
+    const input = document.getElementById('profilePhotoInput');
+    const avatar = document.getElementById('profilePhotoAvatar');
+    const pickBtn = document.getElementById('profilePhotoPickBtn');
+    const img = document.getElementById('profilePhotoImg');
+    const initials = document.getElementById('profilePhotoInitials');
+
+    if (!form || !input || !avatar) {
+        return;
+    }
+
+    const openPicker = () => input.click();
+
+    avatar.addEventListener('click', openPicker);
+    avatar.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openPicker();
+        }
+    });
+
+    if (pickBtn) {
+        pickBtn.addEventListener('click', openPicker);
+    }
+
+    input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+        if (!file) {
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        if (img) {
+            img.src = objectUrl;
+            img.style.display = '';
+            img.onload = () => URL.revokeObjectURL(objectUrl);
+        }
+        if (initials && initials.tagName === 'DIV') {
+            initials.style.display = 'none';
+        }
+
+        requestAnimationFrame(() => {
+            setTimeout(() => form.submit(), 150);
+        });
+    });
+})();
+</script>
 @endsection

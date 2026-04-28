@@ -96,7 +96,7 @@
                             <div>
                                 <div style="font-weight:600;font-size:.85rem;">{{ $doc->name }}</div>
                                 <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;">
-                                    {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | v{{ $doc->revision }}
+                                    {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | {{ $doc->revision }}
                                 </div>
                             </div>
                             <span class="badge {{ $badgeClass }}" style="font-size:.7rem;white-space:nowrap;">
@@ -185,7 +185,7 @@
                             <div>
                                 <div style="font-weight:600;font-size:.85rem;">{{ $doc->name }}</div>
                                 <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;">
-                                    {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | v{{ $doc->revision }}
+                                    {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | {{ $doc->revision }}
                                 </div>
                             </div>
                             <span class="badge {{ $badgeClass }}" style="font-size:.7rem;white-space:nowrap;">

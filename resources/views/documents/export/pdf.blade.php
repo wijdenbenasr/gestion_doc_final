@@ -54,7 +54,7 @@
 
 @if($document->status === 'rejected')
     <div class="watermark">REJETÉ</div>
-@elseif($document->status !== 'finalized')
+@elseif($document->status !== 'archived')
     <div class="watermark">BROUILLON</div>
 @endif
 
@@ -64,7 +64,7 @@
         <div class="header-title">{{ $document->name }}</div>
         <div class="header-sub">
             Code : <strong>{{ $document->code ?? 'Non codifié' }}</strong> &nbsp;|&nbsp;
-            Révision : <strong>v{{ $document->revision }}</strong> &nbsp;|&nbsp;
+            Révision : <strong>{{ $document->revision }}</strong> &nbsp;|&nbsp;
             Statut : <strong>{{ \App\Models\Document::STATUSES[$document->status] ?? $document->status }}</strong>
         </div>
     </div>

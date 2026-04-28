@@ -283,6 +283,11 @@
 
                 <form method="POST" action="{{ route('register.submit') }}">
                     @csrf
+                    @if(session('success') || session('status'))
+                        <div class="form-success" style="margin-bottom:1rem;padding:1rem;border-radius:.75rem;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.4);color:#bbf7d0;">
+                            {{ session('success') ?? session('status') }}
+                        </div>
+                    @endif
                     @if($errors->any())
                     <div class="form-error">
                         {{ $errors->first() }}
@@ -328,7 +333,7 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label for="password_confirmation">Confirmation</label>
+                                <label for="password_confirmation">Confirmation du mot de passe</label>
                                 <div class="password-wrapper">
                                     <input id="password_confirmation" type="password" name="password_confirmation" placeholder="Répétez le mot de passe" required>
                                     <button type="button" class="password-toggle" onclick="togglePassword('password_confirmation', 'togglePasswordConfirm')" aria-label="Afficher le mot de passe">

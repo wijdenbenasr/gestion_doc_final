@@ -7,12 +7,14 @@ use App\Models\User;
 use App\Models\DocumentSignature;
 use App\Models\AuditLog;
 use App\Models\Transmission;
+use App\Models\DocumentVersion;
 use App\Notifications\DocumentTaskNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -124,6 +126,17 @@ class DocumentWorkflowController extends Controller
         $document->current_role = 'validator';
         $document->save();
 
+        // Create version record for file sent to validator
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $document->file_path,
+            'hash' => $document->hash ?? '',
+            'created_by' => Auth::id(),
+            'type' => 'sent_to_validator',
+            'comment' => 'Envoyé au validateur',
+        ]);
+
         LogTransmission($document, Auth::user(), 'creator', 'validator', 'submit_to_validator');
 
         User::where('role', 'validator')
@@ -166,7 +179,7 @@ class DocumentWorkflowController extends Controller
             return redirect()->back()->with('error', 'Ce document n\'est pas en phase de validation.');
         }
 
-        $document->status = 'approbation';
+        $document->status = 'in_approbation';
         $document->current_role = 'approver';
         $document->version = ($document->version ?? 1) + 1;
         $document->revision = (float) ($document->revision ?? 1.0) + 0.1;
@@ -174,27 +187,151 @@ class DocumentWorkflowController extends Controller
         $document->validated_at = now();
         $document->save();
 
-DocumentSignature::create([
+        // Create version record for file sent to approver
+        DocumentVersion::create([
             'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $document->file_path,
+            'hash' => $document->hash ?? '',
+            'created_by' => Auth::id(),
+            'type' => 'sent_to_approver',
+            'comment' => 'Validé et envoyé à l\'approbateur',
+        ]);
+
+DocumentSignature::updateOrCreate(
+            ['document_id' => $document->id, 'role' => 'validator'],
+            [
+                'user_id' => Auth::id(),
+                'order' => 2,
+                'signed_at' => now(),
+            ]
+        );
+
+        LogTransmission($document, Auth::user(), 'validator', 'approver', 'validate');
+
+        User::where('role', 'approver')
+            ->where('is_admin_approved', true)
+            ->each(function ($approver) use ($document) {
+                $approver->notify(new DocumentTaskNotification(
+                    $document,
+                    'Un document a été validé par le validateur. Il attend votre approbation.',
+                    'approbation'
+                ));
+            });
+
+        AuditLog::create([
             'user_id' => Auth::id(),
-            'role' => 'approver',
-            'order' => 3,
-            'signed_at' => now(),
+            'action' => 'validator_validated',
+            'auditable_type' => Document::class,
+            'auditable_id' => $document->id,
+            'payload' => ['commentaire' => $request->input('commentaire', '')],
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Document validé et envoyé à l\'approbateur.',
+                'data' => $document->refresh(),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Document validé et envoyé à l\'approbateur.');
+    }
+
+    public function validatorReject(Request $request, $id): RedirectResponse|JsonResponse
+    {
+        $request->validate([
+            'rejection_reason' => 'required|string|max:1000',
+        ]);
+
+        $document = Document::findOrFail($id);
+
+        if (Auth::user()->role !== 'validator') {
+            abort(403);
+        }
+
+        if (!in_array($document->status, ['in_validation']) || $document->current_role !== 'validator') {
+            return redirect()->back()->with('error', 'Ce document n\'est pas en phase de validation.');
+        }
+
+        $document->status = 'rejected';
+        $document->current_role = 'creator';
+        $document->commentaire_rejet = $request->rejection_reason;
+        $document->save();
+
+        LogTransmission($document, Auth::user(), 'validator', 'creator', 'reject', $request->rejection_reason);
+
+        if ($document->creator) {
+            $document->creator->notify(new DocumentTaskNotification(
+                $document,
+                'Votre document a été rejeté par le validateur : ' . $request->rejection_reason,
+                'rejected'
+            ));
+        }
+
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'validator_rejected',
+            'auditable_type' => Document::class,
+            'auditable_id' => $document->id,
+            'payload' => ['commentaire' => $request->rejection_reason],
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Document rejeté. Créateur notifié.', 'data' => $document->refresh()]);
+        }
+
+        return redirect()->back()->with('success', 'Document rejeté. Le créateur a été notifié.');
+    }
+
+    public function approverApprove(Request $request, $id): RedirectResponse|JsonResponse
+    {
+        $document = Document::findOrFail($id);
+
+        if (Auth::user()->role !== 'approver') {
+            abort(403);
+        }
+
+        if ($document->status !== 'in_approbation' || $document->current_role !== 'approver') {
+            return redirect()->back()->with('error', 'Ce document n\'est pas en phase d\'approbation.');
+        }
+
+        $document->status = 'validation_admin';
+        $document->current_role = 'admin';
+        $document->approved_by = Auth::id();
+        $document->approved_at = now();
+        $document->save();
+
+        DocumentSignature::updateOrCreate(
+            ['document_id' => $document->id, 'role' => 'approver'],
+            [
+                'user_id' => Auth::id(),
+                'order' => 3,
+                'signed_at' => now(),
+            ]
+        );
+
+        // Create version record for file sent to admin
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $document->file_path,
+            'hash' => $document->hash ?? '',
+            'created_by' => Auth::id(),
+            'type' => 'sent_to_admin',
+            'comment' => 'Approuvé et envoyé à l\'admin',
         ]);
 
         LogTransmission($document, Auth::user(), 'approver', 'admin', 'approve');
 
-        $admins = User::where('role', 'admin')
+        User::where('role', 'admin')
             ->where('is_admin_approved', true)
-            ->get();
-
-        foreach ($admins as $admin) {
-            $admin->notify(new DocumentTaskNotification(
-                $document,
-                'Un document a ete approuve. Il attend votre validation finale.',
-                'validation_admin'
-            ));
-        }
+            ->each(function ($admin) use ($document) {
+                $admin->notify(new DocumentTaskNotification(
+                    $document,
+                    'Un document a été approuvé. Il attend votre validation finale.',
+                    'validation_admin'
+                ));
+            });
 
         AuditLog::create([
             'user_id' => Auth::id(),
@@ -205,10 +342,7 @@ DocumentSignature::create([
         ]);
 
         if ($request->expectsJson()) {
-            return response()->json([
-                'message' => 'Document approuvé et envoyé à l\'admin pour validation finale.',
-                'data' => $document->refresh(),
-            ]);
+            return response()->json(['message' => 'Document approuvé et envoyé à l\'admin.', 'data' => $document->refresh()]);
         }
 
         return redirect()->back()->with('success', 'Document approuvé et envoyé à l\'admin pour validation finale.');
@@ -217,8 +351,8 @@ DocumentSignature::create([
     public function approverReject(Request $request, $id): RedirectResponse|JsonResponse
     {
         $request->validate([
-            'commentaire' => 'required|string',
-            'deadline_correction' => 'required|date',
+            'message' => 'required|string',
+            'deadline' => 'nullable|date',
         ]);
 
         $document = Document::findOrFail($id);
@@ -227,14 +361,14 @@ DocumentSignature::create([
             abort(403);
         }
 
-        if ($document->status !== 'approbation' || $document->current_role !== 'approver') {
+        if ($document->status !== 'in_approbation' || $document->current_role !== 'approver') {
             return redirect()->back()->with('error', 'Action non autorisée.');
         }
 
         $document->status = 'rejected';
         $document->current_role = 'creator';
-        $document->commentaire_rejet = $request->commentaire;
-        $document->deadline_correction = $request->deadline_correction;
+        $document->commentaire_rejet = $request->message;
+        $document->deadline_correction = $request->deadline;
         $document->save();
 
         LogTransmission($document, Auth::user(), 'approver', 'creator', 'reject', $request->commentaire);
@@ -285,12 +419,24 @@ DocumentSignature::create([
         $document->admin_validated_at = now();
         $document->save();
 
-        DocumentSignature::create([
+        DocumentSignature::updateOrCreate(
+            ['document_id' => $document->id, 'role' => 'approver'],
+            [
+                'user_id' => Auth::id(),
+                'order' => 3,
+                'signed_at' => now(),
+            ]
+        );
+
+        // Create version record for file ready for PDF
+        DocumentVersion::create([
             'document_id' => $document->id,
-            'user_id' => Auth::id(),
-            'role' => 'admin',
-            'order' => 4,
-            'signed_at' => now(),
+            'revision' => $document->revision,
+            'file_path' => $document->file_path,
+            'hash' => $document->hash ?? '',
+            'created_by' => Auth::id(),
+            'type' => 'ready_for_pdf',
+            'comment' => 'Validé par admin, prêt pour PDF',
         ]);
 
         LogTransmission($document, Auth::user(), 'admin', 'creator', 'validate_for_pdf');
@@ -333,8 +479,25 @@ DocumentSignature::create([
             return redirect()->back()->with('error', 'Le document doit être prêt pour PDF.');
         }
 
+        $pdf = Pdf::loadView('documents.pdf_template', compact('document'));
+
+        // Store the converted PDF
+        $pdfPath = 'converted_pdfs/' . $document->code . '_' . str_replace(' ', '_', $document->name) . '.pdf';
+        Storage::disk('public')->put($pdfPath, $pdf->output());
+
+        // Save to document_versions
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $pdfPath,
+            'hash' => hash('sha256', Storage::disk('public')->get($pdfPath)),
+            'created_by' => Auth::id(),
+            'type' => 'pdf_converted',
+            'comment' => 'PDF converti',
+        ]);
+
         $document->pdf_converti = true;
-        $document->status = 'pdf_converti';
+        $document->status = 'pdf_converted';
         $document->save();
 
         AuditLog::create([
@@ -345,9 +508,103 @@ DocumentSignature::create([
             'payload' => [],
         ]);
 
-        $pdf = Pdf::loadView('documents.pdf_template', compact('document'));
-
         return $pdf->download($document->code . '_' . str_replace(' ', '_', $document->name) . '.pdf');
+    }
+
+    public function showSignForm($id): View
+    {
+        $document = Document::findOrFail($id);
+
+        if (Auth::user()->role !== 'creator' || $document->created_by !== Auth::id()) {
+            abort(403);
+        }
+
+        if (strtolower($document->status) !== 'pdf_converted') {
+            return redirect()->route('documents.my')->with('error', 'Le document doit être converti en PDF pour être signé.');
+        }
+
+        return view('documents.sign-form', compact('document'));
+    }
+
+    public function uploadSignedPdf(Request $request, $id): RedirectResponse|JsonResponse
+    {
+        $request->validate([
+            'signed_pdf' => 'required|file|mimes:pdf|max:10240',
+        ]);
+
+        $document = Document::findOrFail($id);
+
+        if (Auth::user()->role !== 'creator' || $document->created_by !== Auth::id()) {
+            abort(403);
+        }
+
+        if (strtolower($document->status) !== 'pdf_converted') {
+            return redirect()->back()->with('error', 'Le document doit être converti en PDF pour être signé.');
+        }
+
+        $path = $request->file('signed_pdf')->store('signed_pdfs', 'public');
+        $hash = hash_file('sha256', Storage::disk('public')->path($path));
+
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $path,
+            'hash' => $hash,
+            'type' => 'pdf_signe_createur',
+            'created_by' => Auth::id(),
+        ]);
+
+        $document->pdf_signe_createur = $path;
+        $document->status = 'signing_validator';
+        $document->current_role = 'validator';
+        $document->save();
+
+        DocumentSignature::updateOrCreate(
+            ['document_id' => $document->id, 'role' => 'creator'],
+            [
+                'user_id' => Auth::id(),
+                'order' => 1,
+                'signed_at' => now(),
+            ]
+        );
+
+        Transmission::create([
+            'document_id' => $document->id,
+            'from_role' => 'creator',
+            'to_role' => 'validator',
+            'action' => 'sign',
+            'status' => 'done',
+            'sent_by' => Auth::id(),
+        ]);
+
+        $validators = User::where('role', 'validator')
+            ->where('is_admin_approved', true)
+            ->get();
+
+        foreach ($validators as $validator) {
+            $validator->notify(new DocumentTaskNotification(
+                $document,
+                'Le créateur a signé le document. Veuillez le télécharger, signer et renvoyer.',
+                'signing_validator'
+            ));
+        }
+
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'creator_signed',
+            'auditable_type' => Document::class,
+            'auditable_id' => $document->id,
+            'payload' => [],
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Document signé envoyé au validateur avec succès.',
+                'data' => $document->refresh(),
+            ]);
+        }
+
+        return redirect()->route('documents.my')->with('success', 'Document signé envoyé au validateur avec succès.');
     }
 
     public function creatorSign(Request $request, $id): RedirectResponse|JsonResponse
@@ -362,7 +619,7 @@ DocumentSignature::create([
             abort(403);
         }
 
-        if (!in_array($document->status, ['ready_for_pdf', 'pdf_converti'])) {
+        if (!in_array($document->status, ['ready_for_pdf', 'pdf_converted'])) {
             return redirect()->back()->with('error', 'Le document doit être prêt pour signature.');
         }
 
@@ -373,13 +630,14 @@ DocumentSignature::create([
         $document->current_role = 'validator';
         $document->save();
 
-        DocumentSignature::create([
-            'document_id' => $document->id,
-            'user_id' => Auth::id(),
-            'role' => 'creator',
-            'order' => 1,
-            'signed_at' => now(),
-        ]);
+        DocumentSignature::updateOrCreate(
+            ['document_id' => $document->id, 'role' => 'creator'],
+            [
+                'user_id' => Auth::id(),
+                'order' => 1,
+                'signed_at' => now(),
+            ]
+        );
 
         LogTransmission($document, Auth::user(), 'creator', 'validator', 'sign');
 
@@ -436,13 +694,14 @@ $validators = User::where('role', 'validator')
         $document->current_role = 'approver';
         $document->save();
 
-        DocumentSignature::create([
-            'document_id' => $document->id,
-            'user_id' => Auth::id(),
-            'role' => 'validator',
-            'order' => 2,
-            'signed_at' => now(),
-        ]);
+        DocumentSignature::updateOrCreate(
+            ['document_id' => $document->id, 'role' => 'validator'],
+            [
+                'user_id' => Auth::id(),
+                'order' => 2,
+                'signed_at' => now(),
+            ]
+        );
 
         LogTransmission($document, Auth::user(), 'validator', 'approver', 'sign');
 
@@ -497,13 +756,14 @@ $validators = User::where('role', 'validator')
         $document->current_role = 'admin';
         $document->save();
 
-        DocumentSignature::create([
-            'document_id' => $document->id,
-            'user_id' => Auth::id(),
-            'role' => 'approver',
-            'order' => 3,
-            'signed_at' => now(),
-        ]);
+        DocumentSignature::updateOrCreate(
+            ['document_id' => $document->id, 'role' => 'approver'],
+            [
+                'user_id' => Auth::id(),
+                'order' => 3,
+                'signed_at' => now(),
+            ]
+        );
 
         LogTransmission($document, Auth::user(), 'approver', 'admin', 'sign');
 
@@ -554,7 +814,7 @@ $validators = User::where('role', 'validator')
         $path = $request->file('document_signe')->store('documents/signes/final', 'public');
 
         $document->pdf_signe_final = $path;
-        $document->status = 'finalized';
+        $document->status = 'archived';
         $document->current_role = null;
         $document->archived_at = now();
         $document->save();
@@ -574,7 +834,7 @@ $validators = User::where('role', 'validator')
             $document->creator->notify(new DocumentTaskNotification(
                 $document,
                 'Votre document a été signé par tous et est maintenant archivé.',
-                'finalized'
+                'archived'
             ));
         }
 
@@ -666,7 +926,7 @@ $validators = User::where('role', 'validator')
 
         if ($filter === 'pending') {
             $documents = (clone $baseQuery)
-                ->whereIn('status', ['in_validation', 'approbation'])
+                ->whereIn('status', ['in_validation', 'in_approbation'])
                 ->where('current_role', $role)
                 ->latest()
                 ->paginate(20);
@@ -686,7 +946,7 @@ $validators = User::where('role', 'validator')
                 ->paginate(20);
         } else {
             $documents = (clone $baseQuery)
-                ->whereIn('status', ['in_validation', 'approbation'])
+                ->whereIn('status', ['in_validation', 'in_approbation'])
                 ->where('current_role', $role)
                 ->latest()
                 ->paginate(20);
@@ -709,7 +969,7 @@ $validators = User::where('role', 'validator')
                 ->limit(5)
                 ->get();
 
-            $validationStatus = $role === 'approver' ? 'approbation' : 'in_validation';
+            $validationStatus = $role === 'approver' ? 'in_approbation' : 'in_validation';
             $documentsAValider = Document::where('status', $validationStatus)
                 ->where('current_role', $role)
                 ->whereNotNull('deadline')
@@ -738,7 +998,7 @@ $validators = User::where('role', 'validator')
         }
 
         $stats = [
-            'pending' => Document::where('status', $role === 'approver' ? 'approbation' : 'in_validation')
+            'pending' => Document::where('status', $role === 'approver' ? 'in_approbation' : 'in_validation')
                 ->where('current_role', $role)->count(),
             'processed' => $processedCount,
             'rejected' => Document::whereHas('transmissions', function ($query) use ($user) {

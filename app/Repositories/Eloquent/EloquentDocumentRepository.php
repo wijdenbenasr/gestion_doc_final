@@ -55,6 +55,7 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
                 'file_path' => $document->file_path,
                 'hash' => $document->hash ?? '',
                 'created_by' => $document->created_by,
+                'type' => 'original',
                 'comment' => 'Version initiale',
             ]);
 
@@ -74,6 +75,7 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
                     'file_path' => $document->file_path,
                     'hash' => $document->hash ?? '',
                     'created_by' => auth()->id() ?? $document->created_by,
+                    'type' => 'original',
                     'comment' => 'Mise à jour fichier',
                 ]);
             }
@@ -112,7 +114,7 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
             'pending_codification' => Document::where('status', 'pending_codification')->count(),
             'in_validation' => Document::where('status', 'in_validation')->count(),
             'rejected' => Document::where('status', 'rejected')->count(),
-            'finalized' => Document::where('status', 'finalized')->count(),
+             'archived' => Document::where('status', 'archived')->count(),
         ];
     }
 }

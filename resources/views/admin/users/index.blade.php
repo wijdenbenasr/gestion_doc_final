@@ -141,7 +141,7 @@
                     <input id="create_password" type="password" name="password" required>
                 </div>
                 <div class="field">
-                    <label for="create_password_confirmation">Confirmation</label>
+                    <label for="create_password_confirmation">Confirmation du mot de passe</label>
                     <input id="create_password_confirmation" type="password" name="password_confirmation" required>
                 </div>
             </div>
@@ -300,11 +300,10 @@ function toggleQuickCreatePanel() {
                                 </form>
                             </details>
 
-                            <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Supprimer cet utilisateur ?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm text-danger">Supprimer</button>
-                            </form>
+                            <button type="button" onclick="openGlobalDeleteModal('{{ route('admin.users.destroy', $user->id) }}', '{{ $user->prenom }} {{ $user->nom }}', 'Supprimer l\'utilisateur')"
+                                    class="btn btn-danger btn-sm text-danger">
+                                Supprimer
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -326,4 +325,5 @@ function toggleQuickCreatePanel() {
         {{ $users->appends(request()->query())->links() }}
     </div>
 </div>
+
 @endsection

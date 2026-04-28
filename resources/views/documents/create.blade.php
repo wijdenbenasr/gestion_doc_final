@@ -17,7 +17,7 @@
     </div>
 
     <form method="POST"
-          action="{{ isset($document) ? route('documents.update', $document) : route('documents.store') }}"
+          action="{{ isset($document) ? ($isAdmin ? route('admin.documents.update', $document) : route('documents.update', $document)) : ($isAdmin ? route('admin.documents.store') : route('documents.store')) }}"
           enctype="multipart/form-data">
         @csrf
         @if(isset($document)) @method('PUT') @endif
@@ -32,10 +32,94 @@
                     <label for="name">Nom du document <span class="required">*</span></label>
                     <input id="name" type="text" name="name"
                            value="{{ old('name', $document->name ?? '') }}"
-                           placeholder="Ex : Fiche de contrôle poste AIO1 - Ligne 3"
+                           placeholder="Ex : Fiche de controle poste AIO1 - Ligne 3"
                            required>
                     @error('name')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
+
+                {{-- Type de document --}}
+                <div class="field">
+                    <label for="type">Type de document <span class="required">*</span></label>
+                    <select id="type" name="type" required>
+                        <option value="">-- Selectionner un type --</option>
+                        @foreach($types as $value => $label)
+                            <option value="{{ $value }}"
+                                @selected(old('type', $document->type ?? '') === $value)>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('type')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+
+                {{-- AIO --}}
+                <div class="field">
+                    <label for="aio">AIO <span class="required">*</span></label>
+                    <select id="aio" name="aio" required>
+                        <option value="">-- Selectionner un AIO --</option>
+                        @foreach($aios as $value => $label)
+                            <option value="{{ $value }}"
+                                @selected(old('aio', $document->aio ?? '') === $value)>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('aio')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+
+                {{-- Ligne de production --}}
+                <div class="field">
+                    <label for="ligne">
+                        Ligne de production
+                        <span class="required">*</span>
+                        @if(!isset($document) && !$canEditLigne)
+                            <span class="field-badge field-badge-optional"><i class="fas fa-lock"></i> Modifiable par l'admin apres codification</span>
+                        @elseif(isset($document) && !$canEditLigne)
+                            <span class="field-badge field-badge-optional"><i class="fas fa-lock"></i> Modifiable par l'admin uniquement</span>
+                        @endif
+                    </label>
+                    <input id="ligne" type="text" name="ligne"
+                           value="{{ old('ligne', $document->ligne ?? '') }}"
+                           placeholder="Ex : Ligne A, Ligne 3, L12..."
+                           required
+                           @if(!$canEditLigne) readonly @endif
+                           style="{{ !$canEditLigne ? 'background:rgba(148,163,184,0.08);color:var(--muted);' : '' }}">
+                    @error('ligne')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+
+            </div>
+        </div>
+
+        {{-- ── Section Admin : Code & Créateur (admin only) ─────────────────── --}}
+        @if($isAdmin ?? false)
+        <div class="form-section">
+            <div class="form-section-title">Codification & Attribution</div>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="code">CODE DU DOCUMENT <span class="required">*</span></label>
+                    <input id="code" type="text" name="code"
+                           value="{{ old('code') }}"
+                           placeholder="ex: QMS-SOP-AIO1-014"
+                           required>
+                    @error('code')<div class="field-error">{{ $message }}</div>@enderror
+                    <div class="field-hint">Attribuez le code unique du document des sa creation.</div>
+                </div>
+                <div class="field">
+                    <label for="createur_id">CREATEUR ASSIGNE <span class="required">*</span></label>
+                    <select id="createur_id" name="createur_id" required>
+                        <option value="">-- Selectionner un createur --</option>
+                        @foreach($createurs as $createur)
+                            <option value="{{ $createur->id }}" @selected(old('createur_id') == $createur->id)>
+                                {{ $createur->prenom }} {{ $createur->nom }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('createur_id')<div class="field-error">{{ $message }}</div>@enderror
+                    <div class="field-hint">Selectionnez le createur qui recevra ce document.</div>
+                </div>
+            </div>
+        </div>
+        @endif
 
                 {{-- Type de document --}}
                 <div class="field">

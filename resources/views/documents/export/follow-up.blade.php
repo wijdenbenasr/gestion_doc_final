@@ -49,7 +49,7 @@
                 <td>{{ Document::AIOS[$doc->aio] ?? strtoupper($doc->aio) }}</td>
                 <td>{{ $doc->ligne }}</td>
                 <td>{{ $doc->phase === 'projet' ? 'Projet' : 'Serie' }}</td>
-                <td>v{{ $doc->revision }}</td>
+                <td>{{ $doc->revision }}</td>
                 <td>{{ Document::STATUSES[$doc->status] ?? $doc->status }}</td>
                 <td>{{ $doc->current_role ?? '-' }}</td>
                 <td>{{ $doc->creator->name ?? '-' }}</td>

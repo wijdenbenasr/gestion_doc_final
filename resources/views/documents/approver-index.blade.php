@@ -120,7 +120,7 @@
                         <div>
                             <div style="font-weight:600;font-size:.85rem;">{{ $doc->name }}</div>
                             <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;">
-                                {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | v{{ $doc->revision }}
+                                {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | {{ $doc->revision }}
                             </div>
                         </div>
                         <span class="badge {{ $badgeClass }}" style="font-size:.7rem;white-space:nowrap;">
@@ -224,7 +224,7 @@
                         <td><span class="badge badge-info">{{ \App\Models\Document::AIOS[$doc->aio] ?? $doc->aio }}</span></td>
                         <td>{{ $doc->ligne }}</td>
                         <td style="font-size:.72rem;">{{ $doc->phase_libelle }}</td>
-                        <td style="font-family:monospace;font-size:.75rem;">v{{ $doc->revision }}</td>
+                        <td style="font-family:monospace;font-size:.75rem;">{{ $doc->revision }}</td>
                         <td>{{ $doc->creator->name ?? '—' }} {{ $doc->creator->prenom ?? '' }}</td>
                         <td style="font-size:.72rem;">
                             @if($doc->deadline)
@@ -241,8 +241,29 @@
                                     Actions
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}"><i class="fas fa-download me-2"></i>Telecharger</a></li>
-                                    <li><button type="button" class="dropdown-item" style="color:#4ade80;cursor:pointer;" onclick="openTableSignModal('{{ $doc->id }}')"><i class="fas fa-signature me-2"></i>Signer</button></li>
+                                    <li><a class="dropdown-item" href="{{ route('documents.download', $doc) }}"><i class="fas fa-download me-2"></i>Télécharger</a></li>
+                                    @if(($doc->status === 'in_approbation' || $doc->status === 'approbation') && $doc->current_role === 'approver')
+                                    <li>
+                                        <button type="button" class="dropdown-item" style="color:#4ade80;cursor:pointer;"
+                                                onclick="openApproveModal('{{ $doc->id }}')">
+                                            <i class="fas fa-check me-2"></i>Approuver
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item" style="color:#f87171;cursor:pointer;"
+                                                onclick="openRejectModal('{{ $doc->id }}')">
+                                            <i class="fas fa-times me-2"></i>Rejeter
+                                        </button>
+                                    </li>
+                                    @endif
+                                    @if(in_array($doc->status, ['signing_approver']) && $doc->current_role === 'approver')
+                                    <li>
+                                        <button type="button" class="dropdown-item" style="color:#c084fc;cursor:pointer;"
+                                                onclick="openTableSignModal('{{ $doc->id }}')">
+                                            <i class="fas fa-signature me-2"></i>Signer PDF
+                                        </button>
+                                    </li>
+                                    @endif
                                 </ul>
                             </div>
                         </td>
@@ -295,6 +316,24 @@
 
 <!-- Modal de signature (table) -->
 @foreach($documents as $doc)
+@if(($doc->status === 'in_approbation' || $doc->status === 'approbation') && $doc->current_role === 'approver')
+<div id="approve-modal-{{ $doc->id }}" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
+    <div style="background:#1f2937;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:400px;border:1px solid rgba(255,255,255,0.1);">
+        <h4 style="margin-bottom:1rem;color:white;">Approuver le document</h4>
+        <p style="margin-bottom:1.5rem;color:#9ca3af;">Approuver <strong style="color:white;">{{ $doc->name }}</strong> et l'envoyer à l'admin ?</p>
+        <form action="{{ route('workflow.approver.approve', $doc) }}" method="POST">
+            @csrf
+            <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('approve-modal-{{ $doc->id }}').style.display='none'">Annuler</button>
+                <button type="submit" class="btn btn-sm" style="background:rgba(34,197,94,0.2);border:1px solid rgba(34,197,94,0.5);color:#4ade80;">Confirmer</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+@endforeach
+
+@foreach($documents as $doc)
 <div id="table-sign-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
     <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
         <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
@@ -339,7 +378,7 @@
         @forelse($processedDocuments as $doc)
             <div style="padding:.55rem 0;border-bottom:1px solid rgba(31,41,55,0.8);">
                 <div style="font-weight:600;">{{ $doc->name }}</div>
-                <div style="font-size:.74rem;color:var(--muted);">{{ $doc->code ?: 'Sans code' }} | v{{ $doc->revision }}</div>
+                <div style="font-size:.74rem;color:var(--muted);">{{ $doc->code ?: 'Sans code' }} | {{ $doc->revision }}</div>
             </div>
         @empty
             <div style="color:var(--muted);padding:1rem;text-align:center;">
@@ -379,6 +418,9 @@ function closeSignModal(id) {
 }
 function openTableSignModal(id) {
     document.getElementById('table-sign-modal-' + id).style.display = 'block';
+}
+function openApproveModal(id) {
+    document.getElementById('approve-modal-' + id).style.display = 'block';
 }
 function closeTableSignModal(id) {
     document.getElementById('table-sign-modal-' + id).style.display = 'none';

@@ -283,6 +283,11 @@
 
                 <form method="POST" action="{{ route('login.submit') }}">
                     @csrf
+                    @if(session('success') || session('status'))
+                        <div class="form-success" style="margin-bottom:1rem;padding:1rem;border-radius:.75rem;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.4);color:#bbf7d0;">
+                            {{ session('success') ?? session('status') }}
+                        </div>
+                    @endif
                     @if($errors->any())
                     <div class="form-error">
                         {{ $errors->first('email') }}
@@ -336,7 +341,7 @@
         const input = document.getElementById('password');
         const isPassword = input.type === 'password';
         input.type = isPassword ? 'text' : 'password';
-        
+
         this.querySelector('.eye-open').style.display = isPassword ? 'none' : 'block';
         this.querySelector('.eye-slash').style.display = isPassword ? 'block' : 'none';
     });
