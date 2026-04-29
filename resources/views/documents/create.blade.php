@@ -13,7 +13,7 @@
                 Remplissez tous les champs obligatoires (*). Le fichier sera chiffr et un hash SHA-256 calcul.
             </div>
         </div>
-        <a href="{{ $backRoute  route('documents.creator.index') }}" class="btn btn-ghost">? Retour</a>
+        <a href="{{ $backRoute ?? route('documents.creator.index') }}" class="btn btn-ghost">? Retour</a>
     </div>
 
     <form method="POST"
@@ -91,7 +91,7 @@
         </div>
 
         {{--  Section Admin : Code & Crateur (admin only) ? --}}
-        @if($isAdmin  false)
+        @if($isAdmin)
         <div class="form-section">
             <div class="form-section-title">Codification & Attribution</div>
             <div class="form-grid">
@@ -213,7 +213,7 @@
         </div>
 
         <div class="form-actions">
-            <a href="{{ $backRoute  route('documents.creator.index') }}" class="btn btn-ghost">Annuler</a>
+            <a href="{{ $backRoute ?? route('documents.creator.index') }}" class="btn btn-ghost">Annuler</a>
             <button type="submit" class="btn btn-primary">
                 {{ isset($document) ? ' Enregistrer les modifications' : '+ Crer le document' }}
             </button>

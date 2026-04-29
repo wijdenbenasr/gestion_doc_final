@@ -42,14 +42,43 @@
                         <td>
                             @php
                                 $type = $notification->data['type'] ?? 'default';
-                                $typeLabels = [
-                                    'codification' => 'Codification',
-                                    'validation' => 'Validation',
-                                    'approbation' => 'Approbation',
-                                    'default' => 'General',
-                                ];
+$typeLabels = [
+
+    'codification' => 'Codification',
+
+    'validation' => 'Validation',
+
+    'in_validation' => 'En validation',
+
+    'approbation' => 'Approbation',
+
+    'validation_admin' => 'Validation finale admin',
+
+    'signing_validator' => 'Signature validateur',
+
+    'signing_approver' => 'Signature approbateur',
+
+    'signing_admin' => 'Signature admin',
+
+    'document_assigned' => 'Assignation',
+
+    'archived' => 'Archivé',
+
+    'ready_for_pdf' => 'Prêt pour PDF',
+
+    'pdf_converted' => 'PDF converti',
+
+    'coded' => 'Codifié',
+
+    'rejected' => 'Rejeté',
+
+    'EN_MODIFICATION' => 'En modification',
+
+    'default' => 'General',
+
+];
                             @endphp
-                            {{ $typeLabels[$type]  'General' }}
+                            {{ $typeLabels[$type] ?? $typeLabels['default'] }}
                         </td>
                         <td style="font-size:.72rem;color:var(--muted);">
                             {{ $notification->created_at->format('d/m/Y H:i') }}

@@ -44,13 +44,22 @@
 </div>
 
 <div class="card">
-    <div class="card-header">
+<div class="card-header">
         <div>
             <div class="card-title">Mes documents</div>
             <div class="card-sub">Suivez le workflow complet depuis le brouillon jusqu a l archivage final.</div>
         </div>
         <a href="{{ route('documents.create') }}" class="btn btn-primary">Nouveau document</a>
     </div>
+
+    <form method="GET" action="{{ route('documents.creator.index') }}" style="padding:1rem 1.25rem 0;display:flex;gap:.5rem;align-items:center;">
+        <input type="hidden" name="status" value="{{ $status ?? '' }}">
+        <input type="text" name="search" value="{{ $search ?? '' }}" class="form-control" style="max-width:300px;background:#0f172a;color:white;" placeholder="Rechercher par nom, code, ligne...">
+        <button type="submit" class="btn btn-outline-secondary" style="border-color:rgba(255,255,255,0.2);color:#e5e7eb;">Rechercher</button>
+        @if($search)
+            <a href="{{ route('documents.creator.index', ['status' => $status ?? '']) }}" class="btn btn-link" style="color:var(--muted);">Effacer</a>
+        @endif
+    </form>
 
 @if($documents->isEmpty())
         <div style="text-align:center;padding:3rem;color:var(--muted);">
@@ -128,7 +137,7 @@
                                      'rejected' => ['badge-danger', 'Rejete'],
                                      'archived' => ['badge-success', 'Finalise'],
                                  ];
-                                 $status = $statusConfig[$document->status]  ['badge-muted', $document->status];
+                                 $status = $statusConfig[$document->status] ?? ['badge-muted', $document->status];
                              @endphp
                              <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
                              @if($document->status === 'EN_MODIFICATION' && $document->commentaire_rejet)
@@ -153,18 +162,31 @@
 
                                         {{-- ENVOYER A L'ADMIN : draft sans code --}}
                                         @if(in_array($document->status, ['draft', 'brouillon']) && empty($document->code))
+
                                             <li>
+
                                                 <form method="POST" action="{{ route('workflow.creator.send', $document) }}">
+
                                                     @csrf
+
                                                     <button type="submit" class="dropdown-item" style="color:#3b82f6;"><i class="fas fa-paper-plane me-2"></i> Envoyer a l admin</button>
+
                                                 </form>
+
                                             </li>
+
                                             <li><hr class="dropdown-divider"></li>
+
                                             <li>
+
                                                 <button type="button"
-                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom  $document->name ?? '' }}', 'Supprimer le document')"
+
+                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom . ($document->name ?? '') }}', 'Supprimer le document')"
+
                                                         class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i> Supprimer</button>
+
                                             </li>
+
                                         @endif
 
                                         {{-- ENVOYER AU VALIDATEUR : draft/EN_MODIFICATION AVEC code --}}
@@ -178,7 +200,7 @@
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <button type="button"
-                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom  $document->name ?? '' }}', 'Supprimer le document')"
+                                                        onclick="openGlobalDeleteModal('{{ route('documents.requestDeletion', $document) }}', '{{ $document->nom . ($document->name ?? '') }}', 'Supprimer le document')"
                                                         class="dropdown-item" style="color:#ef4444;"><i class="fas fa-trash me-2"></i> Supprimer</button>
                                             </li>
                                         @endif

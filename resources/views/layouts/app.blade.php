@@ -698,7 +698,7 @@
         @if(session('success') || session('status'))
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i>
-                {{ session('success')  session('status') }}
+                {{ session('success') ?? session('status') }}
             </div>
         @endif
         @if(session('error'))

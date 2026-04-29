@@ -58,79 +58,64 @@ class DownloadController extends Controller
             abort(404, 'Fichier introuvable sur le disque.');
         }
 
-        $mimeType = Storage::disk($disk)->mimeType($filePath);
-        return response()->file(Storage::disk($disk)->path($filePath), [
+        $fullPath = Storage::disk($disk)->path($filePath);
+        $mimeType = Storage::disk($disk)->mimeType($filePath) ?? 'application/octet-stream';
+
+        // Force correct MIME type for PDFs
+        if (strtolower(pathinfo($filename, PATHINFO_EXTENSION)) === 'pdf') {
+            $mimeType = 'application/pdf';
+        }
+
+        return response()->file($fullPath, [
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
     private function resolveFileForDownload(Document $document, $user)
     {
         $role = $user->role;
-        $status = $document->status;
 
-        // PHASE 1: Codification - Admin downloads original file
-        if ($role === 'admin' && $status === 'pending_codification') {
-            return $this->resolveOriginalFile($document);
+        // All actors can download any document at any workflow phase
+        return $this->resolveOriginalFile($document)
+            ?? $this->resolveConvertedPdf($document)
+            ?? $this->resolveFinalPdf($document, $role, $user)
+            ?? $this->getAnyAvailableFile($document);
+    }
+
+    private function getAnyAvailableFile(Document $document)
+    {
+        // Try latest version file
+        $latestVersion = $document->versions()->latest()->first();
+        if ($latestVersion && $latestVersion->file_path) {
+            $disk = str_contains($latestVersion->file_path, 'private') ? 'private' : 'public';
+            $pathInfo = pathinfo($latestVersion->file_path);
+            $extension = isset($pathInfo['extension']) ? $pathInfo['extension'] : 'pdf';
+            $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '.' . $extension;
+            if (Storage::disk($disk)->exists($latestVersion->file_path)) {
+                return [
+                    'file' => $latestVersion->file_path,
+                    'name' => $filename,
+                    'disk' => $disk
+                ];
+            }
         }
 
-        // PHASE 2: Modification - Creator downloads after codification
-        if ($role === 'creator' && $user->id === $document->created_by && $status === 'draft' && !empty($document->code)) {
-            return $this->resolveOriginalFile($document);
+        // Last resort: try document file_path
+        if ($document->file_path) {
+            $disk = str_contains($document->file_path, 'private') ? 'private' : 'public';
+            $pathInfo = pathinfo($document->file_path);
+            $extension = isset($pathInfo['extension']) ? $pathInfo['extension'] : 'pdf';
+            $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '.' . $extension;
+            if (Storage::disk($disk)->exists($document->file_path)) {
+                return [
+                    'file' => $document->file_path,
+                    'name' => $filename,
+                    'disk' => $disk
+                ];
+            }
         }
-
-        // PHASE 3: Validation & Approbation (multi-step)
-        if ($role === 'validator' && $status === 'in_validation' && $document->current_role === 'validator') {
-            return $this->resolveFileForValidator($document);
-        }
-
-        if ($role === 'approver' && $status === 'approbation' && $document->current_role === 'approver') {
-            return $this->resolveFileForApprover($document);
-        }
-
-        if ($role === 'admin' && $status === 'validation_admin' && $document->current_role === 'admin') {
-            return $this->resolveFileForAdminValidation($document);
-        }
-
-        // PHASE 4: Conversion - Creator downloads to convert to PDF
-        if ($role === 'creator' && $user->id === $document->created_by && $status === 'ready_for_pdf') {
-            return $this->resolveOriginalFile($document);
-        }
-
-        // PHASE 5: Signature (sequential)
-        if ($role === 'creator' && $user->id === $document->created_by && strtolower($status) === 'pdf_converted') {
-            return $this->resolveConvertedPdf($document);
-        }
-
-        if ($role === 'validator' && $status === 'signing_validator' && $document->current_role === 'validator') {
-            return $this->resolveSignedPdf($document, 'pdf_signe_createur', 'createur');
-        }
-
-        if ($role === 'approver' && $status === 'signing_approver' && $document->current_role === 'approver') {
-            return $this->resolveSignedPdf($document, 'pdf_signe_validateur', 'validateur');
-        }
-
-        if ($role === 'admin' && $status === 'signing_admin' && $document->current_role === 'admin') {
-            return $this->resolveSignedPdf($document, 'pdf_signe_approbateur', 'approbateur');
-        }
-
-        // PHASE 6: Archive - All actors can download final signed PDF
-        if ($status === 'archived') {
-            return $this->resolveFinalPdf($document, $role, $user);
-        }
-
-        // Rejected documents - creator can download original
-        if ($status === 'rejected' && $role === 'creator' && $user->id === $document->created_by) {
-            return $this->resolveOriginalFile($document);
-        }
-
-        Log::warning('Unauthorized download attempt', [
-            'document_id' => $document->id,
-            'user_id' => $user->id,
-            'role' => $role,
-            'status' => $status,
-        ]);
 
         return null;
     }

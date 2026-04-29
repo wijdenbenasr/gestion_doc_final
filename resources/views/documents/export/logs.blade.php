@@ -137,7 +137,7 @@
                                     -
                                 @endif
                             </td>
-                            <td>{{ $actionLabels[strtolower($log->action)]  ucfirst(str_replace('_', ' ', $log->action)) }}</td>
+                            <td>{{ $actionLabels[strtolower($log->action)] ?? ucfirst(str_replace('_', ' ', $log->action)) }}</td>
                             <td>
                                 @if($log->payload && count($log->payload) > 0)
                                     {{ Illuminate\Support\Str::limit(json_encode($log->payload, JSON_UNESCAPED_UNICODE), 50) }}

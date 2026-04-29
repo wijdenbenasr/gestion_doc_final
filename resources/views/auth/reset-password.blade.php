@@ -2,6 +2,15 @@
 
 @section('title', 'Réinitialiser le mot de passe')
 
+@section('styles')
+    <style>
+        header a.nav-link[href="{{ route('login') }}"],
+        header a.btn[href="{{ route('register') }}"] {
+            display: none !important;
+        }
+    </style>
+@endsection
+
 @section('content')
 <div class="card" style="max-width:480px;margin:2rem auto;">
     <div class="card-header">

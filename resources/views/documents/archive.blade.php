@@ -473,12 +473,7 @@
                             <i class="fas fa-download"></i>
                             Télécharger
                         </a>
-                        @if(auth()->user()->role === 'admin')
-                            <a href="{{ route('documents.view', $document) }}" target="_blank" class="btn-doc btn-doc-view">
-                                <i class="fas fa-eye"></i>
-                                Voir
-                            </a>
-                        @endif
+
                     </div>
                 </div>
             @endforeach

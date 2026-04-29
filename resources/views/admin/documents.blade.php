@@ -98,8 +98,16 @@
                                 'pending_codification' => ['badge-warning', 'Codification'],
                                 'in_validation' => ['badge-info', 'Validation'],
                                 'draft' => ['badge-muted', 'Brouillon'],
+                                'validation_admin' => ['badge-info', 'Validation admin'],
+                                'approbation' => ['badge-info', 'Approbation'],
+                                'ready_for_pdf' => ['badge-warning', 'PDF'],
+                                'pdf_converti' => ['badge-success', 'PDF converti'],
+                                'signing_validator' => ['badge-info', 'Signature validateur'],
+                                'signing_approver' => ['badge-info', 'Signature approbateur'],
+                                'signing_admin' => ['badge-info', 'Signature admin'],
+                                'EN_MODIFICATION' => ['badge-warning', 'En modification'],
                             ];
-                            $status = $statusConfig[$doc->status]  ['badge-muted', $doc->status];
+                            $status = $statusConfig[$doc->status] ?? ['badge-muted', $doc->status];
                         @endphp
                         <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
                     </td>

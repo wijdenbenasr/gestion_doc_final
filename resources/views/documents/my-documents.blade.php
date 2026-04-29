@@ -122,7 +122,7 @@
                                       'rejected' => ['badge-danger', 'Rejete'],
                                       'archived' => ['badge-success', 'Finalise'],
                                   ];
-                                  $status = $statusConfig[strtolower($document->status)]  ['badge-muted', $document->status];
+                                   $status = $statusConfig[strtolower($document->status)] ?? ['badge-muted', $document->status];
                              @endphp
                              <span class="badge {{ $status[0] }}">{{ $status[1] }}</span>
                              @if($document->status === 'EN_MODIFICATION' && $document->commentaire_rejet)

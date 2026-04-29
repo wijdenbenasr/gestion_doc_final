@@ -38,6 +38,7 @@ class DocumentController extends Controller
     public function indexCreator(Request $request): View
     {
         $status = $request->query('status');
+        $search = $request->query('search');
         $userId = Auth::id();
         $documents = Document::with(['creator'])
             ->where(function ($q) use ($userId) {
@@ -45,6 +46,13 @@ class DocumentController extends Controller
                   ->orWhere('current_owner_id', $userId);
             })
             ->when($status, fn($q) => $q->where('status', $status))
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%')
+                      ->orWhere('code', 'like', '%' . $search . '%')
+                      ->orWhere('ligne', 'like', '%' . $search . '%');
+                });
+            })
             ->latest()
             ->paginate(20);
 
@@ -64,7 +72,7 @@ class DocumentController extends Controller
             ")
             ->first();
 
-        return view('documents.creator-index', compact('documents', 'stats', 'status'));
+        return view('documents.creator-index', compact('documents', 'stats', 'status', 'search'));
     }
     public function myDocuments(Request $request): View
     {

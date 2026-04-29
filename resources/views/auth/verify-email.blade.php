@@ -2,6 +2,15 @@
 
 @section('title', 'Vérification email')
 
+@section('styles')
+    <style>
+        header a.nav-link[href="{{ route('login') }}"],
+        header a.btn[href="{{ route('register') }}"] {
+            display: none !important;
+        }
+    </style>
+@endsection
+
 @section('content')
     <div class="card">
         <div class="card-header">
