@@ -1,0 +1,40 @@
+<?php
+
+return [
+    'accepted'             => 'Le champ :attribute doit être accepté.',
+    'active_url'           => 'Le champ :attribute n\'est pas une URL valide.',
+    'after'                => 'Le champ :attribute doit être une date postérieure au :date.',
+    'alpha'                => 'Le champ :attribute doit contenir uniquement des lettres.',
+    'alpha_dash'           => 'Le champ :attribute doit contenir uniquement des lettres, des chiffres, des tirets et des underscores.',
+    'alpha_num'            => 'Le champ :attribute doit contenir uniquement des lettres et des chiffres.',
+    'array'                => 'Le champ :attribute doit être un tableau.',
+    'before'               => 'Le champ :attribute doit être une date antérieure au :date.',
+    'between'              => [
+        'array'   => 'Le tableau :attribute doit contenir entre :min et :max éléments.',
+        'file'    => 'Le fichier :attribute doit avoir une taille entre :min et :max kilo-octets.',
+        'numeric' => 'La valeur de :attribute doit être comprise entre :min et :max.',
+        'string'  => 'Le texte :attribute doit contenir entre :min et :max caractères.',
+    ],
+    'boolean'              => 'Le champ :attribute doit être vrai ou faux.',
+    'confirmed'            => 'La confirmation de :attribute ne correspond pas.',
+    'date'                 => 'Le champ :attribute n\'est pas une date valide.',
+    'date_equals'          => 'Le champ :attribute doit être une date égale à :date.',
+    'email'                => 'Le champ :attribute doit être une adresse email valide.',
+    'max'                  => [
+        'array'   => 'Le tableau :attribute ne peut pas contenir plus de :max éléments.',
+        'file'    => 'Le fichier :attribute ne peut pas dépasser :max kilo-octets.',
+        'numeric' => 'La valeur de :attribute ne peut pas être supérieure à :max.',
+        'string'  => 'Le texte :attribute ne peut pas dépasser :max caractères.',
+    ],
+    'min'                  => [
+        'array'   => 'Le tableau :attribute doit contenir au moins :min éléments.',
+        'file'    => 'Le fichier :attribute doit avoir une taille d\'au moins :min kilo-octets.',
+        'numeric' => 'La valeur de :attribute doit être supérieure ou égale à :min.',
+        'string'  => 'Le texte :attribute doit contenir au moins :min caractères.',
+    ],
+    'required'             => 'Le champ :attribute est obligatoire.',
+    'required_if'          => 'Le champ :attribute est obligatoire lorsque :other vaut :value.',
+    'required_with'        => 'Le champ :attribute est obligatoire lorsque :values est présent.',
+    'string'               => 'Le champ :attribute doit être une chaîne de caractères.',
+    'unique'               => 'La valeur du champ :attribute est déjà utilisée.',
+];

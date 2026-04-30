@@ -3,28 +3,19 @@
 @section('title', 'Documents a valider')
 
 @section('content')
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show mx-3 mt-3" style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#22c55e;border-radius:8px;" role="alert">
-        <i class="fas fa-check-circle me-2"></i>
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="cards-row" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 1rem;">
+    <div class="stat-card">
+        <div class="stat-label">En attente de validation</div>
+        <div class="stat-value" style="color:#f59e0b;">{{ $stats['en_attente_validation'] }}</div>
+        <div class="stat-meta">Documents a valider ou rejeter</div>
     </div>
-@endif
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3" style="background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;border-radius:8px;" role="alert">
-        <i class="fas fa-times-circle me-2"></i>
-        {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="stat-card">
+        <div class="stat-label">En attente de signature</div>
+        <div class="stat-value" style="color:#38bdf8;">{{ $stats['en_attente_signature'] }}</div>
+        <div class="stat-meta">Documents a signer</div>
     </div>
-@endif
-<div class="cards-row" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1rem;">
-    <a href="{{ route('workflow.validator.index') }}" class="stat-card {{ !$filter || $filter === 'pending' ? 'active' : '' }}">
-        <div class="stat-label">En attente</div>
-        <div class="stat-value" style="color:#f59e0b;">{{ $stats['pending'] }}</div>
-        <div class="stat-meta">Documents a traiter maintenant</div>
-    </a>
     <a href="{{ route('workflow.validator.index', ['filter' => 'processed']) }}" class="stat-card {{ $filter === 'processed' ? 'active' : '' }}">
-        <div class="stat-label">Valids</div>
+        <div class="stat-label">Valides</div>
         <div class="stat-value" style="color:#4ade80;">{{ $stats['processed'] }}</div>
         <div class="stat-meta">Historique personnel</div>
     </a>
@@ -35,7 +26,7 @@
     </a>
     <a href="#notifications" class="stat-card">
         <div class="stat-label">Notifications</div>
-        <div class="stat-value" style="color:#38bdf8;">{{ $stats['notifications'] }}</div>
+        <div class="stat-value" style="color:#a78bfa;">{{ $stats['notifications'] }}</div>
         <div class="stat-meta">Non lues</div>
     </a>
 </div>
@@ -43,54 +34,87 @@
 <div class="cards-row" style="grid-template-columns: 1fr 1fr; gap: 1rem; flex-grow: 1; margin-bottom: 1rem;">
     <div class="card" id="recent-alerts" style="min-height: 180px;">
         <div class="card-header">
+            @php
+                $showAlertes = isset($alertes) && $alertes->count() > 0;
+            @endphp
             <div>
                 <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:#f59e0b;margin-right:.5rem;"></i>Alertes prioritaires</div>
                 <div class="card-sub">Documents a traiter en priorite.</div>
             </div>
+            <span class="badge badge-danger" style="font-size:.8rem;padding:.3rem .7rem;">
+                {{ $alertes->count() ?? 0 }} document(s)
+            </span>
         </div>
-        @php
-            $showAlertes = isset($alertes) && $alertes->count() > 0;
-        @endphp
 
         @if($showAlertes)
             <div style="display:grid;gap:.4rem;">
-                @forelse($alertes as $doc)
+                @foreach($alertes as $doc)
                     @php
                         $isUrgent = $doc->deadline && $doc->deadline->isPast();
                         $isWarning = !$isUrgent && $doc->deadline && $doc->deadline->isBefore(now()->addDays(2));
                         $badgeClass = $isUrgent ? 'badge-danger' : ($isWarning ? 'badge-warning' : 'badge-info');
+                        $needsSignature = in_array($doc->status, ['signing_validator', 'SIGNATURE_VALIDATEUR']);
                     @endphp
-                    <div id="validate-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
-                        <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
-                            <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                                <h4 style="margin:0;"> Signer et envoyer le document</h4>
-                                <button type="button" class="btn-close btn-close-white" onclick="closeValidateModal('{{ $doc->id }}')"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.validator.sign', $doc) }}">
-                                    @csrf
-                                    <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
-                                        <small class="text-muted">Document :</small>
-                                        <p class="mb-0 fw-bold">{{ $doc->name }}</p>
-                                        <small class="text-muted">Code : {{ $doc->code }}</small>
+
+                    @if($needsSignature)
+                    <div id="validate-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;">
+                        <div style="background:#0f172a;border:1px solid #3b82f6;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:20px auto;box-shadow:0 25px 60px rgba(59,130,246,0.15);max-height:calc(100vh - 40px);overflow-y:auto;position:relative;">
+                            <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.validator.sign', $doc) }}">
+                                @csrf
+                                <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+                                    <div style="width:42px;height:42px;background:rgba(59,130,246,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:bold;color:#3b82f6;">S</div>
+                                    <div>
+                                        <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Signer et envoyer le document</h5>
+                                        <p style="color:#64748b;margin:0;font-size:0.8rem;">Téléversez le document signé pour continuer le workflow</p>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold"> Televerser le document signe *</label>
-                                        <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
-                                        <small class="text-muted">Format accepte : PDF</small>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label"> Commentaire (optionnel)</label>
-                                        <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
-                                    </div>
-                                    <div style="display:flex;gap:.5rem;justify-content:flex-end;">
-                                        <button type="button" class="btn btn-secondary" onclick="closeValidateModal('{{ $doc->id }}')">Annuler</button>
-                                        <button type="submit" class="btn btn-primary">Signer et envoyer</button>
-                                    </div>
-                                </form>
-                            </div>
+                                    <button type="button" onclick="closeValidateModal('{{ $doc->id }}')" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">X</button>
+                                </div>
+                                <div style="background:#1e293b;border-radius:10px;padding:12px 16px;margin-bottom:1.2rem;">
+                                    <p style="color:#94a3b8;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;margin:0 0 4px;">DOCUMENT</p>
+                                    <p style="color:white;font-weight:600;margin:0;">{{ $doc->name }}</p>
+                                    <p style="color:#3b82f6;font-size:0.82rem;margin:4px 0 0;">Code : {{ $doc->code }}</p>
+                                </div>
+                                <div style="margin-bottom:1.2rem;">
+                                    <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:8px;">
+                                        TÉLÉVERSER LE DOCUMENT SIGNÉ <span style="color:#ef4444;">*</span>
+                                    </label>
+                                    <label for="signedFile{{ $doc->id }}" style="display:flex;align-items:center;gap:12px;background:#1e293b;border:2px dashed #334155;border-radius:10px;padding:16px;cursor:pointer;transition:all 0.2s;"
+                                           onmouseover="this.style.borderColor='#3b82f6'" onmouseout="this.style.borderColor='#334155'">
+                                        <div style="width:36px;height:36px;background:rgba(59,130,246,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;color:#3b82f6;">+</div>
+                                        <div>
+                                            <p style="color:white;font-weight:500;margin:0;font-size:0.9rem;" id="signedFileName{{ $doc->id }}">Choisir un fichier PDF</p>
+                                            <p style="color:#64748b;font-size:0.78rem;margin:2px 0 0;">Format accepté : PDF uniquement</p>
+                                        </div>
+                                    </label>
+                                    <input type="file" id="signedFile{{ $doc->id }}" name="document_signe" accept=".pdf" required style="display:none;"
+                                           onchange="document.getElementById('signedFileName{{ $doc->id }}').textContent = this.files[0]?.name || 'Choisir un fichier PDF'">
+                                </div>
+                                <div style="margin-bottom:1.5rem;">
+                                    <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:8px;">
+                                        COMMENTAIRE <span style="color:#64748b;font-size:0.75rem;">(optionnel)</span>
+                                    </label>
+                                    <textarea name="commentaire" rows="3"
+                                        placeholder="Ajouter un commentaire..."
+                                        style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+                                        onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#334155'"></textarea>
+                                </div>
+                                <div style="display:flex;gap:12px;justify-content:flex-end;">
+                                    <button type="button" onclick="closeValidateModal('{{ $doc->id }}')"
+                                        style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+                                        onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+                                        Annuler
+                                    </button>
+                                    <button type="submit"
+                                        style="padding:10px 24px;background:#3b82f6;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+                                        onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+                                        Signer et envoyer
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
+                    @endif
+
                     <div style="padding:.6rem;border-radius:.4rem;background:rgba({{ $isUrgent ? '239,68,68' : ($isWarning ? '245,158,11' : '56,189,248') }},0.1);border-left:3px solid {{ $isUrgent ? 'var(--danger)' : ($isWarning ? 'var(--warning)' : 'var(--info)') }};">
                         <div style="display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:.3rem;">
                             <div>
@@ -104,31 +128,33 @@
                                     URGENT
                                 @elseif($isWarning)
                                     WARNING
-                                @else
+                                @elseif($needsSignature)
                                     PRET POUR SIGNATURE
+                                @else
+                                    EN ATTENTE
                                 @endif
                             </span>
                         </div>
                         <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
                             <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
-                            <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openValidateModal('{{ $doc->id }}')">Signer</button>
+                            @if($needsSignature)
+                                <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openValidateModal('{{ $doc->id }}')">Signer</button>
+                            @else
+                                <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openConfirmModal('{{ $doc->id }}')">Valider</button>
+                                <button type="button" class="btn btn-sm btn-danger" style="font-size:.72rem;" onclick="openRejectModal('{{ route('workflow.validator.reject', $doc) }}')">Rejeter</button>
+                            @endif
                         </div>
                     </div>
-                @empty
-                    <div style="color:var(--muted);padding:1rem;text-align:center;">
-                        Aucun document en attente de validation.
-                    </div>
-                @endforelse
+                @endforeach
             </div>
         @endif
     </div>
 
-    @php
-        $showDocumentsAValider = isset($documentsAValider) && $documentsAValider->count() > 0;
-    @endphp
-
     <div class="card" style="min-height: 180px;">
         <div class="card-header">
+            @php
+                $showDocsAVerifier = isset($documentsAVerifier) && $documentsAVerifier->count() > 0;
+            @endphp
             <div>
                 <div class="card-title">
                     <i class="fas fa-file-search" style="color:#f59e0b;margin-right:.5rem;"></i>Documents a verifier
@@ -138,20 +164,20 @@
                 </div>
             </div>
             <span class="badge badge-warning" style="font-size:.8rem;padding:.3rem .7rem;">
-                {{ $showDocumentsAValider ? $documentsAValider->count() : 0 }} document(s)
+                {{ $documentsAVerifier->count() ?? 0 }} document(s)
             </span>
         </div>
 
-        @if($showDocumentsAValider)
+        @if($showDocsAVerifier)
             <div style="display:grid;gap:.4rem;">
-                @forelse($documentsAValider as $doc)
+                @foreach($documentsAVerifier as $doc)
                     @php
                         $isUrgent = $doc->deadline && $doc->deadline->isPast();
                         $isWarning = !$isUrgent && $doc->deadline && $doc->deadline->isBefore(now()->addDays(2));
                         $badgeClass = $isUrgent ? 'badge-danger' : ($isWarning ? 'badge-warning' : 'badge-info');
                     @endphp
-                    <div id="confirm-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
-                        <div class="modal-content" style="background:#1f2937;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:400px;">
+                    <div id="confirm-modal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;">
+                        <div class="modal-content" style="background:#1f2937;margin:20px auto;padding:1.5rem;border-radius:8px;max-width:400px;max-height:calc(100vh - 40px);overflow-y:auto;position:relative;">
                             <h4 style="margin-bottom:1rem;">Confirmer la validation</h4>
                             <p style="margin-bottom:1.5rem;color:#9ca3af;">Voulez-vous valider le document "<strong>{{ $doc->name }}</strong>" ?</p>
                             <div style="display:flex;gap:.5rem;justify-content:flex-end;">
@@ -182,19 +208,12 @@
                             </span>
                         </div>
                         <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
-                    @if($doc->current_role === 'validator' && $doc->status === 'in_validation')
-                                <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
-                                <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openConfirmModal('{{ $doc->id }}')">Valider</button>
-                                <button type="button" class="btn btn-sm btn-danger" style="font-size:.72rem;" onclick="openRejectModal('{{ route('workflow.validator.reject', $doc) }}')">Rejeter</button>
-                            @endif
+                            <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
+                            <button type="button" class="btn btn-sm" style="border-color:rgba(34,197,94,0.5);font-size:.72rem;" onclick="openConfirmModal('{{ $doc->id }}')">Valider</button>
+                            <button type="button" class="btn btn-sm btn-danger" style="font-size:.72rem;" onclick="openRejectModal('{{ route('workflow.validator.reject', $doc) }}')">Rejeter</button>
                         </div>
                     </div>
-                @empty
-                    <div style="color:var(--muted);padding:1rem;text-align:center;">
-                        <i class="fas fa-check-circle fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
-                        Aucun document en attente de validation.
-                    </div>
-                @endforelse
+                @endforeach
             </div>
         @endif
     </div>
@@ -238,6 +257,42 @@
                 <i class="fas fa-check-circle fa-2x" style="display:block;margin-bottom:.75rem;opacity:.3;"></i>
                 Aucun document.
             </div>
+        @else
+            <div style="display:grid;gap:.4rem;">
+                @foreach($documents as $doc)
+                    @php
+                        $statusBadge = match($doc->status) {
+                            'in_validation' => ['class' => 'badge-warning', 'label' => 'EN VALIDATION'],
+                            'signing_validator' => ['class' => 'badge-info', 'label' => 'SIGNATURE'],
+                            'EN_VALIDATION' => ['class' => 'badge-warning', 'label' => 'EN VALIDATION'],
+                            'SIGNATURE_VALIDATEUR' => ['class' => 'badge-info', 'label' => 'SIGNATURE'],
+                            'approved' => ['class' => 'badge-success', 'label' => 'APPROUVE'],
+                            'archived' => ['class' => 'badge-secondary', 'label' => 'FINALISÉ'],
+                            'EN_MODIFICATION' => ['class' => 'badge-danger', 'label' => 'EN MODIFICATION'],
+                            default => ['class' => 'badge-info', 'label' => strtoupper($doc->status)],
+                        };
+                    @endphp
+                    <div style="padding:.6rem;border-radius:.4rem;background:rgba(255,255,255,0.03);border-left:3px solid {{ $doc->status === 'archived' ? 'var(--muted)' : 'var(--info)' }};">
+                        <div style="display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:.3rem;">
+                            <div>
+                                <div style="font-weight:600;font-size:.85rem;">{{ $doc->name }}</div>
+                                <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;">
+                                    {{ $doc->code ?: 'Sans code' }} | Par {{ $doc->creator->name ?? 'Inconnu' }} | {{ $doc->revision }}
+                                </div>
+                            </div>
+                            <span class="badge {{ $statusBadge['class'] }}" style="font-size:.7rem;white-space:nowrap;">
+                                {{ $statusBadge['label'] }}
+                            </span>
+                        </div>
+                        <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
+                            <a href="{{ route('documents.download', $doc) }}" class="btn btn-ghost btn-sm" style="font-size:.72rem;">Telecharger</a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <div style="padding:1rem;text-align:center;">
+                {{ $documents->links() }}
+            </div>
         @endif
     </div>
 
@@ -270,12 +325,12 @@
 
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
-      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">Œ</div>
+      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;"></div>
       <div>
         <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Rejeter le document</h5>
         <p style="color:#64748b;margin:0;font-size:0.8rem;">Le document sera renvoyé au créateur pour correction</p>
       </div>
-      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
+      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">X</button>
     </div>
 
     <form id="rejectForm" method="POST">
@@ -308,7 +363,7 @@
         <button type="submit"
           style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
           onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
-          ✕ ✓ Confirmer le rejet
+         Confirmer le rejet
         </button>
       </div>
     </form>

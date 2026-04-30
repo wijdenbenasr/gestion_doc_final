@@ -37,7 +37,7 @@
         <div class="stat-meta">A corriger et renvoyer</div>
     </a>
     <a href="{{ route('documents.creator.index', ['status' => 'archived']) }}" class="stat-card {{ $status === 'archived' ? 'active' : '' }}">
-        <div class="stat-label">Archives</div>
+        <div class="stat-label">Documents finalisés</div>
         <div class="stat-value" style="color:#4ade80;">{{ (int) ($stats->finalized ?? 0) }}</div>
         <div class="stat-meta">Documents finalises</div>
     </a>
@@ -135,7 +135,7 @@
                                      'pending_codification' => ['badge-warning', 'Codification'],
                                      'in_validation' => ['badge-info', 'En validation'],
                                      'rejected' => ['badge-danger', 'Rejete'],
-                                     'archived' => ['badge-success', 'Finalise'],
+                                     'archived' => ['badge-success', 'Finalisé'],
                                  ];
                                  $status = $statusConfig[$document->status] ?? ['badge-muted', $document->status];
                              @endphp
@@ -235,35 +235,69 @@
 
 @foreach($documents as $document)
 @if(in_array(strtolower($document->status), ['ready_for_pdf', 'pdf_converted']))
-<div class="modal" id="modalSigner{{ $document->id }}" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
-  <div class="modal-dialog" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
-      <div class="modal-header">
-        <h5 class="modal-title"> Signer et envoyer le document</h5>
-        <button type="button" class="btn-close btn-close-white" onclick="closeSignerModal({{ $document->id }})"></button>
+<div class="modal" id="modalSigner{{ $document->id }}" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;">
+  <div style="background:#0f172a;border:1px solid #3b82f6;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:20px auto;box-shadow:0 25px 60px rgba(59,130,246,0.15);max-height:calc(100vh - 40px);overflow-y:auto;position:relative;">
+    <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.creator.sign', $document->id) }}">
+      @csrf
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+        <div style="width:42px;height:42px;background:rgba(59,130,246,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:bold;color:#3b82f6;">S</div>
+        <div>
+          <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Signer et envoyer le document</h5>
+          <p style="color:#64748b;margin:0;font-size:0.8rem;">Téléversez le document signé pour continuer le workflow</p>
+        </div>
+        <button type="button" onclick="closeSignerModal({{ $document->id }})" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">X</button>
       </div>
-      <div class="modal-body">
-        <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.creator.sign', $document->id) }}">
-          @csrf
-          <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
-            <small class="text-muted">Document :</small>
-            <p class="mb-0 fw-bold">{{ $document->name }}</p>
-            <small class="text-muted">Code : {{ $document->code }}</small>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold"> Televerser le document signe *</label>
-            <input type="file" name="document_signe" accept=".pdf,.docx" required class="form-control" style="background:#0f172a; color:white;">
-            <small class="text-muted">Formats acceptes : PDF, DOCX</small>
-          </div>
-          <div class="mb-3">
-            <label class="form-label"> Commentaire (optionnel)</label>
-            <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
-          </div>
-          <div class="d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-secondary" onclick="closeSignerModal({{ $document->id }})">Annuler</button>
-            <button type="submit" class="btn btn-primary">Signer et envoyer</button>
-          </div>
-        </form>
+
+      <!-- Document info -->
+      <div style="background:#1e293b;border-radius:10px;padding:12px 16px;margin-bottom:1.2rem;">
+        <p style="color:#94a3b8;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;margin:0 0 4px;">DOCUMENT</p>
+        <p style="color:white;font-weight:600;margin:0;">{{ $document->name }}</p>
+        <p style="color:#3b82f6;font-size:0.82rem;margin:4px 0 0;">Code : {{ $document->code }}</p>
       </div>
+
+      <!-- File upload -->
+      <div style="margin-bottom:1.2rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:8px;">
+          TÉLÉVERSER LE DOCUMENT SIGNÉ <span style="color:#ef4444;">*</span>
+        </label>
+        <label for="signedFile{{ $document->id }}" style="display:flex;align-items:center;gap:12px;background:#1e293b;border:2px dashed #334155;border-radius:10px;padding:16px;cursor:pointer;transition:all 0.2s;"
+               onmouseover="this.style.borderColor='#3b82f6'" onmouseout="this.style.borderColor='#334155'">
+          <div style="width:36px;height:36px;background:rgba(59,130,246,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;color:#3b82f6;">+</div>
+          <div>
+            <p style="color:white;font-weight:500;margin:0;font-size:0.9rem;" id="signedFileName{{ $document->id }}">Choisir un fichier PDF</p>
+            <p style="color:#64748b;font-size:0.78rem;margin:2px 0 0;">Format accepté : PDF uniquement</p>
+          </div>
+        </label>
+        <input type="file" id="signedFile{{ $document->id }}" name="document_signe" accept=".pdf" required style="display:none;"
+               onchange="document.getElementById('signedFileName{{ $document->id }}').textContent = this.files[0]?.name || 'Choisir un fichier PDF'">
+      </div>
+
+      <!-- Comment -->
+      <div style="margin-bottom:1.5rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:8px;">
+          COMMENTAIRE <span style="color:#64748b;font-size:0.75rem;">(optionnel)</span>
+        </label>
+        <textarea name="commentaire" rows="3"
+          placeholder="Ajouter un commentaire..."
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#334155'"></textarea>
+      </div>
+
+      <!-- Buttons -->
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button type="button" onclick="closeSignerModal({{ $document->id }})"
+          style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+          onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+          Annuler
+        </button>
+        <button type="submit"
+          style="padding:10px 24px;background:#3b82f6;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+          onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+          Signer et envoyer
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 @endif
@@ -272,30 +306,50 @@
 @foreach($documents as $document)
 @if(strtolower($document->status) === 'ready_for_pdf')
 <div class="modal" id="modalConvertPdf{{ $document->id }}" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
-  <div class="modal-dialog" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
-      <div class="modal-header">
-        <h5 class="modal-title"> Convertir en PDF</h5>
-        <button type="button" class="btn-close btn-close-white" onclick="closeConvertPdfModal({{ $document->id }})"></button>
+  <div class="modal-dialog" style="background:#0f172a;border:1px solid #22c55e;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:10% auto;box-shadow:0 25px 60px rgba(34,197,94,0.15);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+        <div style="width:42px;height:42px;background:rgba(34,197,94,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#22c55e;font-weight:700;">PDF</div>
+        <div>
+          <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Convertir en PDF</h5>
+          <p style="color:#64748b;margin:0;font-size:0.8rem;">Téléversez la version PDF du document</p>
+        </div>
+        <button type="button" class="btn-close btn-close-white" onclick="closeConvertPdfModal({{ $document->id }})" style="margin-left:auto;"></button>
       </div>
-      <div class="modal-body">
-        <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.creator.convert_pdf', $document->id) }}">
-          @csrf
-          <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
-            <small class="text-muted">Document :</small>
-            <p class="mb-0 fw-bold">{{ $document->name }}</p>
-            <small class="text-muted">Code : {{ $document->code }}</small>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold"> Televerser le PDF converti *</label>
-            <input type="file" name="pdf_file" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
-            <small class="text-muted">Formats acceptes : PDF</small>
-          </div>
-          <div class="d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-secondary" onclick="closeConvertPdfModal({{ $document->id }})">Annuler</button>
-            <button type="submit" class="btn btn-primary">Convertir</button>
-          </div>
-        </form>
-      </div>
+      <form method="POST" enctype="multipart/form-data" action="{{ route('workflow.creator.convert_pdf', $document->id) }}">
+        @csrf
+        <div style="background:#1e293b;border-radius:10px;padding:12px 16px;margin-bottom:1.2rem;">
+          <p style="color:#94a3b8;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;margin:0 0 4px;">DOCUMENT</p>
+          <p style="color:white;font-weight:600;margin:0;">{{ $document->name }}</p>
+          <p style="color:#3b82f6;font-size:0.82rem;margin:4px 0 0;">Code : {{ $document->code }}</p>
+        </div>
+        <div style="margin-bottom:1.5rem;">
+          <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:8px;">
+            TÉLÉVERSER LE PDF CONVERTI <span style="color:#ef4444;">*</span>
+          </label>
+          <label for="pdfFile{{ $document->id }}" style="display:flex;align-items:center;gap:12px;background:#1e293b;border:2px dashed #334155;border-radius:10px;padding:16px;cursor:pointer;transition:all 0.2s;"
+                 onmouseover="this.style.borderColor='#22c55e'" onmouseout="this.style.borderColor='#334155'">
+            <div style="width:36px;height:36px;background:rgba(34,197,94,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#22c55e;flex-shrink:0;">+</div>
+            <div>
+              <p style="color:white;font-weight:500;margin:0;font-size:0.9rem;" id="pdfFileName{{ $document->id }}">Choisir un fichier PDF</p>
+              <p style="color:#64748b;font-size:0.78rem;margin:2px 0 0;">Formats acceptés : PDF uniquement</p>
+            </div>
+          </label>
+          <input type="file" id="pdfFile{{ $document->id }}" name="pdf_file" accept=".pdf" required style="display:none;"
+                 onchange="document.getElementById('pdfFileName{{ $document->id }}').textContent = this.files[0]?.name || 'Choisir un fichier PDF'">
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+          <button type="button" onclick="closeConvertPdfModal({{ $document->id }})"
+            style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+            onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+            Annuler
+          </button>
+          <button type="submit"
+            style="padding:10px 24px;background:#22c55e;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+            onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
+            Convertir
+          </button>
+        </div>
+      </form>
   </div>
 </div>
 @endif

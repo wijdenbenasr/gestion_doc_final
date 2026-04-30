@@ -95,7 +95,7 @@
                     id="quick-create-icon"
                     aria-hidden="true"
                     style="display:inline-block;transition:transform .2s ease;transform:rotate({{ $open_quick_create ? '180deg' : '0deg' }});"
-                >?</span>
+                >▼</span>
             </button>
             <a href="{{ route('admin.users.pending') }}" class="btn btn-ghost btn-sm">Comptes en attente</a>
             <a href="{{ route('admin.dashboard') }}" class="btn btn-ghost btn-sm">Dashboard</a>
@@ -130,7 +130,8 @@
                 </div>
                 <div class="field">
                     <label for="create_cin">CIN</label>
-                    <input id="create_cin" type="text" name="cin" value="{{ old('cin') }}">
+                    <input id="create_cin" type="text" name="cin" value="{{ old('cin') }}" maxlength="8" minlength="8" pattern="[01]\d{7}" inputmode="numeric" title="Le CIN doit contenir exactement 8 chiffres et commencer par 0 ou 1" placeholder="Ex: 01234567" required>
+                    <small style="color:#64748b;font-size:0.78rem;">8 chiffres, commençant par 0 ou 1</small>
                 </div>
                 <div class="field">
                     <label for="create_matricule">Matricule</label>
@@ -138,11 +139,12 @@
                 </div>
                 <div class="field">
                     <label for="create_password">Mot de passe</label>
-                    <input id="create_password" type="password" name="password" required>
+                    <input id="create_password" type="password" name="password" minlength="8" title="Le mot de passe doit contenir au moins 8 caractères" required>
+                    <small style="color:#64748b;font-size:0.78rem;">Minimum 8 caractères</small>
                 </div>
                 <div class="field">
                     <label for="create_password_confirmation">Confirmation du mot de passe</label>
-                    <input id="create_password_confirmation" type="password" name="password_confirmation" required>
+                    <input id="create_password_confirmation" type="password" name="password_confirmation" minlength="8" required>
                 </div>
             </div>
 
@@ -284,7 +286,7 @@ function toggleQuickCreatePanel() {
                                     <input type="text" name="name" value="{{ $user->name }}" placeholder="Nom" required>
                                     <input type="text" name="prenom" value="{{ $user->prenom }}" placeholder="Prenom">
                                     <input type="email" name="email" value="{{ $user->email }}" placeholder="Email" required>
-                                    <input type="text" name="cin" value="{{ $user->cin }}" placeholder="CIN">
+                                    <input type="text" name="cin" value="{{ $user->cin }}" maxlength="8" minlength="8" pattern="[01]\d{7}" inputmode="numeric" title="Le CIN doit contenir exactement 8 chiffres et commencer par 0 ou 1" placeholder="Ex: 01234567" required>
                                     <input type="text" name="matricule" value="{{ $user->matricule }}" placeholder="Matricule">
                                     <select name="role">
                                         <option value="">Sans role</option>

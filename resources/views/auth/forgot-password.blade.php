@@ -235,7 +235,7 @@
                     @csrf
                     @if(session('status'))
                     <div class="form-success">
-                        {{ session('status') }}
+                        Nous vous avons envoyé le lien de réinitialisation par email.
                     </div>
                     @endif
                     @if($errors->any())
@@ -253,7 +253,7 @@
                     <button type="submit" class="btn-full">Envoyer le lien</button>
                 </form>
 
-                <a href="{{ route('login') }}" class="back-link">† Retour à la Connexion</a>
+                <a href="{{ route('login') }}" class="back-link">← Retour à la Connexion</a>
             </div>
         </div>
     </div>

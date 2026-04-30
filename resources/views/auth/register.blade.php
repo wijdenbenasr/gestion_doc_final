@@ -307,7 +307,8 @@
                             </div>
                             <div class="field">
                                 <label for="cin">CIN</label>
-                                <input id="cin" type="text" name="cin" value="{{ old('cin') }}" placeholder="Ex: 12345678" required>
+                                <input id="cin" type="text" name="cin" value="{{ old('cin') }}" maxlength="8" minlength="8" pattern="[01]\d{7}" inputmode="numeric" title="Le CIN doit contenir exactement 8 chiffres et commencer par 0 ou 1" placeholder="Ex: 01234567" required>
+                                <small style="color:#64748b;font-size:0.78rem;">8 chiffres, commençant par 0 ou 1</small>
                             </div>
                             <div class="field">
                                 <label for="matricule">Matricule</label>
@@ -320,7 +321,7 @@
                             <div class="field">
                                 <label for="password">Mot de passe</label>
                                 <div class="password-wrapper">
-                                    <input id="password" type="password" name="password" placeholder="Minimum 8 caractères" required>
+                                    <input id="password" type="password" name="password" minlength="8" title="Le mot de passe doit contenir au moins 8 caractères" placeholder="Minimum 8 caractères" required>
                                     <button type="button" class="password-toggle" onclick="togglePassword('password', 'togglePassword')" aria-label="Afficher le mot de passe">
                                         <svg class="eye-open" viewBox="0 0 24 24">
                                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -332,11 +333,12 @@
                                         </svg>
                                     </button>
                                 </div>
+                                <small style="color:#64748b;font-size:0.78rem;">Minimum 8 caractères</small>
                             </div>
                             <div class="field">
                                 <label for="password_confirmation">Confirmation du mot de passe</label>
                                 <div class="password-wrapper">
-                                    <input id="password_confirmation" type="password" name="password_confirmation" placeholder="Répétez le mot de passe" required>
+                                    <input id="password_confirmation" type="password" name="password_confirmation" minlength="8" placeholder="Répétez le mot de passe" required>
                                     <button type="button" class="password-toggle" onclick="togglePassword('password_confirmation', 'togglePasswordConfirm')" aria-label="Afficher le mot de passe">
                                         <svg class="eye-open" viewBox="0 0 24 24">
                                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>

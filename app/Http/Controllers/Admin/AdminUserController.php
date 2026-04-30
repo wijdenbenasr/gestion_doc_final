@@ -92,11 +92,19 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'prenom' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'cin' => ['nullable', 'string', 'max:255', 'unique:users,cin'],
-            'matricule' => ['nullable', 'string', 'max:255', 'unique:users,matricule'],
+            'cin' => ['required', 'digits:8', 'regex:/^[01]\d{7}$/', 'unique:users,cin'],
+            'matricule' => ['required', 'string', 'max:255', 'unique:users,matricule'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(User::roleKeys())],
             'is_admin_approved' => ['nullable', 'boolean'],
+        ], [
+            'cin.required' => 'Le champ CIN est obligatoire.',
+            'cin.digits' => 'Le CIN doit contenir exactement 8 chiffres.',
+            'cin.regex' => 'Le CIN doit commencer par 0 ou 1.',
+            'cin.unique' => 'Ce CIN est déjà utilisé.',
+            'password.required' => 'Le champ mot de passe est obligatoire.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
         ]);
 
         $is_approved = (bool) ($data['is_admin_approved'] ?? false);
@@ -144,10 +152,15 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'prenom' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'cin' => ['nullable', 'string', 'max:255', 'unique:users,cin,'.$user->id],
-            'matricule' => ['nullable', 'string', 'max:255', 'unique:users,matricule,'.$user->id],
+            'cin' => ['required', 'digits:8', 'regex:/^[01]\d{7}$/', 'unique:users,cin,'.$user->id],
+            'matricule' => ['required', 'string', 'max:255', 'unique:users,matricule,'.$user->id],
             'role' => ['nullable', Rule::in(User::roleKeys())],
             'is_admin_approved' => ['nullable', 'boolean'],
+        ], [
+            'cin.required' => 'Le champ CIN est obligatoire.',
+            'cin.digits' => 'Le CIN doit contenir exactement 8 chiffres.',
+            'cin.regex' => 'Le CIN doit commencer par 0 ou 1.',
+            'cin.unique' => 'Ce CIN est déjà utilisé.',
         ]);
 
         $was_approved = (bool) $user->is_admin_approved;

@@ -580,11 +580,11 @@
                     </a>
                 @endif
 
-                <a href="{{ route('documents.archive') }}" class="nav-link {{ request()->routeIs('documents.archive') ? 'active' : '' }}">Archive</a>
+                <a href="{{ route('documents.archive') }}" class="nav-link {{ request()->routeIs('documents.archive') ? 'active' : '' }}">Documents finalisés</a>
 
                 <div class="dropdown" style="position: relative;">
                     <button type="button" class="notification-bell" onclick="toggleNotifDropdown(event, this)" style="background:transparent;border:1px solid var(--border);border-radius:.5rem;padding:.35rem .5rem;cursor:pointer;">
-                        <i class="fas fa-bell"></i>
+                        🔔
                         @if(auth()->user()->unreadNotifications->count() > 0)
                             <span class="notification-badge">
                                 {{ auth()->user()->unreadNotifications->count() }}
@@ -610,7 +610,7 @@
                             </div>
                         @endforelse
                         <div style="border-top:1px solid rgba(255,255,255,0.1)">
-                            <a href="{{ route('notifications.index') }}" style="display:block;text-align:center;padding:10px;color:#3b82f6;font-weight:600;border-top:1px solid rgba(255,255,255,0.1);text-decoration:none;">Voir tout †’</a>
+                            <a href="{{ route('notifications.index') }}" style="display:block;text-align:center;padding:10px;color:#3b82f6;font-weight:600;border-top:1px solid rgba(255,255,255,0.1);text-decoration:none;">Voir tout →</a>
                         </div>
                     </div>
                 </div>

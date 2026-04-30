@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Archive extends Model
 {
-    protected $fillable = ['document_id', 'archived_by', 'archived_at', 'archive_code'];
+    protected $fillable = ['document_id', 'file_path', 'archived_by', 'archived_at', 'archive_code'];
 
     protected $casts = ['archived_at' => 'datetime'];
 

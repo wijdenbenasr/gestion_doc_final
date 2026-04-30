@@ -10,10 +10,10 @@
                 {{ isset($document) ? 'Modifier : ' . $document->name : 'Crer un nouveau document' }}
             </div>
             <div class="card-sub">
-                Remplissez tous les champs obligatoires (*). Le fichier sera chiffr et un hash SHA-256 calcul.
+                Remplissez tous les champs obligatoires (*). Le fichier sera chiffré et un hash SHA-256 calculé.
             </div>
         </div>
-        <a href="{{ $backRoute ?? route('documents.creator.index') }}" class="btn btn-ghost">? Retour</a>
+        <a href="{{ $backRoute ?? route('documents.creator.index') }}" class="btn btn-ghost">← Retour</a>
     </div>
 
     <form method="POST"

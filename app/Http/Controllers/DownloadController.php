@@ -14,12 +14,10 @@ class DownloadController extends Controller
     public function __invoke(Request $request, Document $document)
     {
         $user = Auth::user();
-        $role = $user->role;
-
         $result = $this->resolveFileForDownload($document, $user);
 
         if (!$result) {
-            abort(403, 'Téléchargement non autorisé pour cette phase du workflow.');
+            return back()->with('error', 'Fichier introuvable.');
         }
 
         $filePath = $result['file'];
@@ -27,13 +25,13 @@ class DownloadController extends Controller
         $disk = $result['disk'];
 
         if (!$filePath || !Storage::disk($disk)->exists($filePath)) {
-            abort(404, 'Fichier introuvable sur le disque.');
+            return back()->with('error', 'Fichier introuvable.');
         }
 
         Log::info('Document downloaded', [
             'document_id' => $document->id,
             'user_id' => $user->id,
-            'role' => $role,
+            'role' => $user->role,
             'status' => $document->status,
             'file_path' => $filePath,
         ]);
@@ -47,7 +45,7 @@ class DownloadController extends Controller
         $result = $this->resolveFileForDownload($document, $user);
 
         if (!$result) {
-            abort(403, 'Visualisation non autorisée pour cette phase du workflow.');
+            return back()->with('error', 'Fichier introuvable.');
         }
 
         $filePath = $result['file'];
@@ -55,7 +53,7 @@ class DownloadController extends Controller
         $disk = $result['disk'];
 
         if (!$filePath || !Storage::disk($disk)->exists($filePath)) {
-            abort(404, 'Fichier introuvable sur le disque.');
+            return back()->with('error', 'Fichier introuvable.');
         }
 
         $fullPath = Storage::disk($disk)->path($filePath);
@@ -75,44 +73,130 @@ class DownloadController extends Controller
 
     private function resolveFileForDownload(Document $document, $user)
     {
-        $role = $user->role;
+        $status = strtolower($document->status);
 
-        // All actors can download any document at any workflow phase
-        return $this->resolveOriginalFile($document)
-            ?? $this->resolveConvertedPdf($document)
-            ?? $this->resolveFinalPdf($document, $role, $user)
-            ?? $this->getAnyAvailableFile($document);
+        $typeMap = [
+            'codification'        => 'original',
+            'en_codification'     => 'original',
+            'in_codification'     => 'original',
+            'pending_codification' => 'original',
+            'in_validation'       => 'original',
+            'en_validation'       => 'original',
+            'en_modification'     => 'original',
+            'in_modification'     => 'original',
+            'draft'               => 'original',
+            'brouillon'           => 'original',
+            'signing_validator'   => 'pdf_signe_createur',
+            'signature_validateur' => 'pdf_signe_createur',
+            'in_approbation'      => 'pdf_signe_validateur',
+            'en_approbation'      => 'pdf_signe_validateur',
+            'signing_approver'    => 'pdf_signe_validateur',
+            'signature_approbateur' => 'pdf_signe_validateur',
+            'validation_admin'    => 'pdf_signe_approbateur',
+            'signing_admin'       => 'pdf_signe_approbateur',
+            'signature_admin'     => 'pdf_signe_approbateur',
+            'archived'            => 'pdf_signe_final',
+            'archive'             => 'pdf_signe_final',
+            'finalise'            => 'pdf_signe_final',
+            'ready_for_pdf'       => 'pdf_converted',
+            'pdf_ready'           => 'pdf_converted',
+            'pdf_converted'       => 'pdf_converted',
+            'pdf_converti'        => 'pdf_converted',
+        ];
+
+        if (isset($typeMap[$status])) {
+            $versionType = $typeMap[$status];
+
+            if ($versionType === 'original') {
+                $original = $this->resolveOriginalFile($document);
+                if ($original) {
+                    return $original;
+                }
+                $modified = $document->versions()
+                    ->where('type', 'modified')
+                    ->latest()
+                    ->first();
+                if ($modified && $modified->file_path) {
+                    if (Storage::disk('private')->exists($modified->file_path)) {
+                        return ['file' => $modified->file_path, 'name' => $modified->original_name ?? basename($modified->file_path), 'disk' => 'private'];
+                    }
+                    if (Storage::disk('public')->exists($modified->file_path)) {
+                        return ['file' => $modified->file_path, 'name' => $modified->original_name ?? basename($modified->file_path), 'disk' => 'public'];
+                    }
+                }
+            } else {
+                $version = $document->versions()
+                    ->where('type', $versionType)
+                    ->latest()
+                    ->first();
+
+                if ($version && $version->file_path) {
+                    if (Storage::disk('private')->exists($version->file_path)) {
+                        $ext = pathinfo($version->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+                        $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_' . $versionType . '.' . $ext;
+                        return ['file' => $version->file_path, 'name' => $filename, 'disk' => 'private'];
+                    }
+                    if (Storage::disk('public')->exists($version->file_path)) {
+                        $ext = pathinfo($version->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+                        $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_' . $versionType . '.' . $ext;
+                        return ['file' => $version->file_path, 'name' => $filename, 'disk' => 'public'];
+                    }
+                }
+            }
+        }
+
+        if ($status === 'archived' || $status === 'archive' || $status === 'finalise') {
+            $archive = $document->archives()->latest()->first();
+            if ($archive && isset($archive->file_path) && $archive->file_path) {
+                if (Storage::disk('private')->exists($archive->file_path)) {
+                    $ext = pathinfo($archive->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+                    $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_final.' . $ext;
+                    return ['file' => $archive->file_path, 'name' => $filename, 'disk' => 'private'];
+                }
+                if (Storage::disk('public')->exists($archive->file_path)) {
+                    $ext = pathinfo($archive->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+                    $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_final.' . $ext;
+                    return ['file' => $archive->file_path, 'name' => $filename, 'disk' => 'public'];
+                }
+            }
+        }
+
+        return $this->getAnyAvailableFile($document);
     }
 
     private function getAnyAvailableFile(Document $document)
     {
-        // Try latest version file
         $latestVersion = $document->versions()->latest()->first();
         if ($latestVersion && $latestVersion->file_path) {
-            $disk = str_contains($latestVersion->file_path, 'private') ? 'private' : 'public';
-            $pathInfo = pathinfo($latestVersion->file_path);
-            $extension = isset($pathInfo['extension']) ? $pathInfo['extension'] : 'pdf';
-            $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '.' . $extension;
-            if (Storage::disk($disk)->exists($latestVersion->file_path)) {
+            if (Storage::disk('private')->exists($latestVersion->file_path)) {
                 return [
                     'file' => $latestVersion->file_path,
-                    'name' => $filename,
-                    'disk' => $disk
+                    'name' => $latestVersion->original_name ?? basename($latestVersion->file_path),
+                    'disk' => 'private'
+                ];
+            }
+            if (Storage::disk('public')->exists($latestVersion->file_path)) {
+                return [
+                    'file' => $latestVersion->file_path,
+                    'name' => $latestVersion->original_name ?? basename($latestVersion->file_path),
+                    'disk' => 'public'
                 ];
             }
         }
 
-        // Last resort: try document file_path
         if ($document->file_path) {
-            $disk = str_contains($document->file_path, 'private') ? 'private' : 'public';
-            $pathInfo = pathinfo($document->file_path);
-            $extension = isset($pathInfo['extension']) ? $pathInfo['extension'] : 'pdf';
-            $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '.' . $extension;
-            if (Storage::disk($disk)->exists($document->file_path)) {
+            if (Storage::disk('private')->exists($document->file_path)) {
                 return [
                     'file' => $document->file_path,
-                    'name' => $filename,
-                    'disk' => $disk
+                    'name' => $document->file_original_name ?? basename($document->file_path),
+                    'disk' => 'private'
+                ];
+            }
+            if (Storage::disk('public')->exists($document->file_path)) {
+                return [
+                    'file' => $document->file_path,
+                    'name' => $document->file_original_name ?? basename($document->file_path),
+                    'disk' => 'public'
                 ];
             }
         }
@@ -122,154 +206,79 @@ class DownloadController extends Controller
 
     private function resolveOriginalFile(Document $document)
     {
-        // First try to get original file from DocumentVersion with type 'original'
+        if ($document->file_path) {
+            if (Storage::disk('private')->exists($document->file_path)) {
+                return [
+                    'file' => $document->file_path,
+                    'name' => $document->file_original_name ?? basename($document->file_path),
+                    'disk' => 'private',
+                ];
+            }
+            if (Storage::disk('public')->exists($document->file_path)) {
+                return [
+                    'file' => $document->file_path,
+                    'name' => $document->file_original_name ?? basename($document->file_path),
+                    'disk' => 'public',
+                ];
+            }
+        }
+
         $version = $document->versions()->where('type', 'original')->latest()->first();
-
-        if ($version && $version->file_path && Storage::disk('private')->exists($version->file_path)) {
-            $pathInfo = pathinfo($version->file_path);
-            $extension = isset($pathInfo['extension']) ? $pathInfo['extension'] : 'pdf';
-            $code = $document->code ?: 'doc';
-            $filename = $code . '_' . str_replace(' ', '_', $document->name) . '.' . $extension;
-            return [
-                'file' => $version->file_path,
-                'name' => $filename,
-                'disk' => 'private'
-            ];
-        }
-
-        // Fallback to document file_path
-        if (!$document->file_path || !Storage::disk('private')->exists($document->file_path)) {
-            return null;
-        }
-
-        $pathInfo = pathinfo($document->file_path);
-        $extension = isset($pathInfo['extension']) ? $pathInfo['extension'] : 'pdf';
-        $code = $document->code ?: 'doc';
-        $filename = $code . '_' . str_replace(' ', '_', $document->name) . '.' . $extension;
-
-        return [
-            'file' => $document->file_path,
-            'name' => $filename,
-            'disk' => 'private'
-        ];
-    }
-
-    private function resolveConvertedPdf(Document $document)
-    {
-        // Get the converted PDF from document_versions
-        $version = $document->versions()->where('type', 'pdf_converted')->latest()->first();
-
-        if ($version && $version->file_path && Storage::disk('public')->exists($version->file_path)) {
-            $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_converti.pdf';
-            return [
-                'file' => $version->file_path,
-                'name' => $filename,
-                'disk' => 'public'
-            ];
-        }
-
-        // If not found in versions, try to find it in storage
-        $pdfPath = 'converted_pdfs/' . $document->code . '_' . str_replace(' ', '_', $document->name) . '.pdf';
-        if (Storage::disk('public')->exists($pdfPath)) {
-            $filename = ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_converti.pdf';
-            return [
-                'file' => $pdfPath,
-                'name' => $filename,
-                'disk' => 'public'
-            ];
+        if ($version && $version->file_path) {
+            if (Storage::disk('private')->exists($version->file_path)) {
+                return [
+                    'file' => $version->file_path,
+                    'name' => $version->original_name ?? basename($version->file_path),
+                    'disk' => 'private',
+                ];
+            }
+            if (Storage::disk('public')->exists($version->file_path)) {
+                return [
+                    'file' => $version->file_path,
+                    'name' => $version->original_name ?? basename($version->file_path),
+                    'disk' => 'public',
+                ];
+            }
         }
 
         return null;
     }
 
-    private function resolveFileForValidator(Document $document)
+    private function resolveConvertedPdf(Document $document)
     {
-        $version = $document->versions()->whereIn('type', ['original', 'sent_to_validator'])->latest()->first();
+        $version = $document->versions()->where('type', 'pdf_converted')->latest()->first();
 
-        if ($version && $version->file_path && Storage::disk('private')->exists($version->file_path)) {
-            $pathInfo = pathinfo($version->file_path);
-            $extension = isset($pathInfo['extension']) ? $pathInfo['extension'] : 'pdf';
-            $code = $document->code ?: 'doc';
-            $filename = $code . '_' . str_replace(' ', '_', $document->name) . '_pour_validation.' . $extension;
-            return [
-                'file' => $version->file_path,
-                'name' => $filename,
-                'disk' => 'private'
-            ];
-        }
-
-        return $this->resolveOriginalFile($document);
-    }
-
-    private function resolveFileForApprover(Document $document)
-    {
-        $version = $document->versions()->whereIn('type', ['pdf_signe_validateur', 'sent_to_approver'])->latest()->first();
-
-        if ($version && $version->file_path && Storage::disk('public')->exists($version->file_path)) {
-            $filename = $document->name . '_pour_approbation.pdf';
-            return [
-                'file' => $version->file_path,
-                'name' => $filename,
-                'disk' => 'public'
-            ];
-        }
-
-        return $this->resolveOriginalFile($document);
-    }
-
-    private function resolveFileForAdminValidation(Document $document)
-    {
-        $version = $document->versions()->whereIn('type', ['pdf_signe_approbateur', 'sent_to_admin'])->latest()->first();
-
-        if ($version && $version->file_path && Storage::disk('public')->exists($version->file_path)) {
-            $filename = $document->name . '_pour_validation_admin.pdf';
-            return [
-                'file' => $version->file_path,
-                'name' => $filename,
-                'disk' => 'public'
-            ];
-        }
-
-        return $this->resolveOriginalFile($document);
-    }
-
-    private function resolveSignedPdf(Document $document, $field, $signerRole)
-    {
-        $filePath = $document->$field;
-
-        if (!$filePath || !Storage::disk('public')->exists($filePath)) {
-            return null;
-        }
-
-        $filename = $document->name . '_signe_' . $signerRole . '.pdf';
-
-        return [
-            'file' => $filePath,
-            'name' => $filename,
-            'disk' => 'public'
-        ];
-    }
-
-    private function resolveFinalPdf(Document $document, $role, $user)
-    {
-        if ($document->pdf_signe_final && Storage::disk('public')->exists($document->pdf_signe_final)) {
-            $filename = $document->name . '_FINAL_signe.pdf';
-            return [
-                'file' => $document->pdf_signe_final,
-                'name' => $filename,
-                'disk' => 'public'
-            ];
-        }
-
-        foreach (['pdf_signe_approbateur', 'pdf_signe_validateur', 'pdf_signe_createur'] as $field) {
-            if ($document->$field && Storage::disk('public')->exists($document->$field)) {
-                $filename = $document->name . '_signe.pdf';
+        if ($version && $version->file_path) {
+            if (Storage::disk('public')->exists($version->file_path)) {
                 return [
-                    'file' => $document->$field,
-                    'name' => $filename,
+                    'file' => $version->file_path,
+                    'name' => $version->original_name ?? (($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_converti.pdf'),
                     'disk' => 'public'
                 ];
             }
+            if (Storage::disk('private')->exists($version->file_path)) {
+                return [
+                    'file' => $version->file_path,
+                    'name' => $version->original_name ?? (($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_converti.pdf'),
+                    'disk' => 'private'
+                ];
+            }
+        }
+
+        $pdfPath = 'converted_pdfs/' . $document->code . '_' . str_replace(' ', '_', $document->name) . '.pdf';
+        if (Storage::disk('public')->exists($pdfPath)) {
+            return [
+                'file' => $pdfPath,
+                'name' => ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_converti.pdf',
+                'disk' => 'public'
+            ];
+        }
+        if (Storage::disk('private')->exists($pdfPath)) {
+            return [
+                'file' => $pdfPath,
+                'name' => ($document->code ?: 'doc') . '_' . str_replace(' ', '_', $document->name) . '_converti.pdf',
+                'disk' => 'private'
+            ];
         }
 
         return null;

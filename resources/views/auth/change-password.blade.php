@@ -23,7 +23,7 @@
 
         @if(session('success'))
             <div style="text-align:center;padding:2rem;">
-                <div style="font-size:3rem;margin-bottom:1rem;">✓“</div>
+                <div style="font-size:3rem;margin-bottom:1rem;"></div>
                 <h5 style="color:white;font-weight:bold;">{{ session('success') }}</h5>
                 <p style="color:#94a3b8;">Votre mot de passe a été mis à jour avec succès.</p>
                 <a href="{{ route('account.profile.show') }}"
@@ -51,11 +51,12 @@
                     <div class="field">
                         <label for="password">Nouveau mot de passe</label>
                         <div style="position:relative;">
-                            <input id="password" type="password" name="password" required style="padding-right:2.5rem;" oninput="checkPasswordStrength(this.value)">
+                            <input id="password" type="password" name="password" minlength="8" title="Le mot de passe doit contenir au moins 8 caractères" required style="padding-right:2.5rem;" oninput="checkPasswordStrength(this.value)">
                             <button type="button" class="password-toggle" onclick="togglePassword('password')" tabindex="-1">
                                 <i class="fa fa-eye"></i>
                             </button>
                         </div>
+                        <small style="color:#64748b;font-size:0.78rem;">Minimum 8 caractères</small>
                         <div id="password-strength" style="margin-top:.5rem;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;display:flex;">
                             <div id="strength-bar" style="height:100%;width:0;transition:all .3s;"></div>
                         </div>
@@ -66,7 +67,7 @@
                     <div class="field">
                         <label for="password_confirmation">Confirmation du nouveau mot de passe</label>
                         <div style="position:relative;">
-                            <input id="password_confirmation" type="password" name="password_confirmation" required style="padding-right:2.5rem;">
+                            <input id="password_confirmation" type="password" name="password_confirmation" minlength="8" required style="padding-right:2.5rem;">
                             <button type="button" class="password-toggle" onclick="togglePassword('password_confirmation')" tabindex="-1">
                                 <i class="fa fa-eye"></i>
                             </button>

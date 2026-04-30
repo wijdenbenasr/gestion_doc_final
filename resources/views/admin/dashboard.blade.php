@@ -3,20 +3,6 @@
 @section('title', 'Dashboard Admin')
 
 @section('content')
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show mx-3 mt-3" style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#22c55e;border-radius:8px;" role="alert">
-        <i class="fas fa-check-circle me-2"></i>
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3" style="background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;border-radius:8px;" role="alert">
-        <i class="fas fa-times-circle me-2"></i>
-        {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
 <div class="cards-row" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.25rem;">
     <a href="{{ route('admin.documents.index', ['status' => 'rejected', 'range' => $range]) }}" class="stat-card" style="position: relative;">
         <i class="fas fa-times-circle" style="position: absolute; top: 0.75rem; right: 0.75rem; font-size: 1.5rem; color: #ef4444;"></i>
@@ -308,7 +294,7 @@
                     <td class="col-rev" style="font-family:monospace;font-size:.75rem;">{{ $doc->revision }}</td>
                     @php
 $st = ['archived' => 'badge-success', 'rejected' => 'badge-danger', 'pending_codification' => 'badge-warning', 'in_validation' => 'badge-info', 'approbation' => 'badge-info', 'validation_admin' => 'badge-info', 'draft' => 'badge-muted'];
-$sl = ['archived' => 'Finalise', 'rejected' => 'Rejete', 'pending_codification' => 'Codification', 'in_validation' => 'Validation', 'approbation' => 'Approbation', 'validation_admin' => 'A approuver', 'draft' => 'Brouillon'];
+$sl = ['archived' => 'Finalisé', 'rejected' => 'Rejeté', 'pending_codification' => 'Codification', 'in_validation' => 'Validation', 'approbation' => 'Approbation', 'validation_admin' => 'A approuver', 'draft' => 'Brouillon'];
 $st2 = $st[$doc->status] ?? 'badge-muted';
 @endphp
 <td class="col-statut"><span class="badge {{ $st2 }}">{{ $sl[$doc->status] ?? $doc->status }}</span></td>
@@ -459,18 +445,53 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
     </table>
 </div>
 
+<!-- Sign Modal -->
+<div id="signModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;">
+  <div style="background:#0f172a;border:1px solid #22c55e;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:20px auto;box-shadow:0 25px 60px rgba(34,197,94,0.2);max-height:calc(100vh - 40px);overflow-y:auto;position:relative;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+      <div style="width:42px;height:42px;background:rgba(34,197,94,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">✍️</div>
+      <div>
+        <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Signature finale</h5>
+        <p style="color:#64748b;margin:0;font-size:0.8rem;">Uploadez le PDF signé final pour archiver le document</p>
+      </div>
+      <button onclick="closeSignModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
+    </div>
+    <form id="signForm" method="POST" enctype="multipart/form-data">
+      @csrf
+      <div style="margin-bottom:1.2rem;">
+        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">PDF SIGNÉ FINAL <span style="color:#ef4444;">*</span></label>
+        <input type="file" name="document_signe" accept=".pdf" required
+          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;color-scheme:dark;"
+          onfocus="this.style.borderColor='#22c55e'" onblur="this.style.borderColor='#334155'">
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button type="button" onclick="closeSignModal()"
+          style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+          onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+          Annuler
+        </button>
+        <button type="submit"
+          style="padding:10px 24px;background:#22c55e;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+          onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
+          Signer et archiver
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Unified Reject Modal -->
 <div id="rejectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:#0f172a;border:1px solid #ef4444;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:auto;box-shadow:0 25px 60px rgba(239,68,68,0.2);">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
-      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">Œ</div>
+      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;"></div>
       <div>
         <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Rejeter le document</h5>
         <p style="color:#64748b;margin:0;font-size:0.8rem;">Le document sera renvoyé au créateur pour correction</p>
       </div>
-      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
+      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">X</button>
     </div>
 
     <form id="rejectForm" method="POST">
@@ -503,7 +524,7 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
         <button type="submit"
           style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
           onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
-          ✕ ✓ Confirmer le rejet
+          Confirmer le rejet
         </button>
       </div>
     </form>
@@ -516,14 +537,21 @@ $st2 = $st[$doc->status] ?? 'badge-muted';
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 function openSignModal(id){
-    var modal = document.getElementById('signModal-' + id);
+    var modal = document.getElementById('signModal');
     if (modal) {
-        modal.style.display = 'block';
+        document.getElementById('signForm').action = '/admin/workflow/' + id + '/sign';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
 }
 
 function openSign(id){
     openSignModal(id);
+}
+
+function closeSignModal() {
+    document.getElementById('signModal').style.display = 'none';
+    document.body.style.overflow = '';
 }
 
 function openRejectModal(actionUrl) {
@@ -537,6 +565,12 @@ function closeRejectModal() {
     document.body.style.overflow = '';
 }
 document.addEventListener('DOMContentLoaded', function() {
+    var signModal = document.getElementById('signModal');
+    if (signModal) {
+        signModal.addEventListener('click', function(e) {
+            if (e.target === this) closeSignModal();
+        });
+    }
     var rejectModal = document.getElementById('rejectModal');
     if (rejectModal) {
         rejectModal.addEventListener('click', function(e) {
@@ -555,147 +589,6 @@ if(ctx){
     new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{label:'Créé',data:created,backgroundColor:'#38bdf8'},{label:'Validé',data:validated,backgroundColor:'#22c55e'},{label:'Rejeté',data:rejected,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}});
 }
 </script>
-@endsection
-
-@section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-function openSignModal(id){
-    var modal = document.getElementById('signModal-' + id);
-    if (modal) {
-        modal.style.display = 'block';
-    }
-}
-
-function openSign(id){
-    openSignModal(id);
-}
-
-function openRejectModal(actionUrl) {
-    document.getElementById('rejectForm').action = actionUrl;
-    document.getElementById('rejectModal').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-}
-
-function closeRejectModal() {
-    document.getElementById('rejectModal').style.display = 'none';
-    document.body.style.overflow = '';
-}
-document.addEventListener('DOMContentLoaded', function() {
-    var rejectModal = document.getElementById('rejectModal');
-    if (rejectModal) {
-        rejectModal.addEventListener('click', function(e) {
-            if (e.target === this) closeRejectModal();
-        });
-    }
-});
-
-const ctx=document.getElementById('activityChart');
-if(ctx){
-    const chartData = @json($activityChart);
-    const labels = chartData.labels || [];
-    const created = chartData.created || [];
-    const validated = chartData.validated || [];
-    const rejected = chartData.rejected || [];
-    new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{label:'Créé',data:created,backgroundColor:'#38bdf8'},{label:'Validé',data:validated,backgroundColor:'#22c55e'},{label:'Rejeté',data:rejected,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}});
-}
-</script>
-@endsection
-
-@section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-function openSignModal(id){
-    var modal = document.getElementById('signModal-' + id);
-    if (modal) {
-        modal.style.display = 'block';
-    }
-}
-
-function openSign(id){
-    openSignModal(id);
-}
-
-function openRejectModal(actionUrl) {
-    document.getElementById('rejectForm').action = actionUrl;
-    document.getElementById('rejectModal').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-}
-
-function closeRejectModal() {
-    document.getElementById('rejectModal').style.display = 'none';
-    document.body.style.overflow = '';
-}
-document.addEventListener('DOMContentLoaded', function() {
-    var rejectModal = document.getElementById('rejectModal');
-    if (rejectModal) {
-        rejectModal.addEventListener('click', function(e) {
-            if (e.target === this) closeRejectModal();
-        });
-    }
-});
-
-const ctx=document.getElementById('activityChart');
-if(ctx){
-    const chartData = @json($activityChart);
-    const labels = chartData.labels || [];
-    const created = chartData.created || [];
-    const validated = chartData.validated || [];
-    const rejected = chartData.rejected || [];
-    new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{label:'Cree',data:created,backgroundColor:'#38bdf8'},{label:'Valide',data:validated,backgroundColor:'#22c55e'},{label:'Rejete',data:rejected,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}});
-}
-</script>
-
-<!-- Unified Reject Modal -->
-<div id="rejectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#0f172a;border:1px solid #ef4444;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:auto;box-shadow:0 25px 60px rgba(239,68,68,0.2);">
-
-    <!-- Header -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
-      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">Œ</div>
-      <div>
-        <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Rejeter le document</h5>
-        <p style="color:#64748b;margin:0;font-size:0.8rem;">Le document sera renvoyé au créateur pour correction</p>
-      </div>
-      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
-    </div>
-
-    <form id="rejectForm" method="POST">
-      @csrf
-
-      <!-- Motif -->
-      <div style="margin-bottom:1.2rem;">
-        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">MOTIF DU REJET <span style="color:#ef4444;">*</span></label>
-        <textarea name="motif_rejet" required rows="4"
-          placeholder="Décrivez la raison du rejet et les corrections attendues..."
-          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
-          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'"></textarea>
-      </div>
-
-      <!-- Deadline -->
-      <div style="margin-bottom:1.5rem;">
-        <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:6px;">DEADLINE DE CORRECTION</label>
-        <input type="date" name="deadline_correction"
-          style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;color-scheme:dark;"
-          onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#334155'">
-      </div>
-
-      <!-- Buttons -->
-      <div style="display:flex;gap:12px;justify-content:flex-end;">
-        <button type="button" onclick="closeRejectModal()"
-          style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
-          onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
-          Annuler
-        </button>
-        <button type="submit"
-          style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
-          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
-          ✕ ✓ Confirmer le rejet
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
 @endsection
 
 

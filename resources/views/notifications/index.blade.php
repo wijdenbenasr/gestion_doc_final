@@ -62,7 +62,7 @@ $typeLabels = [
 
     'document_assigned' => 'Assignation',
 
-    'archived' => 'Archivé',
+    'archived' => 'Finalisé',
 
     'ready_for_pdf' => 'Prêt pour PDF',
 

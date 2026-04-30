@@ -7,7 +7,6 @@ use App\Models\Document;
 use App\Models\User;
 use App\Repositories\Interfaces\DocumentRepositoryInterface;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class DocumentService
@@ -21,18 +20,14 @@ class DocumentService
         $path = $file->store('documents', 'private');
         $hash = hash('sha256', Storage::disk('private')->get($path));
 
-        // Get next revision_major from global counter
-        $maxMajor = DB::table('documents')->max('revision_major') ?? 0;
-        $nextMajor = $maxMajor + 1;
-
         $payload = array_merge($data->toArray(), [
             'file_path' => $path,
             'file_original_name' => $file->getClientOriginalName(),
             'created_by' => $creator->id,
             'current_owner_id' => $creator->id,
             'version' => 1,
-            'revision' => "v{$nextMajor}.0",
-            'revision_major' => $nextMajor,
+            'revision' => 'v1.0',
+            'revision_major' => 1,
             'revision_minor' => 0,
             'status' => 'draft',
             'current_role' => 'creator',
@@ -47,10 +42,6 @@ class DocumentService
         $path = $file->store('documents', 'private');
         $hash = hash('sha256', Storage::disk('private')->get($path));
 
-        // Get next revision_major from global counter
-        $maxMajor = DB::table('documents')->max('revision_major') ?? 0;
-        $nextMajor = $maxMajor + 1;
-
         $payload = array_merge($data->toArray(), [
             'code' => $code,
             'file_path' => $path,
@@ -58,8 +49,8 @@ class DocumentService
             'created_by' => $admin->id,
             'current_owner_id' => $createurId,
             'version' => 1,
-            'revision' => "v{$nextMajor}.0",
-            'revision_major' => $nextMajor,
+            'revision' => 'v1.0',
+            'revision_major' => 1,
             'revision_minor' => 0,
             'status' => 'EN_MODIFICATION',
             'current_role' => 'creator',
@@ -98,17 +89,13 @@ class DocumentService
             $payload['file_original_name'] = $file->getClientOriginalName();
             $payload['hash'] = $hash;
 
-            // Increment revision_minor when file is updated during modification phase (draft, rejected, or EN_MODIFICATION)
-            if (in_array($document->status, ['draft', 'rejected', 'EN_MODIFICATION']) && $document->current_role === 'creator') {
+            // Increment revision_minor ONLY when file is uploaded during EN_MODIFICATION
+            if ($document->status === 'EN_MODIFICATION') {
                 $payload['revision_minor'] = ($document->revision_minor ?? 0) + 1;
                 $major = $document->revision_major ?? 1;
                 $minor = $payload['revision_minor'];
                 $payload['revision'] = "v{$major}.{$minor}";
             }
-        }
-
-        if ($document->code && $document->status === 'draft' && $document->current_role === 'creator') {
-            $payload['revision'] = $this->incrementRevision($document->revision ?? '1.0');
         }
 
         $this->documentRepository->update($document, $payload);
@@ -129,16 +116,5 @@ class DocumentService
         $currentHash = hash('sha256', Storage::disk('private')->get($document->file_path));
 
         return hash_equals($document->hash ?? '', $currentHash);
-    }
-
-    private function incrementRevision(string $revision): string
-    {
-        if (! str_contains($revision, '.')) {
-            return $revision.'.1';
-        }
-
-        [$major, $minor] = explode('.', $revision, 2);
-
-        return $major.'.'.((int) $minor + 1);
     }
 }

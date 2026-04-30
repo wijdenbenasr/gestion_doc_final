@@ -56,7 +56,7 @@ class Document extends Model
         'phase', 'nom_phase', 'nom_serie',
         'file_path', 'file_original_name', 'hash',
         'created_by', 'current_owner_id',
-        'version', 'revision', 'status', 'current_role',
+        'version', 'revision', 'revision_major', 'revision_minor', 'status', 'current_role',
         'deadline', 'is_pdf', 'is_fully_signed', 'lock_version',
         'fichier_signe_path', 'pdf_converti', 'pdf_path',
         'validated_by', 'validated_at',

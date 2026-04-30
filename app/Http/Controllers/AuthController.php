@@ -76,10 +76,18 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'prenom' => ['required', 'string', 'max:255'],
-            'cin' => ['required', 'string', 'max:255', 'unique:users,cin'],
+            'cin' => ['required', 'digits:8', 'regex:/^[01]\d{7}$/', 'unique:users,cin'],
             'matricule' => ['required', 'string', 'max:255', 'unique:users,matricule'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'cin.required' => 'Le champ CIN est obligatoire.',
+            'cin.digits' => 'Le CIN doit contenir exactement 8 chiffres.',
+            'cin.regex' => 'Le CIN doit commencer par 0 ou 1.',
+            'cin.unique' => 'Ce CIN est déjà utilisé.',
+            'password.required' => 'Le champ mot de passe est obligatoire.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
         ]);
 
         User::create([
@@ -188,7 +196,11 @@ class AuthController extends Controller
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'password.required' => 'Le champ mot de passe est obligatoire.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
         ]);
 
         $status = Password::reset(
@@ -213,6 +225,10 @@ class AuthController extends Controller
         $data = $request->validate([
             'current_password' => ['required', 'current_password'],
             'password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
+        ], [
+            'password.required' => 'Le champ mot de passe est obligatoire.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
         ]);
 
         $request->user()->forceFill([

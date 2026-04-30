@@ -1,6 +1,6 @@
 <div id="globalDeleteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:#1a2035;border:1px solid #ef4444;border-radius:12px;padding:2rem;max-width:420px;width:90%;margin:auto;text-align:center;">
-    <div style="font-size:3rem;margin-bottom:1rem;">š </div>
+    <div style="font-size:3rem;margin-bottom:1rem;"></div>
     <h5 style="color:white;font-weight:bold;margin-bottom:1rem;" id="globalDeleteTitle">Confirmer la suppression</h5>
     <p style="color:white;" id="globalDeleteName"></p>
     <p style="color:#94a3b8;font-size:0.85rem;">Cette action est irréversible.</p>

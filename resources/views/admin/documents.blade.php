@@ -17,7 +17,7 @@
                             en validation
                             @break
                         @case('archived')
-                            finalisés
+                            Finalisés
                             @break
                         @case('rejected')
                             rejets
@@ -93,7 +93,7 @@
                     <td>
                         @php
                             $statusConfig = [
-                                'archived' => ['badge-success', 'Finalise'],
+                                'archived' => ['badge-success', 'Finalisé'],
                                 'rejected' => ['badge-danger', 'Rejete'],
                                 'pending_codification' => ['badge-warning', 'Codification'],
                                 'in_validation' => ['badge-info', 'Validation'],
@@ -198,7 +198,7 @@
                                     en validation
                                     @break
                                 @case('archived')
-                                    finalis
+                                    Finalisé
                                     @break
                                 @case('rejected')
                                     rejet
@@ -225,12 +225,12 @@
 
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
-      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">Œ</div>
+      <div style="width:42px;height:42px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;"></div>
       <div>
         <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Rejeter le document</h5>
         <p style="color:#64748b;margin:0;font-size:0.8rem;">Le document sera renvoyé au créateur pour correction</p>
       </div>
-      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">✕</button>
+      <button onclick="closeRejectModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">X</button>
     </div>
 
     <form id="rejectForm" method="POST">
@@ -263,7 +263,7 @@
         <button type="submit"
           style="padding:10px 24px;background:#ef4444;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
           onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
-          ✕ ✓ Confirmer le rejet
+         Confirmer le rejet
         </button>
       </div>
     </form>
@@ -273,35 +273,69 @@
 <!-- Modals de signature admin -->
 @foreach($documents as $doc)
 @if($doc->status === 'signing_admin' && $doc->current_role === 'admin')
-<div id="signModal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;z-index:1050;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);">
-    <div class="modal-content" style="background:#1a2035;margin:15% auto;padding:1.5rem;border-radius:8px;max-width:500px;">
-        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h4 style="margin:0;"> Signer et finaliser le document</h4>
-            <button type="button" class="btn-close btn-close-white" onclick="closeSignModal('{{ $doc->id }}')"></button>
-        </div>
-        <div class="modal-body">
-            <form method="POST" enctype="multipart/form-data" action="{{ route('admin.workflow.sign', $doc) }}">
-                @csrf
-                <div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.05)">
-                    <small class="text-muted">Document :</small>
-                    <p class="mb-0 fw-bold">{{ $doc->name }}</p>
-                    <small class="text-muted">Code : {{ $doc->code }}</small>
+<div id="signModal-{{ $doc->id }}" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;">
+    <div style="background:#0f172a;border:1px solid #3b82f6;border-radius:16px;padding:2rem;max-width:480px;width:90%;margin:20px auto;box-shadow:0 25px 60px rgba(59,130,246,0.15);max-height:calc(100vh - 40px);overflow-y:auto;position:relative;">
+        <form method="POST" enctype="multipart/form-data" action="{{ route('admin.workflow.sign', $doc) }}">
+            @csrf
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e293b;">
+                <div style="width:42px;height:42px;background:rgba(59,130,246,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:bold;color:#3b82f6;">S</div>
+                <div>
+                    <h5 style="color:white;font-weight:700;margin:0;font-size:1.1rem;">Signer et finaliser le document</h5>
+                    <p style="color:#64748b;margin:0;font-size:0.8rem;">Téléversez le document signé pour finaliser le workflow</p>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold"> Televerser le document signe *</label>
-                    <input type="file" name="document_signe" accept=".pdf" required class="form-control" style="background:#0f172a; color:white;">
-                    <small class="text-muted">Format accepte : PDF</small>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label"> Commentaire (optionnel)</label>
-                    <textarea name="commentaire" rows="3" class="form-control" style="background:#0f172a; color:white;" placeholder="Ajouter un commentaire..."></textarea>
-                </div>
-                <div style="display:flex;gap:.5rem;justify-content:flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeSignModal('{{ $doc->id }}')">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Signer et finaliser</button>
-                </div>
-            </form>
-        </div>
+                <button type="button" onclick="closeSignModal('{{ $doc->id }}')" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;">X</button>
+            </div>
+
+            <!-- Document info -->
+            <div style="background:#1e293b;border-radius:10px;padding:12px 16px;margin-bottom:1.2rem;">
+                <p style="color:#94a3b8;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;margin:0 0 4px;">DOCUMENT</p>
+                <p style="color:white;font-weight:600;margin:0;">{{ $doc->name }}</p>
+                <p style="color:#3b82f6;font-size:0.82rem;margin:4px 0 0;">Code : {{ $doc->code }}</p>
+            </div>
+
+            <!-- File upload -->
+            <div style="margin-bottom:1.2rem;">
+                <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:8px;">
+                    TÉLÉVERSER LE DOCUMENT SIGNÉ <span style="color:#ef4444;">*</span>
+                </label>
+                <label for="adminSignedFile{{ $doc->id }}" style="display:flex;align-items:center;gap:12px;background:#1e293b;border:2px dashed #334155;border-radius:10px;padding:16px;cursor:pointer;transition:all 0.2s;"
+                       onmouseover="this.style.borderColor='#3b82f6'" onmouseout="this.style.borderColor='#334155'">
+                    <div style="width:36px;height:36px;background:rgba(59,130,246,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;color:#3b82f6;">+</div>
+                    <div>
+                        <p style="color:white;font-weight:500;margin:0;font-size:0.9rem;" id="adminSignedFileName{{ $doc->id }}">Choisir un fichier PDF</p>
+                        <p style="color:#64748b;font-size:0.78rem;margin:2px 0 0;">Format accepté : PDF uniquement</p>
+                    </div>
+                </label>
+                <input type="file" id="adminSignedFile{{ $doc->id }}" name="document_signe" accept=".pdf" required style="display:none;"
+                       onchange="document.getElementById('adminSignedFileName{{ $doc->id }}').textContent = this.files[0]?.name || 'Choisir un fichier PDF'">
+            </div>
+
+            <!-- Comment -->
+            <div style="margin-bottom:1.5rem;">
+                <label style="color:#94a3b8;font-size:0.78rem;font-weight:600;letter-spacing:0.05em;display:block;margin-bottom:8px;">
+                    COMMENTAIRE <span style="color:#64748b;font-size:0.75rem;">(optionnel)</span>
+                </label>
+                <textarea name="commentaire" rows="3"
+                    placeholder="Ajouter un commentaire..."
+                    style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;padding:12px;font-size:0.9rem;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
+                    onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#334155'"></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div style="display:flex;gap:12px;justify-content:flex-end;">
+                <button type="button" onclick="closeSignModal('{{ $doc->id }}')"
+                    style="padding:10px 24px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;"
+                    onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+                    Annuler
+                </button>
+                <button type="submit"
+                    style="padding:10px 24px;background:#3b82f6;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s;"
+                    onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+                    Signer et finaliser
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 @endif

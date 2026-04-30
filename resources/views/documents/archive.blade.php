@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Archive des documents')
+@section('title', 'Documents finalisés')
 
 @section('content')
 <style>
@@ -336,7 +336,7 @@
 
 <div class="archive-container">
     <div class="archive-header">
-        <h1 class="archive-title">Archive des documents finalisés</h1>
+        <h1 class="archive-title">Documents finalisés</h1>
         <p class="archive-sub">Consultez et téléchargez les documents finalisés</p>
     </div>
 

@@ -188,7 +188,6 @@ class DocumentWorkflowController extends Controller
         $document->status = 'in_approbation';
         $document->current_role = 'approver';
         $document->version = ($document->version ?? 1) + 1;
-        $document->revision = (float) ($document->revision ?? 1.0) + 0.1;
         $document->validated_by = Auth::id();
         $document->validated_at = now();
         $document->save();
@@ -422,7 +421,6 @@ DocumentSignature::updateOrCreate(
         $document->status = 'ready_for_pdf';
         $document->current_role = 'creator';
         $document->version = ($document->version ?? 1) + 1;
-        $document->revision = (float) ($document->revision ?? 1.0) + 0.1;
         $document->admin_validated_by = Auth::id();
         $document->admin_validated_at = now();
         $document->save();
@@ -635,6 +633,15 @@ DocumentSignature::updateOrCreate(
 
         $path = $request->file('document_signe')->store('documents/signes', 'public');
 
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $path,
+            'hash' => hash_file('sha256', Storage::disk('public')->path($path)),
+            'type' => 'pdf_signe_createur',
+            'created_by' => Auth::id(),
+        ]);
+
         $document->pdf_signe_createur = $path;
         $document->status = 'signing_validator';
         $document->current_role = 'validator';
@@ -699,6 +706,15 @@ $validators = User::where('role', 'validator')
 
         $path = $request->file('document_signe')->store('documents/signes', 'public');
 
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $path,
+            'hash' => hash_file('sha256', Storage::disk('public')->path($path)),
+            'type' => 'pdf_signe_validateur',
+            'created_by' => Auth::id(),
+        ]);
+
         $document->pdf_signe_validateur = $path;
         $document->status = 'signing_approver';
         $document->current_role = 'approver';
@@ -760,6 +776,15 @@ $validators = User::where('role', 'validator')
         }
 
         $path = $request->file('document_signe')->store('documents/signes', 'public');
+
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $path,
+            'hash' => hash_file('sha256', Storage::disk('public')->path($path)),
+            'type' => 'pdf_signe_approbateur',
+            'created_by' => Auth::id(),
+        ]);
 
         $document->pdf_signe_approbateur = $path;
         $document->status = 'signing_admin';
@@ -823,6 +848,15 @@ $validators = User::where('role', 'validator')
 
         $path = $request->file('document_signe')->store('documents/signes/final', 'public');
 
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'revision' => $document->revision,
+            'file_path' => $path,
+            'hash' => hash_file('sha256', Storage::disk('public')->path($path)),
+            'type' => 'pdf_signe_final',
+            'created_by' => Auth::id(),
+        ]);
+
         $document->pdf_signe_final = $path;
         $document->status = 'archived';
         $document->current_role = null;
@@ -843,7 +877,7 @@ $validators = User::where('role', 'validator')
         if ($document->creator) {
             $document->creator->notify(new DocumentTaskNotification(
                 $document,
-                'Votre document a été signé par tous et est maintenant archivé.',
+                'Votre document a été signé par tous et est maintenant finalisé.',
                 'archived'
             ));
         }
@@ -858,12 +892,12 @@ $validators = User::where('role', 'validator')
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Document signé et archivé avec succès !',
+                'message' => 'Document signé et finalisé avec succès !',
                 'data' => $document->refresh(),
             ]);
         }
 
-        return redirect()->back()->with('success', 'Document signé et archivé avec succès !');
+        return redirect()->back()->with('success', 'Document signé et finalisé avec succès !');
     }
 
     public function validatorIndex(Request $request): View
@@ -932,18 +966,30 @@ $validators = User::where('role', 'validator')
         $user = Auth::user();
         $notifications = $user->notifications()->latest()->limit(6)->get();
 
+        $validationStatuses = $role === 'approver'
+            ? ['in_approbation', 'approbation']
+            : ['in_validation', 'EN_VALIDATION'];
+
+        $signingStatuses = $role === 'approver'
+            ? ['signing_approver', 'SIGNATURE_APPROBATEUR']
+            : ['signing_validator', 'SIGNATURE_VALIDATEUR'];
+
         $baseQuery = Document::with(['creator']);
 
         if ($filter === 'pending') {
             $documents = (clone $baseQuery)
-                ->whereIn('status', ['in_validation', 'in_approbation'])
+                ->whereIn('status', array_merge($validationStatuses, $signingStatuses))
                 ->where('current_role', $role)
                 ->latest()
                 ->paginate(20);
         } elseif ($filter === 'processed') {
             $documents = (clone $baseQuery)
-                ->whereHas('signatures', function ($query) use ($user, $role) {
-                    $query->where('user_id', $user->id)->where('role', $role);
+                ->where(function ($q) use ($user, $role) {
+                    if ($role === 'validator') {
+                        $q->where('validated_by', $user->id);
+                    } else {
+                        $q->where('approved_by', $user->id);
+                    }
                 })
                 ->latest('updated_at')
                 ->paginate(20);
@@ -956,41 +1002,54 @@ $validators = User::where('role', 'validator')
                 ->paginate(20);
         } else {
             $documents = (clone $baseQuery)
-                ->whereIn('status', ['in_validation', 'in_approbation'])
-                ->where('current_role', $role)
+                ->where(function ($query) use ($user, $role) {
+                    $query->whereHas('signatures', function ($q) use ($user, $role) {
+                            $q->where('user_id', $user->id)->where('role', $role);
+                        })
+                        ->orWhere('validated_by', $user->id)
+                        ->orWhere('approved_by', $user->id)
+                        ->orWhereHas('transmissions', function ($q) use ($role) {
+                            $q->where('to_role', $role);
+                        })
+                        ->orWhere(function ($q) use ($user, $role) {
+                            $q->where('current_role', $role)
+                              ->where('created_by', '!=', $user->id);
+                        });
+                })
                 ->latest()
                 ->paginate(20);
         }
 
-        $alertes = null;
-        $documentsAValider = null;
+        // Documents awaiting validation (valider/rejeter)
+        $enAttenteValidation = Document::whereIn('status', $validationStatuses)
+            ->where('current_role', $role)
+            ->with(['creator'])
+            ->latest()
+            ->get();
 
-        if (!$filter || $filter === 'pending') {
-            $signingStatus = $role === 'validator' ? 'signing_validator' : 'signing_approver';
+        // Documents awaiting signature
+        $enAttenteSignature = Document::whereIn('status', $signingStatuses)
+            ->where('current_role', $role)
+            ->with(['creator'])
+            ->latest()
+            ->get();
 
-            $alertes = Document::where('status', $signingStatus)
-                ->where('current_role', $role)
-                ->whereNotNull('deadline')
-                ->orderByRaw('CASE
-                    WHEN deadline < NOW() THEN 0
-                    WHEN deadline < DATE_ADD(NOW(), INTERVAL 2 DAY) THEN 1
-                    ELSE 2
-                END')
-                ->limit(5)
-                ->get();
+        // All alertes = validation + signature
+        $alertes = $enAttenteValidation->merge($enAttenteSignature)->sortBy(function ($doc) {
+            if (!$doc->deadline) {
+                return 2;
+            }
+            if ($doc->deadline->isPast()) {
+                return 0;
+            }
+            if ($doc->deadline->isBefore(now()->addDays(2))) {
+                return 1;
+            }
+            return 2;
+        })->take(10);
 
-            $validationStatus = $role === 'approver' ? 'in_approbation' : 'in_validation';
-            $documentsAValider = Document::where('status', $validationStatus)
-                ->where('current_role', $role)
-                ->whereNotNull('deadline')
-                ->orderByRaw('CASE
-                    WHEN deadline < NOW() THEN 0
-                    WHEN deadline < DATE_ADD(NOW(), INTERVAL 2 DAY) THEN 1
-                    ELSE 2
-                END')
-                ->limit(10)
-                ->get();
-        }
+        // Documents to verify (same as enAttenteValidation)
+        $documentsAVerifier = $enAttenteValidation;
 
         $processedQuery = Document::with(['creator'])
             ->whereHas('signatures', function ($query) use ($user, $role) {
@@ -999,25 +1058,44 @@ $validators = User::where('role', 'validator')
 
         $processedDocuments = (clone $processedQuery)->latest('updated_at')->limit(6)->get();
 
-        $processedCount = (clone $processedQuery)->count();
+        // Stats
+        $enAttenteValidationCount = Document::whereIn('status', $validationStatuses)
+            ->where('current_role', $role)->count();
+
+        $enAttenteSignatureCount = Document::whereIn('status', $signingStatuses)
+            ->where('current_role', $role)->count();
 
         if ($role === 'validator') {
-            $processedCount += Document::where('validated_by', $user->id)->count();
+            $validatedCount = Document::where('validated_by', $user->id)->count();
         } elseif ($role === 'approver') {
-            $processedCount += Document::where('approved_by', $user->id)->count();
+            $validatedCount = Document::where('approved_by', $user->id)->count();
+        } else {
+            $validatedCount = 0;
         }
 
+        $rejectedCount = Document::whereHas('transmissions', function ($query) use ($user) {
+            $query->where('sent_by', $user->id)->where('action', 'reject');
+        })->count();
+
         $stats = [
-            'pending' => Document::where('status', $role === 'approver' ? 'in_approbation' : 'in_validation')
-                ->where('current_role', $role)->count(),
-            'processed' => $processedCount,
-            'rejected' => Document::whereHas('transmissions', function ($query) use ($user) {
-                $query->where('sent_by', $user->id)->where('action', 'reject');
-            })->count(),
+            'en_attente_validation' => $enAttenteValidationCount,
+            'en_attente_signature' => $enAttenteSignatureCount,
+            'processed' => $validatedCount,
+            'rejected' => $rejectedCount,
             'notifications' => $user->unreadNotifications()->count(),
         ];
 
-        return view($view, compact('documents', 'processedDocuments', 'stats', 'filter', 'notifications', 'alertes', 'documentsAValider'));
+        return view($view, compact(
+            'documents',
+            'stats',
+            'filter',
+            'notifications',
+            'alertes',
+            'enAttenteValidation',
+            'enAttenteSignature',
+            'documentsAVerifier',
+            'processedDocuments'
+        ));
     }
 }
 
